@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# PowerShell / Windows
+*.ps1.bak
+
+# Temp files
+*.tmp
+*.wav
+%TEMP%/
+
+# IDE
+.vscode/
+.idea/
+
+# Secrets (DON'T commit real keys)
+*.env
+*secret*

@@ -325,3 +325,4 @@ After uploading the file:
 | **CloudWatch Logs** | Shows the Lambda output |
 
 This is the full S3 + Lambda pipeline. S3 detects the file, Lambda prints the file details, and we see the output in CloudWatch Logs.
+.

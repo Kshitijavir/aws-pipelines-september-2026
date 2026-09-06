@@ -61,9 +61,9 @@ That is not an automated system. **Lambda does not know to "run again after one 
 
 ```mermaid
 graph TD
-    A["⏱️ Time / Schedule<br/>Every 1 minute"] -->|rate(1 minute)| B["📅 EventBridge<br/>Scheduler"]
-    B -->|Invoke| C["⚡ Lambda<br/>eventbridge-rate-lambda"]
-    C -->|print()| D["☁️ CloudWatch<br/>Logs"]
+    A["⏱️ Time / Schedule"] -->|every 1 minute| B["📅 EventBridge Scheduler<br/>rate(1 minute)"]
+    B -->|invoke| C["⚡ Lambda<br/>eventbridge-rate-lambda"]
+    C -->|print| D["☁️ CloudWatch<br/>Logs"]
 
     style A fill:#e1f5ff
     style B fill:#e3f2fd

@@ -1,19 +1,21 @@
-# S3 → Lambda Event-Driven Pipeline
+# S3 → Lambda Pipeline
 
 ## 🎯 Goal
 
-As soon as a file is uploaded into the root level of an S3 bucket, an S3 Event Notification should be generated.
+When someone uploads a file to the top level (root level) of an S3 bucket, S3 sends a notification.
 
-This event will trigger an AWS Lambda function.
+We call this notification **S3 Event Notification**.
 
-The Lambda function will read the event information and print the file metadata, such as:
+This notification starts (triggers) an AWS Lambda function.
+
+The Lambda function reads the notification and prints the file details, like:
 - Bucket name
 - File name
 - File size
 - Event type
 - Event time
 
-The output will be available in Amazon CloudWatch Logs.
+We can see this output in **Amazon CloudWatch Logs**.
 
 ## Architecture
 
@@ -33,9 +35,9 @@ graph TD
 
 ---
 
-## 📌 Required AWS Resources
+## 📌 AWS Resources We Need
 
-### 🪣 S3 Bucket Configuration
+### 🪣 S3 Bucket
 
 #### Step 1: Create S3 Bucket
 1. Open AWS Management Console
@@ -45,34 +47,34 @@ graph TD
 5. Enter a globally unique bucket name
    - Example: `s3-lambda-metadata-demo`
 6. Select your required AWS Region
-7. Keep the remaining settings as default for this practice project
+7. Keep all other settings as default for this practice project
 8. Click **Create bucket**
 
 ✅ The S3 bucket is now ready.
 
-#### Step 2: Understand Root-Level File Upload
+#### Step 2: Upload Files at Root Level
 
-For this project, we want the Lambda function to trigger when a file is uploaded directly into the root level of the bucket.
+For this project, Lambda should start only when a file is uploaded at the root level of the bucket (not inside any folder).
 
 **Example Structure:**
 ```
 s3-lambda-metadata-demo
 │
-├── example.csv        ✅ Root-level (will trigger Lambda)
-├── example.json       ✅ Root-level (will trigger Lambda)
-├── test.txt           ✅ Root-level (will trigger Lambda)
-└── sample.xlsx        ✅ Root-level (will trigger Lambda)
+├── example.csv        ✅ Root level (will trigger Lambda)
+├── example.json       ✅ Root level (will trigger Lambda)
+├── test.txt           ✅ Root level (will trigger Lambda)
+└── sample.xlsx        ✅ Root level (will trigger Lambda)
 ```
 
-**Important Notes:**
-- `example.csv` is a root-level object
-- We are **NOT** using:
-  - `input/example.csv` (inside folder)
-  - `files/example.csv` (inside folder)
-  
-For this simple project, we will leave the **Prefix** configuration blank.
+**Important:**
+- `example.csv` is at root level
+- We are **NOT** using files inside folders like:
+  - `input/example.csv`
+  - `files/example.csv`
 
-### ⚡ S3 Event Notification Configuration
+For this simple project, we will leave the **Prefix** blank.
+
+### ⚡ S3 Event Notification
 
 #### Step 3: Open Event Notification
 1. Open **Amazon S3**
@@ -81,15 +83,15 @@ For this simple project, we will leave the **Prefix** configuration blank.
 4. Scroll down to **Event notifications**
 5. Click **Create event notification**
 
-#### Step 4: Configure Event Notification
+#### Step 4: Event Notification Settings
 
 | Setting | Value | Notes |
 |---------|-------|-------|
-| Event notification name | `s3-lambda-file-upload` | Descriptive name for the event |
+| Event notification name | `s3-lambda-file-upload` | Name of the notification |
 | Prefix | Leave blank | For files at bucket root |
 | Suffix | Leave blank | Allows all file types |
 
-**Supported file types (examples):**
+**File types we can upload (examples):**
 - `.csv`
 - `.txt`
 - `.json`
@@ -98,13 +100,14 @@ For this simple project, we will leave the **Prefix** configuration blank.
 
 #### Step 5: Select Event Type
 
-Under **Event types**, select the appropriate Object Created event:
+Under **Event types**, select:
+
 - **All object create events**
-  - This means the event can be generated when an object is created through supported S3 upload operations
+  - This means the notification can fire when a new object is added to the bucket in supported ways.
 
 ---
 
-## 🐍 Lambda Function Creation
+## 🐍 Create the Lambda Function
 
 ### Step 6: Create Lambda Function
 1. Open AWS Management Console
@@ -114,9 +117,7 @@ Under **Event types**, select the appropriate Object Created event:
 5. Click **Create function**
 6. Select: **Author from scratch**
 
-### Step 7: Configure Lambda
-
-Configure the following:
+### Step 7: Lambda Settings
 
 | Setting | Value |
 |---------|-------|
@@ -124,7 +125,7 @@ Configure the following:
 | Runtime | Python 3.x (select latest available) |
 | Permissions | Use default settings |
 
-Click **Create function**. The Lambda function will now be created.
+Click **Create function**. The Lambda function is created.
 
 ---
 
@@ -179,16 +180,17 @@ Click **Deploy**.
 
 ### 🔍 What This Lambda Code Does
 
-When S3 invokes Lambda, S3 sends an event JSON payload to Lambda.
+When S3 starts the Lambda, S3 sends an event JSON to Lambda.
 
-The Lambda receives it through: `event`
+Lambda gets this event as: `event`
 
-The event contains information about the S3 object.
+The event has all the details about the S3 file.
 
 #### Bucket Name
 ```python
 bucket_name = record["s3"]["bucket"]["name"]
 ```
+- Gets the bucket name
 - **Example:** `s3-lambda-metadata-demo`
 
 #### File Name
@@ -196,7 +198,7 @@ bucket_name = record["s3"]["bucket"]["name"]
 raw_key = record["s3"]["object"]["key"]
 file_name = unquote_plus(raw_key)
 ```
-- The S3 object key is extracted and decoded
+- Gets the file key from S3 and decodes it
 - **Example:** `example.csv`
 
 #### File Size
@@ -209,21 +211,21 @@ file_size = record["s3"]["object"].get("size")
 ```python
 event_name = record.get("eventName")
 ```
-- The event type extracted
+- Gets the event type
 - **Example:** `ObjectCreated:Put`
 
 #### Event Time
 ```python
 event_time = record.get("eventTime")
 ```
-- The event timestamp
+- Gets the time of the event
 - **Example:** `2026-09-01T12:30:15.000Z`
 
 ---
 
-## 🔗 Configure S3 → Lambda Trigger
+## 🔗 Connect S3 → Lambda (Create the Trigger)
 
-### Step 9: Add Lambda as S3 Event Destination
+### Step 9: Add Lambda as the Destination
 
 ```mermaid
 graph LR
@@ -239,12 +241,11 @@ graph LR
     style E fill:#c8e6c9
 ```
 
-**Configuration Steps:**
-
+**Steps:**
 1. Go back to your S3 bucket
-2. Navigate to: **S3** → **Bucket** → **Properties** → **Event notifications**
+2. Go to: **S3** → **Bucket** → **Properties** → **Event notifications**
 3. Click **Create event notification**
-4. Configure:
+4. Fill these settings:
    - **Event name:** `s3-lambda-file-upload`
    - **Event types:** All object create events
    - **Destination:** Lambda function
@@ -253,7 +254,7 @@ graph LR
    - **Suffix:** blank
 5. Click **Save changes**
 
-✅ Now the S3 bucket is configured to send the Object Created event to Lambda.
+✅ Done. Now the S3 bucket sends the "object created" event to Lambda.
 
 ---
 
@@ -265,7 +266,7 @@ graph LR
 2. Click **Upload**
 3. Click **Add files**
 4. Select a test file (example: `example.csv`)
-5. Make sure the file is uploaded directly into the bucket root
+5. Make sure the file goes directly into the bucket root
 6. Click **Upload**
 
 ### 🔄 What Happens After Upload?
@@ -288,38 +289,39 @@ graph TD
     style G fill:#c8e6c9
 ```
 
-**Key Point:** You don't need to manually execute the Lambda function. The S3 upload automatically triggers Lambda.
+**Key Point:** You do not need to run the Lambda yourself. The S3 upload automatically starts the Lambda.
 
 ---
 
-## ☁️ CloudWatch Logs Verification
+## ☁️ See the Output in CloudWatch Logs
 
 ### Step 11: Open CloudWatch
 
 After uploading the file:
 
+**Path 1:**
 1. Open **AWS Lambda**
 2. Open: `s3-lambda-metadata`
 3. Go to the **Monitor** tab
 4. Click **View CloudWatch logs**
 
-**Alternative Path:**
+**Path 2:**
 1. Open **CloudWatch**
-2. Navigate to: **Logs** → **Log groups**
+2. Go to: **Logs** → **Log groups**
 3. Open: `/aws/lambda/s3-lambda-metadata`
 4. Open the latest **Log stream**
 
-✅ You should see the metadata output from your Lambda function!
+✅ You should see the file details printed by your Lambda function!
 
 ---
 
 ## Summary
 
-| Component | Purpose |
+| Component | What It Does |
 |-----------|---------|
-| **S3 Bucket** | Stores files and generates events |
-| **S3 Event Notification** | Detects file uploads and triggers Lambda |
-| **Lambda Function** | Processes events and extracts metadata |
-| **CloudWatch Logs** | Displays Lambda output and debugging info |
+| **S3 Bucket** | Saves files and sends events |
+| **S3 Event Notification** | Finds new files and starts Lambda |
+| **Lambda Function** | Reads the event and prints file details |
+| **CloudWatch Logs** | Shows the Lambda output |
 
-This is a complete event-driven pipeline that demonstrates AWS S3 and Lambda integration!
+This is the full S3 + Lambda pipeline. S3 detects the file, Lambda prints the file details, and we see the output in CloudWatch Logs.

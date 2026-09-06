@@ -2,7 +2,7 @@
 
 ## 🎯 Goal
 
-Suppose an external source system sends **multiple files as one batch** to an S3 bucket:
+Suppose one outside system sends **many files as one batch** to an S3 bucket:
 
 ```text
 customer.csv
@@ -12,7 +12,7 @@ transactions.csv
 payments.csv
 ```
 
-The files do **not** arrive at exactly the same time:
+The files do **not** come at the same time. They come one by one, like this:
 
 ```text
 10:00 AM → customer.csv
@@ -22,21 +22,21 @@ The files do **not** arrive at exactly the same time:
 10:04 AM → payments.csv
 ```
 
-The main problem:
+The main question is:
 
-> **How does Lambda know when the complete batch has arrived?**
+> **How does Lambda know that the whole batch has arrived?**
 
-If S3 triggers Lambda for **every file upload**, Lambda could be invoked 5 times — even though the requirement is: *"Process the entire batch once, only after all files are present."*
+If S3 starts Lambda for **every file upload**, Lambda can run 5 times — but maybe we only want: *"Run once, after all files are there."*
 
-So we use the **Control File (`.ctl`) approach**:
+So we use the **Control File (`.ctl`) method**:
 
-> **Upload all data files first → upload `.ctl` file last → only the `.ctl` upload triggers Lambda → Lambda knows the batch is complete and can start processing.**
+> **First upload all data files → then upload the `.ctl` file → only the `.ctl` file starts Lambda → Lambda knows the batch is complete and can start work.**
 
 ## 📌 What Is a Control File?
 
-A control file is a special file that acts as a **signal / flag**:
+A control file is a special file. It is a **signal** that says:
 
-> **"The files for this batch have been uploaded. You can start processing now."**
+> **"All files of this batch are uploaded. Now you can start work."**
 
 Example batch flow:
 
@@ -48,7 +48,7 @@ transactions.csv
         ↓
    All uploaded
         ↓
-batch_20260901.ctl      ← completion signal (not business data)
+batch_20260901.ctl      ← this file says "batch is done"
         ↓
     "Batch complete"
         ↓
@@ -60,7 +60,7 @@ batch_20260901.ctl      ← completion signal (not business data)
 | File | Meaning |
 |------|---------|
 | `customer.csv`<br>`orders.csv`<br>`products.csv`... | "Here is the data." |
-| `batch_20260901.ctl` | **"The data upload is complete. Start processing."** (GREEN SIGNAL) |
+| `batch_20260901.ctl` | **"The data upload is complete. Start work."** (GREEN SIGNAL) |
 
 ## Architecture
 
@@ -85,7 +85,7 @@ graph TD
 
 ## ❌ What Happens Without a Control File?
 
-Suppose S3 is configured for **every object-created event** and 10 files arrive:
+Suppose S3 is set to trigger on **every object created** and 10 files come:
 
 ```text
 file1.csv → Lambda
@@ -95,21 +95,21 @@ file3.csv → Lambda
 file10.csv → Lambda
 ```
 
-### Problem 1 — Lambda may process an incomplete batch
-When `file1.csv` arrives, Lambda does not know whether `file2.csv`, `file3.csv`... are still coming.
+### Problem 1 — Lambda may work on an incomplete batch
+When `file1.csv` arrives, Lambda does not know if `file2.csv`, `file3.csv`... are still coming.
 
-### Problem 2 — Multiple unnecessary Lambda executions
-50 files → 50 S3 events → potentially 50 Lambda invocations, when the requirement is: *"Process the entire batch once."*
+### Problem 2 — Lambda runs many times without need
+50 files → 50 S3 events → maybe 50 Lambda runs. But the real need is: *"Run the whole batch once."*
 
-### Problem 3 — Downstream processing starts too early
-If processing needs `customer.csv` + `orders.csv` + `products.csv`, but only `customer.csv` has arrived, processing fails with a **missing file**.
+### Problem 3 — Next step may start too early
+If the next step needs `customer.csv` + `orders.csv` + `products.csv`, but only `customer.csv` has arrived, the work fails with a **missing file**.
 
-### Problem 4 — Timing-based solutions are unreliable
-"Wait 10 minutes after the first file" fails if files take 15 minutes (incomplete batch) or 2 minutes (unnecessary wait). A fixed wait is not a reliable batch-completion signal.
+### Problem 4 — "Wait some time" is not a good fix
+"Wait 10 minutes after the first file" fails if files take 15 minutes (batch still not complete), and wastes time if files come in 2 minutes. Fixed waiting is not a good way to know when a batch is done.
 
 ---
 
-## 📌 Required AWS Resources
+## 📌 AWS Resources We Need
 
 | Sr. No. | AWS Service | Resource |
 | ------- | ----------- | -------- |
@@ -119,7 +119,7 @@ If processing needs `customer.csv` + `orders.csv` + `products.csv`, but only `cu
 | 4 | S3 | Event notification (suffix `.ctl`) |
 | 5 | CloudWatch | Lambda logs |
 
-> ⚠️ **Order of creation matters:** IAM role first → S3 bucket → Lambda → Event Notification.
+> ⚠️ **Order matters:** first IAM role → then S3 bucket → then Lambda → then Event Notification.
 
 ---
 
@@ -137,16 +137,16 @@ If processing needs `customer.csv` + `orders.csv` + `products.csv`, but only `cu
 
 ### Attach Policies
 
-| Policy | Purpose |
-|--------|---------|
-| `AmazonS3FullAccess` | Allows Lambda to access objects in S3 (managed policy, fine for this learning project) |
-| `AWSLambdaBasicExecutionRole` | Allows Lambda to write execution logs to CloudWatch |
+| Policy | What It Does |
+|--------|--------|
+| `AmazonS3FullAccess` | Lets Lambda read files from S3 (managed policy, fine for this practice project) |
+| `AWSLambdaBasicExecutionRole` | Lets Lambda write its logs to CloudWatch |
 
 ### Name the Role
 - Role name: `s3-lambda-control-file-role`
 - Click **Create role**
 
-✅ The IAM role is now ready.
+✅ The IAM role is ready.
 
 ---
 
@@ -158,10 +158,10 @@ If processing needs `customer.csv` + `orders.csv` + `products.csv`, but only `cu
 4. Enter a globally unique name
    - Example: `s3-control-file-demo`
 5. Select your required AWS Region
-6. Keep remaining settings as default for this practice project
+6. Keep other settings as default for this practice project
 7. Click **Create bucket**
 
-### Expected Bucket Structure (after uploads)
+### Bucket Structure (after all uploads)
 
 ```
 s3-control-file-demo
@@ -174,7 +174,7 @@ s3-control-file-demo
 └── batch_20260901.ctl     ← uploaded LAST
 ```
 
-> The important thing: `batch_20260901.ctl` is uploaded **after** all data files.
+> The main point: `batch_20260901.ctl` is uploaded **after** all data files.
 
 ---
 
@@ -185,7 +185,7 @@ s3-control-file-demo
 3. Click **Functions** → **Create function**
 4. Select: **Author from scratch**
 
-### Configure Lambda
+### Lambda Settings
 
 | Setting | Value |
 |---------|-------|
@@ -202,10 +202,10 @@ s3-control-file-demo
 
 ## 💻 Step 4: Lambda Code
 
-The Lambda needs to do two things:
+The Lambda does two things:
 
-1. Understand **which `.ctl` file** triggered it
-2. **List the files** currently in the bucket and print their metadata
+1. Find out **which `.ctl` file** started it
+2. **List all files** in the bucket and print their details
 
 Open the Lambda function → **Code** section, replace the existing code with:
 
@@ -264,16 +264,16 @@ Click **Deploy**.
 
 When the `.ctl` file arrives (`batch_20260901.ctl`), S3 sends an event to Lambda.
 
-| Part | Code | Purpose |
-|------|------|---------|
-| Bucket name | `event["Records"][0]["s3"]["bucket"]["name"]` | Extracts bucket → `s3-control-file-demo` |
-| Control file | `unquote_plus(event["Records"][0]["s3"]["object"]["key"])` | Extracts + decodes object key → `batch_20260901.ctl` |
-| List objects | `s3.list_objects_v2(Bucket=bucket_name)` | Lists every file currently in the bucket |
-| Print metadata | `obj["Key"]`, `obj["Size"]` | Prints each file name and size |
+| Part | Code | What It Does |
+|------|------|--------|
+| Bucket name | `event["Records"][0]["s3"]["bucket"]["name"]` | Gets the bucket → `s3-control-file-demo` |
+| Control file | `unquote_plus(event["Records"][0]["s3"]["object"]["key"])` | Gets + decodes the file key → `batch_20260901.ctl` |
+| List objects | `s3.list_objects_v2(Bucket=bucket_name)` | Lists every file in the bucket |
+| Print details | `obj["Key"]`, `obj["Size"]` | Prints each file name and size |
 
 ---
 
-## ⚡ Step 5: Configure S3 Event Notification (Most Important Configuration)
+## ⚡ Step 5: S3 Event Notification (Most Important Setting)
 
 1. Open **Amazon S3**
 2. Click your bucket: `s3-control-file-demo`
@@ -281,14 +281,14 @@ When the `.ctl` file arrives (`batch_20260901.ctl`), S3 sends an event to Lambda
 4. Scroll down to **Event notifications**
 5. Click **Create event notification**
 
-### Event Notification Configuration
+### Event Notification Settings
 
 | Setting | Value | Notes |
 |---------|-------|-------|
-| Event name | `control-file-trigger` | Descriptive name |
+| Event name | `control-file-trigger` | Name of the notification |
 | Prefix | Leave blank | Applies to the whole bucket |
-| Suffix | `.ctl` | **Key configuration** |
-| Event types | **All object create events** | Reacts to object creation |
+| Suffix | `.ctl` | **Most important setting** |
+| Event types | **All object create events** | Fires when an object is created |
 | Destination | **Lambda function** | |
 | Lambda function | `s3-control-file-lambda` | |
 
@@ -298,24 +298,24 @@ Click **Save changes**.
 
 This tells S3:
 
-> **Only trigger this notification when the uploaded object's name ends with `.ctl`.**
+> **Only send the event when the uploaded file name ends with `.ctl`.**
 
-| Uploaded file | Ends with `.ctl`? | Lambda triggered? |
+| Uploaded file | Ends with `.ctl`? | Lambda starts? |
 |---------------|-------------------|-------------------|
-| `customer.csv` | ❌ NO | ❌ NOT triggered |
-| `orders.csv` | ❌ NO | ❌ NOT triggered |
-| `products.csv` | ❌ NO | ❌ NOT triggered |
-| `payments.csv` | ❌ NO | ❌ NOT triggered |
-| `transactions.csv` | ❌ NO | ❌ NOT triggered |
-| `batch_20260901.ctl` | ✅ YES | ✅ **TRIGGERED** |
+| `customer.csv` | ❌ NO | ❌ No |
+| `orders.csv` | ❌ NO | ❌ No |
+| `products.csv` | ❌ NO | ❌ No |
+| `payments.csv` | ❌ NO | ❌ No |
+| `transactions.csv` | ❌ NO | ❌ No |
+| `batch_20260901.ctl` | ✅ YES | ✅ **YES** |
 
-✅ This is the **core** of the control-file pipeline — this is what makes data-file uploads silent and the `.ctl` upload the single trigger.
+✅ This is the **main idea** of the `.ctl` pipeline: data files do not start Lambda, only the `.ctl` file does.
 
 ---
 
 ## 🧪 Step 6: Test the Pipeline
 
-### Part 1 — Upload Data Files (no trigger expected)
+### Part 1 — Upload Data Files (Lambda should NOT run)
 
 1. Go to: **S3** → **s3-control-file-demo** → **Objects**
 2. Upload files **one by one**:
@@ -328,11 +328,11 @@ payments.csv
 transactions.csv
 ```
 
-For each file, S3 checks *"Does the file end with `.ctl`?"* → **NO** → Lambda **NOT triggered**. ✅ Expected behavior.
+For every file, S3 checks: *"Does the file end with `.ctl`?"* → **NO** → Lambda **does not run**. ✅ This is correct.
 
-### Part 2 — Upload the Control File (trigger expected)
+### Part 2 — Upload the Control File (Lambda should run)
 
-1. Finally upload:
+1. Now upload:
 
 ```text
 batch_20260901.ctl
@@ -356,14 +356,14 @@ graph TD
     style F fill:#c8e6c9
 ```
 
-**Key Point:** You don't manually run Lambda — the `.ctl` upload automatically triggers it.
+**Key Point:** You do not run the Lambda yourself. The `.ctl` upload automatically starts it.
 
 ---
 
-## ☁️ Step 7: CloudWatch Logs Verification
+## ☁️ Step 7: See the Output in CloudWatch Logs
 
 1. Open **CloudWatch**
-2. Navigate to: **Logs** → **Log groups**
+2. Go to: **Logs** → **Log groups**
 3. Open: `/aws/lambda/s3-control-file-lambda`
 4. Open the latest **Log stream**
 
@@ -402,7 +402,7 @@ File Size : 120 bytes
 -------------------------
 ```
 
-✅ The control file was received and Lambda confirmed the full batch is available.
+✅ The control file was received, and Lambda checked that the whole batch is there.
 
 ---
 
@@ -410,12 +410,12 @@ File Size : 120 bytes
 
 | Without Control File | With Control File |
 |----------------------|-------------------|
-| Every file can trigger Lambda | Only `.ctl` triggers Lambda |
-| Lambda may run for every upload | Lambda runs once when `.ctl` arrives |
-| Difficult to know batch completion | `.ctl` indicates batch completion |
-| Can process incomplete batch | Processing starts after control signal |
-| More Lambda invocations | Fewer unnecessary invocations |
-| Timing/order needs extra handling | Source system explicitly signals completion |
+| Every file can start Lambda | Only `.ctl` starts Lambda |
+| Lambda may run for every upload | Lambda runs once when `.ctl` comes |
+| Hard to know when batch is done | `.ctl` says batch is done |
+| Can work on incomplete batch | Work starts only after the signal |
+| More Lambda runs | Fewer useless runs |
+| Timing/order needs extra handling | Source system clearly says "batch done" |
 
 ---
 
@@ -423,32 +423,32 @@ File Size : 120 bytes
 
 **Q: "Why did you use a control file?"**
 
-> **"We receive multiple files as a batch in an S3 bucket. We don't want Lambda to trigger for every individual file because the batch may still be incomplete. So we use a control file with a `.ctl` extension. The source system uploads all the data files first and uploads the `.ctl` file at the end to indicate that the batch is complete. In S3 Event Notifications, we configure a suffix filter of `.ctl`, so only the control file upload triggers Lambda. Lambda then receives the S3 event and can list and process the files belonging to that batch."**
+> **"We get many files as one batch in an S3 bucket. We do not want Lambda to start for every single file, because the batch may not be complete yet. So we use a control file with a `.ctl` extension. The source system uploads all the data files first and uploads the `.ctl` file at the end to say the batch is complete. In S3 Event Notifications, we set the suffix filter to `.ctl`, so only the control file upload starts Lambda. Lambda then gets the S3 event and can list and process the files of that batch."**
 
 ### ⭐ Key Concept (One Sentence)
 
-> **The `.ctl` file acts as a completion signal for a batch of files, and S3 is configured with a `.ctl` suffix filter so that Lambda is triggered only when the control file is uploaded.**
+> **The `.ctl` file is a "batch complete" signal, and S3 has a `.ctl` suffix filter, so Lambda starts only when the control file is uploaded.**
 
 ### ⚠️ Important Practical Point (Next Level)
 
-The `.ctl` file tells Lambda **that the batch is complete**, but S3 itself does **not** know which files belong to that batch. In a real production pipeline, the `.ctl` file often contains information such as:
+The `.ctl` file tells Lambda **that the batch is complete**, but S3 does **not** know which files belong to that batch. In a real production pipeline, the `.ctl` file often contains details like:
 - Expected file names
 - File count
 - Batch ID
 - Date
 
-Lambda can then **validate** that the expected files actually exist before processing them. That is the natural next level of this pipeline.
+Lambda can then **check** that the expected files are really there before starting work. That is the next level of this pipeline.
 
 ---
 
 ## Summary
 
-| Component | Purpose |
+| Component | What It Does |
 |-----------|---------|
-| **IAM Role** | Gives Lambda permissions for S3 and CloudWatch logs |
-| **S3 Bucket** | Stores the data files and the `.ctl` control file |
-| **S3 Event Notification** | Suffix filter `.ctl` — fires only on control-file uploads |
-| **Lambda Function** | Reads the `.ctl` event, lists bucket files, prints metadata |
-| **CloudWatch Logs** | Displays Lambda output and debugging info |
+| **IAM Role** | Gives Lambda permission for S3 and CloudWatch logs |
+| **S3 Bucket** | Saves the data files and the `.ctl` file |
+| **S3 Event Notification** | Suffix filter `.ctl` — fires only for control file uploads |
+| **Lambda Function** | Reads the `.ctl` event, lists bucket files, prints details |
+| **CloudWatch Logs** | Shows the Lambda output |
 
-This pipeline demonstrates how a **control file (`green signal`)** solves the **batch-completion detection** problem in event-driven AWS architectures.
+This pipeline shows how a **control file (green signal)** solves the **"when is the batch complete?"** problem in AWS.

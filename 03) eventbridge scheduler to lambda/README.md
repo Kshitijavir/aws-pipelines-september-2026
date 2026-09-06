@@ -1,16 +1,16 @@
 # Amazon EventBridge Scheduler → Lambda Pipeline
 
-## Rate-Based Schedule — Lambda Triggered Every 1 Minute
+## Rate-Based Schedule — Lambda Runs Every 1 Minute
 
 ## 🎯 Goal
 
-Create a simple serverless scheduling pipeline where **Amazon EventBridge Scheduler invokes an AWS Lambda function every 1 minute**. Lambda will print a message, and the execution output will be visible in **CloudWatch Logs**.
+We want to make a simple serverless pipeline where **Amazon EventBridge Scheduler starts an AWS Lambda function every 1 minute**. Lambda prints a message, and we see the output in **CloudWatch Logs**.
 
-AWS currently recommends **EventBridge Scheduler** for scheduled invocations. A rate expression such as `rate(1 minute)` is a recurring schedule.
+AWS now suggests **EventBridge Scheduler** for scheduled work. `rate(1 minute)` is a recurring schedule.
 
-### 🤔 Why This Pipeline? (Time as the Trigger)
+### 🤔 Why This Pipeline? (Time is the Trigger)
 
-In the previous pipelines, **S3 was the event source**:
+In the last pipelines, **S3 was the source of the event**:
 
 ```text
 File Upload
@@ -22,7 +22,7 @@ S3 Event
 Lambda
 ```
 
-Here, there is **no file upload** and no S3 event. Instead, **time itself is the trigger**:
+Here, there is **no file upload** and no S3 event. Here, **time itself is the trigger**:
 
 ```text
 Every 1 minute
@@ -38,24 +38,24 @@ CloudWatch Logs
 
 ### What Problem Does This Pipeline Solve?
 
-Imagine a task that must happen repeatedly:
+Think of a job that must run again and again, like:
 
-- Check whether a file has arrived
-- Check an S3 location for new files
-- Run a small data-validation task
+- Check if a file has arrived
+- Check an S3 folder for new files
+- Run a small data check
 - Check the status of another process
-- Run a cleanup operation
-- Start a data-processing job
-- Perform a health check
-- Execute some Python code periodically
+- Run a cleanup job
+- Start a data job
+- Do a health check
+- Run some Python code again and again
 
-You don't want a person to manually open Lambda and click **Test** every time:
+We do not want a person to open Lambda and click **Test** every time:
 
 ```text
 Human → Open Lambda → Click Test → Lambda runs   (repeat forever...)
 ```
 
-That is not an automated system. **Lambda does not know to "run again after one minute"** — it only executes when something invokes it. You need another service to tell Lambda *"run now"* on a schedule — that service is **EventBridge Scheduler**.
+That is not automation. **Lambda does not know to "run again after 1 minute"** — Lambda only runs when something starts it. So we need another service to tell Lambda *"run now"* on time. That service is **EventBridge Scheduler**.
 
 ## Architecture
 
@@ -73,9 +73,9 @@ graph TD
 
 ---
 
-## 🕐 Understanding `rate(1 minute)`
+## 🕐 What Is `rate(1 minute)`?
 
-Our schedule expression will be:
+Our schedule text will be:
 
 ```text
 rate(1 minute)
@@ -83,9 +83,9 @@ rate(1 minute)
 
 This means:
 
-> **Run the target repeatedly at a one-minute rate.**
+> **Run again and again, one time every minute.**
 
-AWS rate expressions use the format `rate(value unit)`:
+AWS rate text has this shape: `rate(value unit)`
 
 ```text
 rate(1 minute)
@@ -94,11 +94,11 @@ rate(1 hour)
 rate(1 day)
 ```
 
-> ⚠️ For the value `1`, the unit is **singular**: `rate(1 minute)` — **not** `rate(1 minutes)`.
+> ⚠️ For the value `1`, the unit is **one (singular)**: `rate(1 minute)` — **not** `rate(1 minutes)`.
 
 ---
 
-## 📌 Required AWS Resources
+## 📌 AWS Resources We Need
 
 | Sr. No. | AWS Service | Resource |
 | ------- | ----------- | -------- |
@@ -107,15 +107,15 @@ rate(1 day)
 | 3 | EventBridge Scheduler | `lambda-every-1-minute` |
 | 4 | CloudWatch | Lambda log group |
 
-> ℹ️ **No S3 bucket is required** for this pipeline.
+> ℹ️ **We do not need an S3 bucket** in this pipeline.
 
 ---
 
 ## 🔐 Step 1: Create IAM Role for Lambda
 
-The purpose of this role:
+Why we need this role:
 
-> **Allow the Lambda function to write its execution logs to CloudWatch.**
+> **So Lambda can write its logs to CloudWatch.**
 
 ### 1.1 Open IAM
 1. Open **AWS Management Console**
@@ -129,17 +129,17 @@ The purpose of this role:
 
 ### 1.3 Attach Policy
 
-| Policy | Purpose |
-|--------|---------|
-| `AWSLambdaBasicExecutionRole` | Basic permissions for Lambda to write execution logs to CloudWatch |
+| Policy | What It Does |
+|--------|--------|
+| `AWSLambdaBasicExecutionRole` | Basic permission for Lambda to write logs to CloudWatch |
 
-> For this practice pipeline, this is the **only** managed policy the Lambda function needs.
+> For this practice pipeline, this is the **only** policy the Lambda function needs.
 
 ### 1.4 Name the Role
 - Role name: `eventbridge-lambda-execution-role`
 - Click **Create role**
 
-✅ The Lambda role is now ready.
+✅ The Lambda role is ready.
 
 ---
 
@@ -150,7 +150,7 @@ The purpose of this role:
 3. Click **Create function**
 4. Select: **Author from scratch**
 
-### Configure Lambda
+### Lambda Settings
 
 | Setting | Value |
 |---------|-------|
@@ -158,12 +158,12 @@ The purpose of this role:
 | Runtime | Python 3.x (select latest available) |
 | Permissions | **Use an existing role** → `eventbridge-lambda-execution-role` |
 
-**Role relationship:**
+**Role link:**
 ```text
 Lambda (eventbridge-rate-lambda)
    ↓ uses
 eventbridge-lambda-execution-role
-   ↓ contains
+   ↓ has
 AWSLambdaBasicExecutionRole
 ```
 
@@ -203,29 +203,31 @@ Click **Deploy**.
 
 ### 🔍 What This Lambda Code Does
 
-The Lambda doesn't perform complex processing — its purpose is simply to **prove the EventBridge → Lambda trigger works**. Every run prints:
+This Lambda does not do any big work. Its only job is to **show that EventBridge → Lambda is working**.
+
+Every time it runs, it prints:
 
 ```text
 ===== EVENTBRIDGE SCHEDULE TRIGGERED =====
-Lambda execution time   (e.g. 2026-09-06 13:15:00+00:00)
+Lambda execution time   (for example: 2026-09-06 13:15:00+00:00)
 Trigger : EventBridge Scheduler
 Schedule: rate(1 minute)
 ```
 
-plus the full JSON **event payload** EventBridge sent.
+plus the full JSON **event** that EventBridge sent.
 
 ---
 
-## 🧪 Step 4: Test Lambda Manually First
+## 🧪 Step 4: Test Lambda by Hand First
 
-Before configuring EventBridge, verify the Lambda itself works:
+Before we set up EventBridge, make sure the Lambda itself works:
 
 1. Inside Lambda: click **Test** → **Create new event**
 2. Event name: `manual-test`
 3. Event JSON: `{}`
 4. Click **Save** → **Test**
 
-✅ A successful execution proves the Lambda code works. Next, wire up the scheduler.
+✅ A good run means the Lambda code is fine. Now we add the scheduler.
 
 ---
 
@@ -236,7 +238,7 @@ Before configuring EventBridge, verify the Lambda itself works:
 3. Go to: **Scheduler** → **Schedules**
 4. Click **Create schedule**
 
-### Configure Schedule Details
+### Schedule Details
 
 | Setting | Value |
 |---------|-------|
@@ -246,31 +248,31 @@ Before configuring EventBridge, verify the Lambda itself works:
 
 ### Select Schedule Type
 
-| Setting | Selection |
+| Setting | Select |
 |---------|-----------|
-| Schedule type / occurrence | **Recurring schedule** (not one-time — we want repeated runs) |
+| Schedule type | **Recurring schedule** (not one-time — we want it again and again) |
 | Schedule | **Rate-based schedule** |
 
-### Configure the Rate
+### Set the Rate
 
 | Field | Value |
 |-------|-------|
 | Value | `1` |
 | Unit | `minute` |
 
-Resulting schedule expression: **`rate(1 minute)`**
+Final schedule text: **`rate(1 minute)`**
 
 ### Flexible Time Window
-Set: **Off**
+Set it to: **Off**
 
-> Why? For a simple learning pipeline we want predictable behavior: every 1 minute → invoke Lambda. A flexible time window would let Scheduler invoke the target anywhere *within* a window instead of at the scheduled point.
+> Why? For a simple practice pipeline we want simple behavior: every 1 minute → start Lambda. If the window is On, Scheduler can start the Lambda anywhere *inside* that window, not exactly at the time.
 
 ### Timeframe
-Keep it simple — a recurring schedule with no start date begins once created and enabled.
+Keep it simple. A recurring schedule with no start date starts as soon as it is created and turned on.
 
 ---
 
-## 🎯 Step 6: Select the Target
+## 🎯 Step 6: Choose the Target
 
 Under **Target**:
 
@@ -282,18 +284,18 @@ Under **Target**:
 ```text
 EventBridge Scheduler (lambda-every-1-minute)
         ↓
-targets
+sends to
         ↓
 eventbridge-rate-lambda
 ```
 
 ---
 
-## 🔐 Step 7: EventBridge Scheduler Execution Role — ⚠️ Two Roles, Don't Confuse Them
+## 🔐 Step 7: EventBridge Execution Role — ⚠️ Two Roles, Do Not Mix Them
 
-The scheduler setup is different from Lambda's role. There are **two separate responsibilities**:
+The scheduler setup needs a different role than Lambda. There are **two separate jobs**:
 
-### Role 1 — Lambda Execution Role (you create manually)
+### Role 1 — Lambda Execution Role (you make it yourself)
 
 ```text
 eventbridge-lambda-execution-role
@@ -303,21 +305,21 @@ AWSLambdaBasicExecutionRole
 CloudWatch Logs
 ```
 
-Purpose: lets **Lambda** write its logs.
+Job: lets **Lambda** write its logs.
 
-### Role 2 — EventBridge Scheduler Execution Role (AWS creates it for you)
+### Role 2 — EventBridge Scheduler Execution Role (AWS makes it for you)
 
 ```text
 eventbridge-scheduler-lambda-role
              ↓
-Permission to invoke Lambda
+Permission to start Lambda
              ↓
 eventbridge-rate-lambda
 ```
 
-Purpose: lets **EventBridge Scheduler** invoke the Lambda.
+Job: lets **EventBridge Scheduler** start the Lambda.
 
-### Configuration
+### How to Set It Up
 
 In the Scheduler execution role section, select:
 
@@ -325,7 +327,7 @@ In the Scheduler execution role section, select:
 Create new role for this schedule
 ```
 
-Provide a role name if the console asks, e.g. `eventbridge-scheduler-lambda-role` — AWS automatically attaches the invoke permissions needed for the selected target.
+If the console asks for a role name, use for example `eventbridge-scheduler-lambda-role` — AWS adds the needed permissions for the target by itself.
 
 ```mermaid
 graph TD
@@ -341,13 +343,13 @@ graph TD
     style E fill:#c8e6c9
 ```
 
-**Do not confuse these two roles** — one is for Lambda (you made it), the other is for the Scheduler (AWS makes it).
+**Do not mix these two roles** — one is for Lambda (you made it), the other is for Scheduler (AWS makes it).
 
 ---
 
 ## 📦 Optional: Input / Payload
 
-The Scheduler may offer an input payload option. For this learning pipeline use:
+The Scheduler may ask for an input. For this practice pipeline use:
 
 ```json
 {
@@ -356,13 +358,11 @@ The Scheduler may offer an input payload option. For this learning pipeline use:
 }
 ```
 
-Lambda receives this JSON as its `event` — so you can clearly see what EventBridge sent. (Without a payload, Scheduler invokes Lambda with an empty event.)
+Lambda gets this JSON as its `event` — so we can clearly see what EventBridge sent. (If we give no input, Scheduler starts Lambda with an empty event.)
 
 ---
 
-## 👀 Step 8: Review the Schedule
-
-Final verification checklist:
+## 👀 Step 8: Check Everything Before You Create
 
 | Setting | Value |
 |---------|-------|
@@ -381,18 +381,18 @@ Click **Create schedule**.
 
 ## 🚀 What Happens Now?
 
-The enabled scheduler runs indefinitely:
+The scheduler is on, and it keeps running:
 
 ```text
 EventBridge Scheduler ──1 minute──→ Lambda ──→ print() ──→ CloudWatch Logs
 EventBridge Scheduler ──1 minute──→ Lambda ──→ print() ──→ CloudWatch Logs
 EventBridge Scheduler ──1 minute──→ Lambda ──→ print() ──→ CloudWatch Logs
-                    ... continues while the schedule is enabled
+                    ... keeps going while the schedule is on
 ```
 
 ---
 
-## ☁️ Step 9: Check CloudWatch Logs
+## ☁️ Step 9: See the Output in CloudWatch Logs
 
 1. Open **CloudWatch** → **Logs** → **Log groups**
 2. Open: `/aws/lambda/eventbridge-rate-lambda`
@@ -415,13 +415,13 @@ Event received from EventBridge:
 }
 ```
 
-✅ After another minute you should see another Lambda execution — proof the schedule is recurring.
+✅ After one more minute you should see a new Lambda run — this proves the schedule repeats.
 
 ---
 
-## 🧩 Complete Sequential Procedure (Quick Reference)
+## 🧩 Full Step List (Quick Reference)
 
-| Step | Action |
+| Step | What to Do |
 |------|--------|
 | 1 | Open **IAM** → **Roles** → **Create role** |
 | 2 | Trusted entity: **AWS service** → **Lambda** |
@@ -431,7 +431,7 @@ Event received from EventBridge:
 | 6 | Name: `eventbridge-rate-lambda` → Runtime: Python 3.x |
 | 7 | Execution role: **Use an existing role** → `eventbridge-lambda-execution-role` |
 | 8 | Create the Lambda → paste the Python code → **Deploy** |
-| 9 | **Test manually first** (event `{}`) ✅ |
+| 9 | **Test by hand first** (event `{}`) ✅ |
 | 10 | Open **EventBridge** → **Scheduler** → **Schedules** → **Create schedule** |
 | 11 | Name: `lambda-every-1-minute` |
 | 12 | Schedule type: **Recurring** → **Rate-based** |
@@ -440,16 +440,13 @@ Event received from EventBridge:
 | 15 | Target: **AWS Lambda** → `eventbridge-rate-lambda` |
 | 16 | Scheduler execution role: **Create new role for this schedule** |
 | 17 | Optional input: `{"source": "eventbridge", "schedule": "rate(1 minute)"}` |
-| 18 | Review → **Create schedule** |
-| 19 | Open **CloudWatch** → `/aws/lambda/eventbridge-rate-lambda` → verify repeated executions |
+| 18 | Check everything → **Create schedule** |
+| 19 | Open **CloudWatch** → `/aws/lambda/eventbridge-rate-lambda` → see the runs again and again |
 
 ---
 
 ## 🎤 Interview Explanation
 
-**Q: "Explain the EventBridge → Lambda pipeline you implemented."**
+**Q: "Explain the EventBridge → Lambda pipeline you made."**
 
-> **"I implemented a serverless scheduled pipeline using Amazon EventBridge Scheduler and AWS Lambda. I created a Lambda execution role with the AWSLambdaBasicExecutionRole managed policy so that Lambda could write its execution logs to CloudWatch. I then created a Python Lambda function. Using EventBridge Scheduler, I created a recurring rate-based schedule with `rate(1 minute)` and configured Lambda as the target. For the EventBridge Scheduler execution role, I allowed AWS to create the required role automatically. Once the schedule is enabled, EventBridge invokes the Lambda every minute. Lambda prints the execution time and received event, and I verify the repeated executions through CloudWatch Logs."**
-
----
-
+> **"I made a serverless scheduled pipeline using Amazon EventBridge Scheduler and AWS Lambda. I made a Lambda execution role with the AWSLambdaBasicExecutionRole managed policy so that Lambda could write its logs to CloudWatch. Then I made a Python Lambda function. In EventBridge Scheduler, I made a recurring rate-based schedule with `rate(1 minute)` and set Lambda as the target. For the EventBridge Scheduler execution role, I let AWS create the role by itself. When the schedule is on, EventBridge starts the Lambda every minute. Lambda prints the run time and the event it got, and I check the repeated runs in CloudWatch Logs."**

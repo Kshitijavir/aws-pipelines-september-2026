@@ -20,3 +20,6 @@ venv/
 # Secrets (DON'T commit real keys)
 *.env
 *secret*
+
+# Lambda build artifacts
+function.zip

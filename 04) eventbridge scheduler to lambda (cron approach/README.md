@@ -514,7 +514,7 @@ Once the schedule is on:
 
 ```mermaid
 graph TD
-    A["🕐 Time<br/>Every day at 6 PM IST"] -->|cron(0 18 * * ? *)| B["📅 EventBridge Scheduler"]
+    A["🕐 Time<br/>Every day at 6 PM IST"] -->|cron schedule| B["📅 EventBridge Scheduler<br/>cron(0 18 * * ? *)"]
     B -->|invoke| C["⚡ Lambda<br/>eventbridge-cron-lambda"]
     C -->|print| D["☁️ CloudWatch Logs"]
 

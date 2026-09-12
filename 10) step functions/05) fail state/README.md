@@ -68,7 +68,58 @@ In this pipeline we use **three** state types together:
 | Step Functions | `student-fail-workflow` |
 | CloudWatch | Lambda logs |
 
-> 💡 You can reuse the same role from before (`stepfunctions-choice-demo-role`) — it already trusts both Step Functions and Lambda.
+## 🔐 IAM Role
+
+We use **ONE IAM role**, and both Step Functions and Lambda share it.
+
+### 📍 Go to: IAM Console → Roles → Create role → **Custom trust policy**
+
+### Role Name
+
+```text
+stepfunctions-fail-demo-role
+```
+
+### Trust Policy
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": [
+                    "states.amazonaws.com",
+                    "lambda.amazonaws.com"
+                ]
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+```
+
+### 🧠 What This Trust Policy Means
+
+| Service | Why It Is There |
+|---------|-----------------|
+| `states.amazonaws.com` | So **Step Functions** can invoke the Lambda |
+| `lambda.amazonaws.com` | So **Lambda** can run and write its logs |
+
+> 💡 The trust policy is the **door**. The managed policies below are **what you can do after entering**.
+
+### Attach Managed Policies
+
+| # | Managed Policy | Its Job |
+|---|----------------|---------|
+| 1 | `AWSLambdaBasicExecutionRole` | Lets Lambda write logs to CloudWatch |
+| 2 | `AWSLambdaRole` | Lets Step Functions invoke Lambda |
+
+Click **Create role**.
+
+> 💡 **Already built an earlier pipeline?** You can reuse that role instead of making a new one — just choose it from the *Use an existing role* dropdown in the next step.
 
 ---
 
@@ -81,7 +132,7 @@ In this pipeline we use **three** state types together:
 |---------|-------|
 | Function name | `validate-student` |
 | Runtime | Python 3.x (select latest available) |
-| Execution role | Use an existing role → `stepfunctions-choice-demo-role` |
+| Execution role | Use an existing role → `stepfunctions-fail-demo-role` |
 
 Click **Create function**.
 
@@ -172,7 +223,7 @@ Click **Deploy**.
 | Setting | Value |
 |---------|-------|
 | Name | `student-fail-workflow` |
-| Execution role | Use an existing role → `stepfunctions-choice-demo-role` |
+| Execution role | Use an existing role → `stepfunctions-fail-demo-role` |
 
 ### 📝 State Machine Code
 
@@ -567,20 +618,23 @@ Fail    → ERROR + STOP
 
 | Step | What to Do |
 |------|-----------|
-| 1 | Lambda → Create function → `validate-student` (Python 3.x) |
-| 2 | Execution role: existing → `stepfunctions-choice-demo-role` |
-| 3 | Paste the Lambda code → **Deploy** |
-| 4 | Copy the Lambda ARN |
-| 5 | Step Functions → State machines → Create state machine |
-| 6 | Choose **Write your workflow in code** → type **Standard** |
-| 7 | Name: `student-fail-workflow` |
-| 8 | Paste the state machine code → replace `YOUR_LAMBDA_ARN` |
-| 9 | Execution role: existing → `stepfunctions-choice-demo-role` |
-| 10 | Create the state machine |
-| 11 | Start execution with `{"student": "Kshitij", "marks": 9}` → **Succeeded** ✅ |
-| 12 | Start execution with `{"student": "Rahul", "marks": 15}` → **Failed** ❌ |
-| 13 | Check the failed execution → see `Error` and `Cause` |
-| 14 | Check CloudWatch → Lambda finished normally in both runs |
+| 1 | IAM → Roles → Create role → **Custom trust policy** |
+| 2 | Paste the trust policy, attach `AWSLambdaBasicExecutionRole` + `AWSLambdaRole` |
+| 3 | Role name: `stepfunctions-fail-demo-role` |
+| 4 | Lambda → Create function → `validate-student` (Python 3.x) |
+| 5 | Execution role: existing → `stepfunctions-fail-demo-role` |
+| 6 | Paste the Lambda code → **Deploy** |
+| 7 | Copy the Lambda ARN |
+| 8 | Step Functions → State machines → Create state machine |
+| 9 | Choose **Write your workflow in code** → type **Standard** |
+| 10 | Name: `student-fail-workflow` |
+| 11 | Paste the state machine code → replace `YOUR_LAMBDA_ARN` |
+| 12 | Execution role: existing → `stepfunctions-fail-demo-role` |
+| 13 | Create the state machine |
+| 14 | Start execution with `{"student": "Kshitij", "marks": 9}` → **Succeeded** ✅ |
+| 15 | Start execution with `{"student": "Rahul", "marks": 15}` → **Failed** ❌ |
+| 16 | Check the failed execution → see `Error` and `Cause` |
+| 17 | Check CloudWatch → Lambda finished normally in both runs |
 
 ---
 

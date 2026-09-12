@@ -76,7 +76,58 @@ graph TD
 | CloudWatch | Lambda logs |
 
 > 💡 We need only **one Lambda**. Step Functions calls the same Lambda **three times**.
-> You can reuse the same role from before (`stepfunctions-choice-demo-role`) — it already trusts both Step Functions and Lambda.
+## 🔐 IAM Role
+
+We use **ONE IAM role**, and both Step Functions and Lambda share it.
+
+### 📍 Go to: IAM Console → Roles → Create role → **Custom trust policy**
+
+### Role Name
+
+```text
+stepfunctions-wait-demo-role
+```
+
+### Trust Policy
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": [
+                    "states.amazonaws.com",
+                    "lambda.amazonaws.com"
+                ]
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+```
+
+### 🧠 What This Trust Policy Means
+
+| Service | Why It Is There |
+|---------|-----------------|
+| `states.amazonaws.com` | So **Step Functions** can invoke the Lambda |
+| `lambda.amazonaws.com` | So **Lambda** can run and write its logs |
+
+> 💡 The trust policy is the **door**. The managed policies below are **what you can do after entering**.
+
+### Attach Managed Policies
+
+| # | Managed Policy | Its Job |
+|---|----------------|---------|
+| 1 | `AWSLambdaBasicExecutionRole` | Lets Lambda write logs to CloudWatch |
+| 2 | `AWSLambdaRole` | Lets Step Functions invoke Lambda |
+
+Click **Create role**.
+
+> 💡 **Already built an earlier pipeline?** You can reuse that role instead of making a new one — just choose it from the *Use an existing role* dropdown in the next step.
 
 ---
 
@@ -89,7 +140,7 @@ graph TD
 |---------|-------|
 | Function name | `wait-demo-lambda` |
 | Runtime | Python 3.x (select latest available) |
-| Execution role | Use an existing role → `stepfunctions-choice-demo-role` |
+| Execution role | Use an existing role → `stepfunctions-wait-demo-role` |
 
 Click **Create function**.
 
@@ -151,7 +202,7 @@ Click **Deploy**.
 | Setting | Value |
 |---------|-------|
 | Name | `lambda-wait-workflow` |
-| Execution role | Use an existing role → `stepfunctions-choice-demo-role` |
+| Execution role | Use an existing role → `stepfunctions-wait-demo-role` |
 
 ### 📝 State Machine Code
 
@@ -538,24 +589,27 @@ WAIT   → TIME
 
 | Step | What to Do |
 |------|-----------|
-| 1 | Lambda → Create function → `wait-demo-lambda` (Python 3.x) |
-| 2 | Execution role: existing → `stepfunctions-choice-demo-role` |
-| 3 | Paste the Lambda code → **Deploy** |
-| 4 | Copy the Lambda ARN |
-| 5 | Step Functions → State machines → Create state machine |
-| 6 | Choose **Write your workflow in code** → type **Standard** |
-| 7 | Name: `lambda-wait-workflow` |
-| 8 | Paste the state machine code → replace **all three** `YOUR_LAMBDA_ARN` |
-| 9 | Execution role: existing → `stepfunctions-choice-demo-role` |
-| 10 | Create the state machine |
-| 11 | Start execution with input `{}` |
-| 12 | Lambda #1 runs (count = 1) |
-| 13 | Wait state pauses for 60 seconds |
-| 14 | Lambda #2 runs (count = 2) |
-| 15 | Wait state pauses for 60 seconds |
-| 16 | Lambda #3 runs (count = 3) |
-| 17 | Workflow shows **Succeeded** ✅ |
-| 18 | Check CloudWatch logs → see all three runs, each ~1 minute apart |
+| 1 | IAM → Roles → Create role → **Custom trust policy** |
+| 2 | Paste the trust policy, attach `AWSLambdaBasicExecutionRole` + `AWSLambdaRole` |
+| 3 | Role name: `stepfunctions-wait-demo-role` |
+| 4 | Lambda → Create function → `wait-demo-lambda` (Python 3.x) |
+| 5 | Execution role: existing → `stepfunctions-wait-demo-role` |
+| 6 | Paste the Lambda code → **Deploy** |
+| 7 | Copy the Lambda ARN |
+| 8 | Step Functions → State machines → Create state machine |
+| 9 | Choose **Write your workflow in code** → type **Standard** |
+| 10 | Name: `lambda-wait-workflow` |
+| 11 | Paste the state machine code → replace **all three** `YOUR_LAMBDA_ARN` |
+| 12 | Execution role: existing → `stepfunctions-wait-demo-role` |
+| 13 | Create the state machine |
+| 14 | Start execution with input `{}` |
+| 15 | Lambda #1 runs (count = 1) |
+| 16 | Wait state pauses for 60 seconds |
+| 17 | Lambda #2 runs (count = 2) |
+| 18 | Wait state pauses for 60 seconds |
+| 19 | Lambda #3 runs (count = 3) |
+| 20 | Workflow shows **Succeeded** ✅ |
+| 21 | Check CloudWatch logs → see all three runs, each ~1 minute apart |
 
 ---
 

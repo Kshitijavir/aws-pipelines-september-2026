@@ -58,7 +58,62 @@ graph TD
 | Step Functions | `parallel-lambda-workflow` |
 | CloudWatch | Lambda logs |
 
-> 💡 We create **3 Lambda functions**. You can reuse the same role from before (`stepfunctions-choice-demo-role`) for all of them — it already trusts both Step Functions and Lambda.
+> 💡 We create **3 Lambda functions**. All three can use the **same** role.
+
+## 🔐 IAM Role
+
+We use **ONE IAM role**, and both Step Functions and all three Lambdas share it.
+
+### 📍 Go to: IAM Console → Roles → Create role → **Custom trust policy**
+
+### Role Name
+
+```text
+stepfunctions-parallel-demo-role
+```
+
+### Trust Policy
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": [
+                    "states.amazonaws.com",
+                    "lambda.amazonaws.com"
+                ]
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+```
+
+### 🧠 What This Trust Policy Means
+
+| Service | Why It Is There |
+|---------|-----------------|
+| `states.amazonaws.com` | So **Step Functions** can invoke the Lambdas |
+| `lambda.amazonaws.com` | So **Lambda** can run and write its logs |
+
+> 💡 The trust policy is the **door**. The managed policies below are **what you can do after entering**.
+
+### Attach Managed Policies
+
+| # | Managed Policy | Its Job |
+|---|----------------|---------|
+| 1 | `AWSLambdaBasicExecutionRole` | Lets Lambda write logs to CloudWatch |
+| 2 | `AWSLambdaRole` | Lets Step Functions invoke Lambda |
+
+Click **Create role**.
+
+> 💡 **One role is enough here.** Even though there are three Lambdas, they can all use this single role — a role is about *permissions*, not about *how many functions* exist.
+>
+> 💡 **Already built an earlier pipeline?** You can reuse that role instead of making a new one — just choose it from the *Use an existing role* dropdown in the next step.
 
 ---
 
@@ -71,7 +126,7 @@ graph TD
 |---------|-------|
 | Function name | `lambda-a` |
 | Runtime | Python 3.x (select latest available) |
-| Execution role | Use an existing role → `stepfunctions-choice-demo-role` |
+| Execution role | Use an existing role → `stepfunctions-parallel-demo-role` |
 
 ### 💻 Code
 
@@ -125,7 +180,7 @@ Same thing, with the name changed to `lambda-b` and every `A` changed to `B`.
 |---------|-------|
 | Function name | `lambda-b` |
 | Runtime | Python 3.x |
-| Execution role | Use an existing role → `stepfunctions-choice-demo-role` |
+| Execution role | Use an existing role → `stepfunctions-parallel-demo-role` |
 
 ### 💻 Code
 
@@ -176,7 +231,7 @@ Click **Deploy**.
 |---------|-------|
 | Function name | `lambda-c` |
 | Runtime | Python 3.x |
-| Execution role | Use an existing role → `stepfunctions-choice-demo-role` |
+| Execution role | Use an existing role → `stepfunctions-parallel-demo-role` |
 
 ### 💻 Code
 
@@ -234,7 +289,7 @@ Click **Deploy**.
 | Setting | Value |
 |---------|-------|
 | Name | `parallel-lambda-workflow` |
-| Execution role | Use an existing role → `stepfunctions-choice-demo-role` |
+| Execution role | Use an existing role → `stepfunctions-parallel-demo-role` |
 
 ### 📝 State Machine Definition
 
@@ -581,22 +636,25 @@ Parallel → RUN TOGETHER
 
 | Step | What to Do |
 |------|-----------|
-| 1 | Lambda → Create function → `lambda-a` (Python 3.x) |
-| 2 | Execution role: existing → `stepfunctions-choice-demo-role` |
-| 3 | Paste the Lambda A code → **Deploy** |
-| 4 | Create `lambda-b` with the Lambda B code → **Deploy** |
-| 5 | Create `lambda-c` with the Lambda C code → **Deploy** |
-| 6 | Copy all three Lambda ARNs |
-| 7 | Step Functions → State machines → Create state machine |
-| 8 | Choose **Write your workflow in code** → type **Standard** |
-| 9 | Name: `parallel-lambda-workflow` |
-| 10 | Paste the definition → replace all three ARNs |
-| 11 | Execution role: existing → `stepfunctions-choice-demo-role` |
-| 12 | Create the state machine |
-| 13 | Start execution with `{}` |
-| 14 | Watch the diagram → all three branches run at once ✅ |
-| 15 | Check the three CloudWatch log groups → compare the IST times |
-| 16 | Confirm the workflow reaches **Succeeded** ✅ |
+| 1 | IAM → Roles → Create role → **Custom trust policy** |
+| 2 | Paste the trust policy, attach `AWSLambdaBasicExecutionRole` + `AWSLambdaRole` |
+| 3 | Role name: `stepfunctions-parallel-demo-role` |
+| 4 | Lambda → Create function → `lambda-a` (Python 3.x) |
+| 5 | Execution role: existing → `stepfunctions-parallel-demo-role` |
+| 6 | Paste the Lambda A code → **Deploy** |
+| 7 | Create `lambda-b` with the Lambda B code → **Deploy** |
+| 8 | Create `lambda-c` with the Lambda C code → **Deploy** |
+| 9 | Copy all three Lambda ARNs |
+| 10 | Step Functions → State machines → Create state machine |
+| 11 | Choose **Write your workflow in code** → type **Standard** |
+| 12 | Name: `parallel-lambda-workflow` |
+| 13 | Paste the definition → replace all three ARNs |
+| 14 | Execution role: existing → `stepfunctions-parallel-demo-role` |
+| 15 | Create the state machine |
+| 16 | Start execution with `{}` |
+| 17 | Watch the diagram → all three branches run at once ✅ |
+| 18 | Check the three CloudWatch log groups → compare the IST times |
+| 19 | Confirm the workflow reaches **Succeeded** ✅ |
 
 ---
 

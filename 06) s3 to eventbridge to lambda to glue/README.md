@@ -303,6 +303,8 @@ def lambda_handler(event, context):
 
 Click **Deploy**.
 
+> ⚠️ **The `JobName` value must match your Glue job name exactly.** This guide uses the example name `s3-read-file-glue-job` everywhere (in this Lambda code, in the Glue job you create, and in the Glue script). If you named your Glue job something else, change the `JobName` line here to match — otherwise Glue returns `EntityNotFoundException`.
+
 ### 🧠 What Is Lambda Doing?
 
 Lambda is **not** processing the file. Lambda is only a **bridge** between EventBridge and Glue:

@@ -291,7 +291,7 @@ For JSONPath we must use **`Parameters`** — **not** `Arguments`.
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "arn:aws:lambda:us-east-1:455626929414:function:stepfunctions-three-hit-lambda",
+        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
         "Payload": {
           "hit_number": 1
         }
@@ -309,7 +309,7 @@ For JSONPath we must use **`Parameters`** — **not** `Arguments`.
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "arn:aws:lambda:us-east-1:455626929414:function:stepfunctions-three-hit-lambda",
+        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
         "Payload": {
           "hit_number": 2
         }
@@ -327,7 +327,7 @@ For JSONPath we must use **`Parameters`** — **not** `Arguments`.
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "arn:aws:lambda:us-east-1:455626929414:function:stepfunctions-three-hit-lambda",
+        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
         "Payload": {
           "hit_number": 3
         }
@@ -338,7 +338,7 @@ For JSONPath we must use **`Parameters`** — **not** `Arguments`.
 }
 ```
 
-> ⚠️ The Lambda ARN above is an example. **Replace it with your real Lambda ARN.**
+> ⚠️ Replace **all three** `YOUR LAMBDA FUNCTION ARN` placeholders with your real Lambda ARN. They all point to the **same** Lambda function.
 
 ### 🧠 Why We Use `Parameters` (Not `Arguments`)
 
@@ -641,7 +641,7 @@ AWSLambdaRole
 | 8 | Step Functions → State machines → Create state machine |
 | 9 | Choose **Write your workflow in code** → type **Standard** |
 | 10 | Paste the state machine JSON (use `Parameters`, not `Arguments`) |
-| 11 | Replace the Lambda ARN with your real ARN |
+| 11 | Replace all three `YOUR LAMBDA FUNCTION ARN` placeholders |
 | 12 | Execution role: **Use an existing role** → `stepfunctions-lambda-demo-role` |
 | 13 | Name: `lambda-three-hit-workflow` → **Create** |
 | 14 | **Start execution** with input `{}` |

@@ -382,7 +382,7 @@ Go to **Step Functions** → **State machines** → **Create state machine**.
       "Resource": "arn:aws:states:::glue:startJobRun.sync",
 
       "Parameters": {
-        "JobName": "SF-to-glue-to-lambda",
+        "JobName": "YOUR GLUE JOB NAME",
         "Arguments": {
           "--status.$": "$.status"
         }
@@ -407,7 +407,7 @@ Go to **Step Functions** → **State machines** → **Create state machine**.
       "Type": "Pass",
 
       "Parameters": {
-        "glue_job_name": "SF-to-glue-to-lambda",
+        "glue_job_name": "YOUR GLUE JOB NAME",
         "status": "SUCCESS"
       },
 
@@ -418,7 +418,7 @@ Go to **Step Functions** → **State machines** → **Create state machine**.
       "Type": "Pass",
 
       "Parameters": {
-        "glue_job_name": "SF-to-glue-to-lambda",
+        "glue_job_name": "YOUR GLUE JOB NAME",
         "status": "FAILED"
       },
 
@@ -431,7 +431,7 @@ Go to **Step Functions** → **State machines** → **Create state machine**.
       "Resource": "arn:aws:states:::lambda:invoke",
 
       "Parameters": {
-        "FunctionName": "arn:aws:lambda:us-east-1:123456789012:function:SF-to-glue-to-lambda",
+        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
         "Payload.$": "$"
       },
 
@@ -441,7 +441,19 @@ Go to **Step Functions** → **State machines** → **Create state machine**.
 }
 ```
 
-> ⚠️ Replace the `FunctionName` ARN with your **real** Lambda ARN.
+### ⚠️ Replace the Placeholders Before Using
+
+The JSON uses placeholders instead of hardcoded names. Replace **all three** with your own values:
+
+| Placeholder | Where It Appears | Replace With |
+|-------------|------------------|--------------|
+| `YOUR GLUE JOB NAME` | `JobName` in `Run Glue Job` | Your Glue job name |
+| `YOUR GLUE JOB NAME` | `glue_job_name` in both Pass states | The **same** Glue job name |
+| `YOUR LAMBDA FUNCTION ARN` | `FunctionName` in `Send To Lambda` | Your real Lambda ARN |
+
+> 📌 **Both `YOUR GLUE JOB NAME` values must be the same name.** One starts the job, and the other two just report it back to Lambda.
+>
+> 💡 Throughout this guide the **example** names are `SF-to-glue-to-lambda` for the Glue job and the Lambda function. If you used different names, put your own names in the placeholders above.
 
 ### 🧠 Understand the Four States
 

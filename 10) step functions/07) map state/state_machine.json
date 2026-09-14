@@ -1,0 +1,30 @@
+{
+  "StartAt": "ProcessStudents",
+  "States": {
+
+    "ProcessStudents": {
+      "Type": "Map",
+
+      "ItemsPath": "$.students",
+
+      "Iterator": {
+        "StartAt": "ProcessStudent",
+        "States": {
+
+          "ProcessStudent": {
+            "Type": "Task",
+            "Resource": "YOUR LAMBDA ARN",
+            "End": true
+          }
+
+        }
+      },
+
+      "Next": "WorkflowCompleted"
+    },
+
+    "WorkflowCompleted": {
+      "Type": "Succeed"
+    }
+  }
+}

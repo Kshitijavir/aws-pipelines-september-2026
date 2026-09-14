@@ -1,0 +1,54 @@
+{
+  "Comment": "Invoke Lambda three times with a 2 minute interval",
+  "StartAt": "FirstLambdaHit",
+  "States": {
+
+    "FirstLambdaHit": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
+        "Payload": {
+          "hit_number": 1
+        }
+      },
+      "Next": "WaitTwoMinutesAfterFirstHit"
+    },
+
+    "WaitTwoMinutesAfterFirstHit": {
+      "Type": "Wait",
+      "Seconds": 120,
+      "Next": "SecondLambdaHit"
+    },
+
+    "SecondLambdaHit": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
+        "Payload": {
+          "hit_number": 2
+        }
+      },
+      "Next": "WaitTwoMinutesAfterSecondHit"
+    },
+
+    "WaitTwoMinutesAfterSecondHit": {
+      "Type": "Wait",
+      "Seconds": 120,
+      "Next": "ThirdLambdaHit"
+    },
+
+    "ThirdLambdaHit": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
+        "Payload": {
+          "hit_number": 3
+        }
+      },
+      "End": true
+    }
+  }
+}

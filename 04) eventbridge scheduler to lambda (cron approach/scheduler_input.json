@@ -1,0 +1,5 @@
+{
+    "source": "eventbridge",
+    "schedule_type": "cron",
+    "schedule": "daily-6-pm"
+}

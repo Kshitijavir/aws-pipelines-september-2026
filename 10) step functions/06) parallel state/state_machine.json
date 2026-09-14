@@ -1,0 +1,52 @@
+{
+  "StartAt": "RunLambdasInParallel",
+  "States": {
+
+    "RunLambdasInParallel": {
+      "Type": "Parallel",
+
+      "Branches": [
+
+        {
+          "StartAt": "LambdaA",
+          "States": {
+            "LambdaA": {
+              "Type": "Task",
+              "Resource": "YOUR LAMBDA A ARN",
+              "End": true
+            }
+          }
+        },
+
+        {
+          "StartAt": "LambdaB",
+          "States": {
+            "LambdaB": {
+              "Type": "Task",
+              "Resource": "YOUR LAMBDA B ARN",
+              "End": true
+            }
+          }
+        },
+
+        {
+          "StartAt": "LambdaC",
+          "States": {
+            "LambdaC": {
+              "Type": "Task",
+              "Resource": "YOUR LAMBDA C ARN",
+              "End": true
+            }
+          }
+        }
+
+      ],
+
+      "Next": "WorkflowCompleted"
+    },
+
+    "WorkflowCompleted": {
+      "Type": "Succeed"
+    }
+  }
+}

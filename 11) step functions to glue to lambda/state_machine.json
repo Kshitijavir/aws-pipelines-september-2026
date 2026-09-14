@@ -1,0 +1,70 @@
+{
+  "Comment": "Step Functions runs Glue based on input status and sends result to Lambda",
+
+  "StartAt": "Run Glue Job",
+
+  "States": {
+
+    "Run Glue Job": {
+      "Type": "Task",
+
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+
+      "Parameters": {
+        "JobName": "YOUR GLUE JOB NAME",
+        "Arguments": {
+          "--status.$": "$.status"
+        }
+      },
+
+      "ResultPath": "$.GlueResult",
+
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.GlueError",
+          "Next": "Set Failure Status"
+        }
+      ],
+
+      "Next": "Set Success Status"
+    },
+
+    "Set Success Status": {
+      "Type": "Pass",
+
+      "Parameters": {
+        "glue_job_name": "YOUR GLUE JOB NAME",
+        "status": "SUCCESS"
+      },
+
+      "Next": "Send To Lambda"
+    },
+
+    "Set Failure Status": {
+      "Type": "Pass",
+
+      "Parameters": {
+        "glue_job_name": "YOUR GLUE JOB NAME",
+        "status": "FAILED"
+      },
+
+      "Next": "Send To Lambda"
+    },
+
+    "Send To Lambda": {
+      "Type": "Task",
+
+      "Resource": "arn:aws:states:::lambda:invoke",
+
+      "Parameters": {
+        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
+        "Payload.$": "$"
+      },
+
+      "End": true
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "StartAt": "LambdaFirstTime",
+  "States": {
+
+    "LambdaFirstTime": {
+      "Type": "Task",
+      "Resource": "YOUR LAMBDA ARN",
+      "Parameters": {
+        "count": 1
+      },
+      "Next": "WaitOneMinuteFirst"
+    },
+
+    "WaitOneMinuteFirst": {
+      "Type": "Wait",
+      "Seconds": 60,
+      "Next": "LambdaSecondTime"
+    },
+
+    "LambdaSecondTime": {
+      "Type": "Task",
+      "Resource": "YOUR LAMBDA ARN",
+      "Parameters": {
+        "count": 2
+      },
+      "Next": "WaitOneMinuteSecond"
+    },
+
+    "WaitOneMinuteSecond": {
+      "Type": "Wait",
+      "Seconds": 60,
+      "Next": "LambdaThirdTime"
+    },
+
+    "LambdaThirdTime": {
+      "Type": "Task",
+      "Resource": "YOUR LAMBDA ARN",
+      "Parameters": {
+        "count": 3
+      },
+      "End": true
+    }
+  }
+}

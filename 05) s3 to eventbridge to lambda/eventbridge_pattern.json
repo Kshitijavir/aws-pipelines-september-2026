@@ -3,7 +3,9 @@
   "detail-type": ["Object Created"],
   "detail": {
     "bucket": {
-      "name": ["YOUR BUCKET NAME"]
+      "name": [
+        "YOUR BUCKET NAME"
+      ]
     }
   }
 }

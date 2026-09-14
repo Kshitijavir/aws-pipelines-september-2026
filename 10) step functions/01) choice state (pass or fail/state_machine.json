@@ -1,0 +1,26 @@
+{
+  "StartAt": "CheckMarks",
+  "States": {
+    "CheckMarks": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.marks",
+          "NumericGreaterThan": 7,
+          "Next": "PassStudent"
+        }
+      ],
+      "Default": "FailStudent"
+    },
+    "PassStudent": {
+      "Type": "Task",
+      "Resource": "YOUR LAMBDA PASS ARN",
+      "End": true
+    },
+    "FailStudent": {
+      "Type": "Task",
+      "Resource": "YOUR LAMBDA FAIL ARN",
+      "End": true
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "StartAt": "ProcessStudent",
+  "States": {
+
+    "ProcessStudent": {
+      "Type": "Task",
+      "Resource": "YOUR LAMBDA ARN",
+      "Next": "WorkflowSucceeded"
+    },
+
+    "WorkflowSucceeded": {
+      "Type": "Succeed"
+    }
+  }
+}

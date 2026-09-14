@@ -5,6 +5,9 @@ __pycache__/
 .venv/
 venv/
 
+# Build artifacts (Lambda deploy packages)
+*.zip
+
 # PowerShell / Windows
 *.ps1.bak
 

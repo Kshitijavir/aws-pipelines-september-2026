@@ -1,0 +1,4 @@
+{
+    "source": "eventbridge",
+    "schedule": "rate(1 minute)"
+}

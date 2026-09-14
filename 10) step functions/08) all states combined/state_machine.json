@@ -1,0 +1,124 @@
+{
+  "StartAt": "PrepareStudentData",
+  "States": {
+
+    "PrepareStudentData": {
+      "Type": "Pass",
+      "Result": {
+        "student": "Kshitij",
+        "marks": 8
+      },
+      "ResultPath": "$.student_check",
+      "Next": "CheckStudentMarks"
+    },
+
+    "CheckStudentMarks": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.student_check.marks",
+          "NumericGreaterThanEquals": 7,
+          "Next": "RunParallelLambdas"
+        }
+      ],
+      "Default": "StudentFailed"
+    },
+
+    "RunParallelLambdas": {
+      "Type": "Parallel",
+
+      "Branches": [
+
+        {
+          "StartAt": "LambdaA",
+          "States": {
+            "LambdaA": {
+              "Type": "Task",
+              "Resource": "YOUR LAMBDA A ARN",
+              "Parameters": {
+                "lambda_name": "Lambda A",
+                "student.$": "$.student_check.student",
+                "marks.$": "$.student_check.marks"
+              },
+              "End": true
+            }
+          }
+        },
+
+        {
+          "StartAt": "LambdaB",
+          "States": {
+            "LambdaB": {
+              "Type": "Task",
+              "Resource": "YOUR LAMBDA B ARN",
+              "Parameters": {
+                "lambda_name": "Lambda B",
+                "student.$": "$.student_check.student",
+                "marks.$": "$.student_check.marks"
+              },
+              "End": true
+            }
+          }
+        },
+
+        {
+          "StartAt": "LambdaC",
+          "States": {
+            "LambdaC": {
+              "Type": "Task",
+              "Resource": "YOUR LAMBDA C ARN",
+              "Parameters": {
+                "lambda_name": "Lambda C",
+                "student.$": "$.student_check.student",
+                "marks.$": "$.student_check.marks"
+              },
+              "End": true
+            }
+          }
+        }
+
+      ],
+
+      "ResultPath": "$.parallel_results",
+      "Next": "Wait10Seconds"
+    },
+
+    "Wait10Seconds": {
+      "Type": "Wait",
+      "Seconds": 10,
+      "Next": "ProcessStudents"
+    },
+
+    "ProcessStudents": {
+      "Type": "Map",
+      "ItemsPath": "$.students",
+
+      "Iterator": {
+        "StartAt": "ProcessOneStudent",
+
+        "States": {
+
+          "ProcessOneStudent": {
+            "Type": "Task",
+            "Resource": "YOUR MAP LAMBDA ARN",
+            "End": true
+          }
+
+        }
+      },
+
+      "ResultPath": "$.map_results",
+      "Next": "WorkflowSucceeded"
+    },
+
+    "WorkflowSucceeded": {
+      "Type": "Succeed"
+    },
+
+    "StudentFailed": {
+      "Type": "Fail",
+      "Error": "StudentFailed",
+      "Cause": "Student marks are less than 7"
+    }
+  }
+}

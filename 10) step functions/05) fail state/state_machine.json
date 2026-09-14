@@ -1,0 +1,33 @@
+{
+  "StartAt": "ValidateStudent",
+  "States": {
+
+    "ValidateStudent": {
+      "Type": "Task",
+      "Resource": "YOUR LAMBDA ARN",
+      "Next": "CheckValidation"
+    },
+
+    "CheckValidation": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.valid",
+          "BooleanEquals": true,
+          "Next": "StudentValid"
+        }
+      ],
+      "Default": "StudentValidationFailed"
+    },
+
+    "StudentValid": {
+      "Type": "Succeed"
+    },
+
+    "StudentValidationFailed": {
+      "Type": "Fail",
+      "Error": "StudentValidationError",
+      "Cause": "Student data validation failed"
+    }
+  }
+}

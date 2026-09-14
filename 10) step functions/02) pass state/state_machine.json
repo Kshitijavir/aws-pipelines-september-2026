@@ -1,0 +1,21 @@
+{
+  "StartAt": "PrepareStudentData",
+  "States": {
+
+    "PrepareStudentData": {
+      "Type": "Pass",
+      "Result": {
+        "student": "Kshitij",
+        "marks": 9,
+        "message": "Data prepared by Pass State"
+      },
+      "Next": "ProcessStudent"
+    },
+
+    "ProcessStudent": {
+      "Type": "Task",
+      "Resource": "YOUR LAMBDA ARN",
+      "End": true
+    }
+  }
+}

@@ -159,9 +159,42 @@ Click **Create function**.
 
 You will see the inline code editor. Replace the default code with the code below.
 
-> 📝 **Note:** This pipeline needs two files in real life (`lambda_function.py` + `email.html`). To keep it easy, we put the HTML **inside** the Python file as a string. That way you can paste it straight into the Lambda editor — **no zip upload needed**. ✅
+> 📝 **Two ways to package this code — both send the exact same email.**
 
-### 📄 `lambda_function.py`
+| Approach | Files needed | How you deploy it | Use it when |
+|---|---|---|---|
+| **A — HTML embedded in Python** | `lambda_function.py` only | Paste straight into the Lambda inline editor — **no zip upload needed** ✅ | Learning / quick test |
+| **B — HTML in a separate file** | `lambda_function.py` + `email.html` | Zip both files, then **Upload from** → `.zip` in the Code tab | Real projects — HTML lives outside Python |
+
+Both files for **Approach B** are in this folder: [`lambda_function.py`](lambda_function.py) and [`email.html`](email.html).
+
+Approach B reads the template at runtime with:
+
+```python
+TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "email.html")
+```
+
+On Lambda, `__file__` resolves inside `/var/task`, so **both files must sit in the root of the zip, side by side** — not inside a sub-folder.
+
+To build the zip (from inside this folder):
+
+```bash
+zip -r function.zip lambda_function.py email.html
+```
+
+| Difference | Approach A (embedded) | Approach B (separate file) |
+|---|---|---|
+| Number of files | 1 | 2 |
+| Deployment | Paste in the console | Zip upload (or CI/CD / CDK / Terraform) |
+| Edit the email design | Change the Python string | Change `email.html` only |
+| Risk of breaking the code | Higher — escaping and quotes | Lower — HTML is never inside a Python string |
+| Lines of Python | ~150 | ~80 |
+
+> ⬆️ The single-file version is easier to paste, but the two-file version is what you'd actually ship. Same `ses.send_email` call, same `MessageId` response — only the way the HTML is loaded changes.
+
+The code below is **Approach A** (HTML embedded as a string). ➡️
+
+### 📄 `lambda_function.py` (Approach A — embedded HTML)
 
 ```python
 import boto3

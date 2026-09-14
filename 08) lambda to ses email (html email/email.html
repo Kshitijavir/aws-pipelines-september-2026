@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWS Lambda Notification</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f6f8;
+             font-family: 'Segoe UI', Arial, sans-serif; color:#333333;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+         style="background-color:#f4f6f8; padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0"
+               style="background:#ffffff; border-radius:8px; overflow:hidden;
+                      box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#232f3e; padding:24px 32px;">
+              <h1 style="margin:0; color:#ffffff; font-size:20px;
+                         font-weight:600; letter-spacing:0.3px;">
+                AWS Notification
+              </h1>
+              <p style="margin:4px 0 0; color:#d5dbdb; font-size:13px;">
+                Automated message from AWS Lambda
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <p style="margin:0 0 16px; font-size:15px; line-height:1.6;">
+                Hello,
+              </p>
+              <p style="margin:0 0 24px; font-size:15px; line-height:1.6;">
+                This is an automated notification confirming that your
+                <strong>AWS Lambda</strong> function was triggered successfully
+                and has dispatched this email through
+                <strong>Amazon SES</strong>.
+              </p>
+
+              <!-- Status box -->
+              <table role="presentation" width="100%" cellspacing="0"
+                     cellpadding="0"
+                     style="background:#e8f5e9; border-left:4px solid #2e7d32;
+                            border-radius:4px; margin-bottom:24px;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0; font-size:14px; color:#2e7d32;
+                              font-weight:600;">
+                      &#9989; Status: Lambda hit SES successfully
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Details -->
+              <h2 style="margin:0 0 12px; font-size:15px; color:#232f3e;
+                         font-weight:600;">
+                Execution Details
+              </h2>
+              <table role="presentation" width="100%" cellspacing="0"
+                     cellpadding="0"
+                     style="border:1px solid #e1e4e8; border-radius:6px;
+                            font-size:14px;">
+                <tr>
+                  <td style="padding:10px 16px; background:#fafbfc;
+                             border-bottom:1px solid #e1e4e8;
+                             width:40%; color:#586069;">
+                    Lambda Function
+                  </td>
+                  <td style="padding:10px 16px; border-bottom:1px solid #e1e4e8;">
+                    test-ses-lambda
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 16px; background:#fafbfc;
+                             border-bottom:1px solid #e1e4e8; color:#586069;">
+                    AWS Region
+                  </td>
+                  <td style="padding:10px 16px; border-bottom:1px solid #e1e4e8;">
+                    us-east-1 (N. Virginia)
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 16px; background:#fafbfc;
+                             border-bottom:1px solid #e1e4e8; color:#586069;">
+                    Service
+                  </td>
+                  <td style="padding:10px 16px; border-bottom:1px solid #e1e4e8;">
+                    Amazon SES
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 16px; background:#fafbfc;
+                             color:#586069;">
+                    Trigger
+                  </td>
+                  <td style="padding:10px 16px;">Manual Test Invocation</td>
+                </tr>
+              </table>
+
+              <p style="margin:24px 0 0; font-size:14px; color:#586069;
+                        line-height:1.6;">
+                No action is required. This message is sent for verification
+                purposes only.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#fafbfc; padding:20px 32px;
+                       border-top:1px solid #e1e4e8;">
+              <p style="margin:0; font-size:12px; color:#8a94a0;
+                        line-height:1.6;">
+                This is an automated email generated by AWS Lambda and
+                delivered via Amazon SES. Please do not reply to this message.
+              </p>
+              <p style="margin:8px 0 0; font-size:12px; color:#8a94a0;">
+                &copy; 2026 &middot; Sent from us-east-1
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

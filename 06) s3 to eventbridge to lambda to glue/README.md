@@ -9,8 +9,7 @@
 | [lambda_function.py](lambda_function.py) | The Lambda code — reads the S3 event and starts the Glue job |
 | [glue_job.py](glue_job.py) | The Glue job script — reads the file from S3 and prints its name |
 | [eventbridge_pattern.json](eventbridge_pattern.json) | The EventBridge rule's event pattern — decides which S3 events trigger the pipeline |
-| [trust_policy_lambda.json](trust_policy_lambda.json) | The IAM trust policy for the Lambda execution role |
-| [trust_policy_glue.json](trust_policy_glue.json) | The IAM trust policy for the Glue execution role |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy — trusts both the Lambda and Glue services, so both execution roles use it |
 
 This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
 
@@ -232,7 +231,7 @@ s3-eventbridge-glue-demo-123
 - Role name: `s3-eventbridge-glue-lambda-role`
 - Click **Create role**
 
-> 🔐 The trust policy this role uses — the one that lets the Lambda service assume it — is in [trust_policy_lambda.json](trust_policy_lambda.json).
+> 🔐 The trust policy this role uses is in [trust_policy.json](trust_policy.json). It trusts both `lambda.amazonaws.com` (the service that assumes this role) and `glue.amazonaws.com` (the service that assumes the role you create in Step 8).
 
 ---
 
@@ -419,7 +418,7 @@ Attach permissions for Glue to:
 - Role name: `s3-read-file-glue-role`
 - Click **Create role**
 
-> 🔐 The trust policy this role uses — the one that lets the Glue service assume it — is in [trust_policy_glue.json](trust_policy_glue.json).
+> 🔐 This role uses the same [trust_policy.json](trust_policy.json) as the Lambda role — it trusts `glue.amazonaws.com` alongside the Lambda service, so keeping one file covers both roles.
 
 ---
 

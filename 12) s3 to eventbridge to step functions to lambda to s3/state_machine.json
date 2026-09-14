@@ -1,0 +1,16 @@
+{
+  "Comment": "S3 EventBridge to Lambda file copy workflow",
+  "StartAt": "Copy File",
+  "States": {
+    "Copy File": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
+      "End": true
+    }
+  }
+}

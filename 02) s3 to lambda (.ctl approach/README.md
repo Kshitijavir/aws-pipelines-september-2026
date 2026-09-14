@@ -1,5 +1,14 @@
 # S3 → Lambda Pipeline — Control File (`.ctl`) Approach
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler — reads the `.ctl` event, then lists every file in the bucket and prints its name and size |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets the Lambda service assume the execution role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 Suppose one outside system sends **many files as one batch** to an S3 bucket:
@@ -146,6 +155,8 @@ If the next step needs `customer.csv` + `orders.csv` + `products.csv`, but only 
 - Role name: `s3-lambda-control-file-role`
 - Click **Create role**
 
+> 🔐 **Trust policy:** the role is for Lambda, so its trust policy lets the Lambda service assume it. This is the same policy the console writes for you — the exact JSON is in [trust_policy.json](trust_policy.json).
+
 ✅ The IAM role is ready.
 
 ---
@@ -207,56 +218,9 @@ The Lambda does two things:
 1. Find out **which `.ctl` file** started it
 2. **List all files** in the bucket and print their details
 
-Open the Lambda function → **Code** section, replace the existing code with:
+Open the Lambda function → **Code** section.
 
-```python
-import json
-import boto3
-from urllib.parse import unquote_plus
-
-s3 = boto3.client("s3")
-
-
-def lambda_handler(event, context):
-
-    print("===== CONTROL FILE RECEIVED =====")
-
-    # Get bucket name from S3 event
-    bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
-
-    # Get control file name
-    raw_key = event["Records"][0]["s3"]["object"]["key"]
-    control_file = unquote_plus(raw_key)
-
-    print(f"Bucket Name  : {bucket_name}")
-    print(f"Control File : {control_file}")
-
-    print("===== FILES IN BUCKET =====")
-
-    # List objects in the bucket
-    response = s3.list_objects_v2(
-        Bucket=bucket_name
-    )
-
-    if "Contents" in response:
-
-        for obj in response["Contents"]:
-
-            file_name = obj["Key"]
-            file_size = obj["Size"]
-
-            print(f"File Name : {file_name}")
-            print(f"File Size : {file_size} bytes")
-            print("-------------------------")
-
-    else:
-        print("No files found in bucket.")
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps("Control file processed successfully")
-    }
-```
+Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 

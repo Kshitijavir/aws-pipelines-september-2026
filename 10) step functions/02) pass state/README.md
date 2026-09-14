@@ -2,6 +2,16 @@
 
 ## Pass State Prepares the Data, Then Lambda Uses It
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler for `process-student` — reads the prepared `student`, `marks` and `message` and returns a processed result |
+| [state_machine.json](state_machine.json) | The complete Step Functions definition — the Pass state that builds the data and the Task state that calls Lambda |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets Step Functions and Lambda share one role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 We want to understand the **Pass State**.
@@ -81,24 +91,7 @@ stepfunctions-pass-demo-role
 
 ### Trust Policy
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": [
-                    "states.amazonaws.com",
-                    "lambda.amazonaws.com"
-                ]
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json).
 
 ### 🧠 What This Trust Policy Means
 
@@ -137,36 +130,7 @@ Click **Create function**.
 
 ### 💻 Lambda Code
 
-Open the function → **Code** → **Code source**. Replace the code with:
-
-```python
-def lambda_handler(event, context):
-
-    print("========== LAMBDA STARTED ==========")
-
-    print(f"Received event: {event}")
-
-    student = event["student"]
-    marks = event["marks"]
-    message = event["message"]
-
-    print(f"Student Name : {student}")
-    print(f"Student Marks: {marks}")
-    print(f"Message      : {message}")
-
-    result = {
-        "student": student,
-        "marks": marks,
-        "status": "PROCESSED",
-        "message": "Student processing completed"
-    }
-
-    print(f"Returning result: {result}")
-
-    print("========== LAMBDA FINISHED ==========")
-
-    return result
-```
+Open the function → **Code** → **Code source**. Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 
@@ -187,34 +151,12 @@ Click **Deploy**.
 
 ### 📝 State Machine Code
 
-```json
-{
-  "StartAt": "PrepareStudentData",
-  "States": {
+Copy the definition from [state_machine.json](state_machine.json) into the Step Functions **Definition** editor.
 
-    "PrepareStudentData": {
-      "Type": "Pass",
-      "Result": {
-        "student": "Kshitij",
-        "marks": 9,
-        "message": "Data prepared by Pass State"
-      },
-      "Next": "ProcessStudent"
-    },
-
-    "ProcessStudent": {
-      "Type": "Task",
-      "Resource": "YOUR_LAMBDA_ARN",
-      "End": true
-    }
-  }
-}
-```
-
-> ⚠️ Replace `YOUR_LAMBDA_ARN` with your real Lambda ARN. Example:
+> ⚠️ Replace `YOUR LAMBDA ARN` with your real Lambda ARN. Example:
 
 ```text
-arn:aws:lambda:us-east-1:123456789012:function:process-student
+arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:process-student
 ```
 
 Click **Create**.
@@ -504,7 +446,7 @@ That's the main thing you need to understand for these three states. ✅
 
 | Mistake | What Happens | Fix |
 |---------|--------------|-----|
-| Lambda ARN left as `YOUR_LAMBDA_ARN` | Execution fails | Paste your real ARN |
+| Lambda ARN left as `YOUR LAMBDA ARN` | Execution fails | Paste your real ARN |
 | ARN without quotes | Code will not save | Keep the `" "` around the ARN |
 | Lambda code reads `event["message"]` but Pass has no `message` | `KeyError` in Lambda | Make sure the Pass `Result` has all three keys |
 | Passing `{}` and expecting Lambda to fail | Lambda works fine | The Pass state supplies the data — that is the whole idea |
@@ -526,7 +468,7 @@ That's the main thing you need to understand for these three states. ✅
 | 8 | Step Functions → State machines → Create state machine |
 | 9 | Choose **Write your workflow in code** → type **Standard** |
 | 10 | Name: `student-pass-workflow` |
-| 11 | Paste the state machine code and replace `YOUR_LAMBDA_ARN` |
+| 11 | Paste the state machine code and replace `YOUR LAMBDA ARN` |
 | 12 | Execution role: existing → `stepfunctions-pass-demo-role` |
 | 13 | Create the state machine |
 | 14 | Start execution with input `{}` |

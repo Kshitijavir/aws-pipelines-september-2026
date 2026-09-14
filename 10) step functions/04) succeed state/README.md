@@ -2,6 +2,16 @@
 
 ## The Workflow Ends Successfully — Even When the Student Fails
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler for `student-result-lambda` — checks the marks and returns PASS or FAIL |
+| [state_machine.json](state_machine.json) | The complete Step Functions definition — the Task state that calls Lambda and the Succeed state that ends the workflow |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets Step Functions and Lambda share one role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 We want a workflow where:
@@ -91,24 +101,7 @@ stepfunctions-succeed-demo-role
 
 ### Trust Policy
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": [
-                    "states.amazonaws.com",
-                    "lambda.amazonaws.com"
-                ]
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json).
 
 ### 🧠 What This Trust Policy Means
 
@@ -147,56 +140,7 @@ Click **Create function**.
 
 ### 💻 Lambda Code
 
-Open the function → **Code** → **Code source**. Replace the code with:
-
-```python
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("       STUDENT LAMBDA STARTED")
-    print("====================================")
-
-    print(f"Received event from Step Functions: {event}")
-
-    student = event["student"]
-    marks = event["marks"]
-
-    print(f"Student Name : {student}")
-    print(f"Student Marks: {marks}")
-
-    print("Checking student result...")
-
-    if marks > 7:
-
-        status = "PASS"
-        message = f"{student} passed with {marks} marks"
-
-        print("Marks are greater than 7.")
-        print("Student result: PASS")
-
-    else:
-
-        status = "FAIL"
-        message = f"{student} failed with {marks} marks"
-
-        print("Marks are 7 or less.")
-        print("Student result: FAIL")
-
-    result = {
-        "student": student,
-        "marks": marks,
-        "status": status,
-        "message": message
-    }
-
-    print(f"Returning result to Step Functions: {result}")
-
-    print("====================================")
-    print("       STUDENT LAMBDA FINISHED")
-    print("====================================")
-
-    return result
-```
+Open the function → **Code** → **Code source**. Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 
@@ -217,25 +161,9 @@ Click **Deploy**.
 
 ### 📝 State Machine Code
 
-```json
-{
-  "StartAt": "ProcessStudent",
-  "States": {
+Copy the definition from [state_machine.json](state_machine.json) into the Step Functions **Definition** editor.
 
-    "ProcessStudent": {
-      "Type": "Task",
-      "Resource": "YOUR_LAMBDA_ARN",
-      "Next": "WorkflowSucceeded"
-    },
-
-    "WorkflowSucceeded": {
-      "Type": "Succeed"
-    }
-  }
-}
-```
-
-> ⚠️ Replace `YOUR_LAMBDA_ARN` with your real Lambda ARN.
+> ⚠️ Replace `YOUR LAMBDA ARN` with your real Lambda ARN.
 
 Click **Create**.
 
@@ -591,7 +519,7 @@ SUCCEED → SUCCESS + END
 
 | Mistake | What Happens | Fix |
 |---------|--------------|-----|
-| Lambda ARN left as `YOUR_LAMBDA_ARN` | Execution fails | Paste your real ARN |
+| Lambda ARN left as `YOUR LAMBDA ARN` | Execution fails | Paste your real ARN |
 | Thinking FAIL means the workflow failed | Confusion about results | Lambda returning FAIL is still a **success** |
 | Adding `"End": true` to the Succeed state | Code will not save — not valid | `Succeed` already ends the workflow |
 | Adding `"Next"` to the Succeed state | Code will not save | `Succeed` has no next state |
@@ -614,7 +542,7 @@ SUCCEED → SUCCESS + END
 | 8 | Step Functions → State machines → Create state machine |
 | 9 | Choose **Write your workflow in code** → type **Standard** |
 | 10 | Name: `student-succeed-workflow` |
-| 11 | Paste the state machine code → replace `YOUR_LAMBDA_ARN` |
+| 11 | Paste the state machine code → replace `YOUR LAMBDA ARN` |
 | 12 | Execution role: existing → `stepfunctions-succeed-demo-role` |
 | 13 | Create the state machine |
 | 14 | Start execution with `{"student": "Kshitij", "marks": 9}` → **Succeeded** ✅ |

@@ -1,5 +1,14 @@
 # S3 → Lambda Pipeline
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler — reads the S3 event and prints the file details |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets the Lambda service assume the execution role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 When someone uploads a file to the top level (root level) of an S3 bucket, S3 sends a notification.
@@ -127,6 +136,8 @@ Under **Event types**, select:
 
 Click **Create function**. The Lambda function is created.
 
+> 🔐 **Permissions:** we let Lambda create its own execution role, so nothing to configure here. The trust policy it sets up — the one that lets the Lambda service assume that role — is in [trust_policy.json](trust_policy.json) if you want to see what AWS did for you.
+
 ---
 
 ## 💻 Lambda Code
@@ -135,46 +146,7 @@ Click **Create function**. The Lambda function is created.
 
 Open the Lambda function and go to the **Code** section.
 
-Replace the existing code with:
-
-```python
-import json
-from urllib.parse import unquote_plus
-
-
-def lambda_handler(event, context):
-
-    print("===== S3 FILE UPLOAD EVENT =====")
-
-    print("Full Event:")
-    print(json.dumps(event, indent=2))
-
-    for record in event.get("Records", []):
-
-        bucket_name = record["s3"]["bucket"]["name"]
-
-        raw_key = record["s3"]["object"]["key"]
-        file_name = unquote_plus(raw_key)
-
-        file_size = record["s3"]["object"].get("size")
-
-        event_name = record.get("eventName")
-
-        event_time = record.get("eventTime")
-
-        print("----- File Metadata -----")
-
-        print(f"Bucket Name : {bucket_name}")
-        print(f"File Name   : {file_name}")
-        print(f"File Size   : {file_size} bytes")
-        print(f"Event Name  : {event_name}")
-        print(f"Event Time  : {event_time}")
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps("S3 event processed successfully")
-    }
-```
+Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 

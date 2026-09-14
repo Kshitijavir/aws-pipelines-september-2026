@@ -2,6 +2,16 @@
 
 ## The Same Lambda Runs 3 Times, with a 1-Minute Wait Between Each Run
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler for `wait-demo-lambda` — reads the `count` Step Functions sends it and prints which run it is |
+| [state_machine.json](state_machine.json) | The complete Step Functions definition — three Task states, two Wait states, and how they connect |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets Step Functions and Lambda share one role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 We want Lambda to run **3 times**, with a **1-minute wait between each run**:
@@ -90,24 +100,7 @@ stepfunctions-wait-demo-role
 
 ### Trust Policy
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": [
-                    "states.amazonaws.com",
-                    "lambda.amazonaws.com"
-                ]
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json).
 
 ### 🧠 What This Trust Policy Means
 
@@ -146,46 +139,7 @@ Click **Create function**.
 
 ### 💻 Lambda Code
 
-Open the function → **Code** → **Code source**. Replace the code with:
-
-```python
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("        LAMBDA STARTED")
-    print("====================================")
-
-    print(f"Received event: {event}")
-
-    count = event.get("count", 0)
-
-    print(f"Execution count received: {count}")
-
-    if count == 1:
-        print("This is the FIRST time Lambda was called by Step Functions.")
-
-    elif count == 2:
-        print("This is the SECOND time Lambda was called by Step Functions.")
-
-    elif count == 3:
-        print("This is the THIRD time Lambda was called by Step Functions.")
-
-    else:
-        print("Unknown execution count.")
-
-    result = {
-        "count": count,
-        "message": f"Lambda was called {count} time(s)"
-    }
-
-    print(f"Returning result: {result}")
-
-    print("====================================")
-    print("        LAMBDA FINISHED")
-    print("====================================")
-
-    return result
-```
+Open the function → **Code** → **Code source**. Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 
@@ -206,57 +160,12 @@ Click **Deploy**.
 
 ### 📝 State Machine Code
 
-```json
-{
-  "StartAt": "LambdaFirstTime",
-  "States": {
+Copy the definition from [state_machine.json](state_machine.json) into the Step Functions **Definition** editor.
 
-    "LambdaFirstTime": {
-      "Type": "Task",
-      "Resource": "YOUR_LAMBDA_ARN",
-      "Parameters": {
-        "count": 1
-      },
-      "Next": "WaitOneMinuteFirst"
-    },
-
-    "WaitOneMinuteFirst": {
-      "Type": "Wait",
-      "Seconds": 60,
-      "Next": "LambdaSecondTime"
-    },
-
-    "LambdaSecondTime": {
-      "Type": "Task",
-      "Resource": "YOUR_LAMBDA_ARN",
-      "Parameters": {
-        "count": 2
-      },
-      "Next": "WaitOneMinuteSecond"
-    },
-
-    "WaitOneMinuteSecond": {
-      "Type": "Wait",
-      "Seconds": 60,
-      "Next": "LambdaThirdTime"
-    },
-
-    "LambdaThirdTime": {
-      "Type": "Task",
-      "Resource": "YOUR_LAMBDA_ARN",
-      "Parameters": {
-        "count": 3
-      },
-      "End": true
-    }
-  }
-}
-```
-
-> ⚠️ Replace **all three** `YOUR_LAMBDA_ARN` values with your real Lambda ARN. Example:
+> ⚠️ Replace **all three** `YOUR LAMBDA ARN` values with your real Lambda ARN. Example:
 
 ```text
-arn:aws:lambda:us-east-1:123456789012:function:wait-demo-lambda
+arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:wait-demo-lambda
 ```
 
 Click **Create**.
@@ -576,7 +485,7 @@ WAIT   → TIME
 
 | Mistake | What Happens | Fix |
 |---------|--------------|-----|
-| Replacing only one `YOUR_LAMBDA_ARN` | Execution fails partway | Replace **all three** |
+| Replacing only one `YOUR LAMBDA ARN` | Execution fails partway | Replace **all three** |
 | Thinking Wait runs Lambda in the background | Nothing runs during the wait | Wait only pauses — the next Task starts after |
 | Using a very small `Seconds` value to test | You may not see the wait clearly | Use 60 and watch the timeline, or 10 for a quick test |
 | Confusing Wait with EventBridge rate | You expect repeated runs forever | Wait runs a fixed number of steps only |
@@ -599,7 +508,7 @@ WAIT   → TIME
 | 8 | Step Functions → State machines → Create state machine |
 | 9 | Choose **Write your workflow in code** → type **Standard** |
 | 10 | Name: `lambda-wait-workflow` |
-| 11 | Paste the state machine code → replace **all three** `YOUR_LAMBDA_ARN` |
+| 11 | Paste the state machine code → replace **all three** `YOUR LAMBDA ARN` |
 | 12 | Execution role: existing → `stepfunctions-wait-demo-role` |
 | 13 | Create the state machine |
 | 14 | Start execution with input `{}` |

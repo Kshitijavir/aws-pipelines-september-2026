@@ -1,5 +1,15 @@
 # S3 → EventBridge → Lambda Pipeline
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler — prints the EventBridge event and pulls the bucket name, file name and size out of `detail` |
+| [eventbridge_pattern.json](eventbridge_pattern.json) | The EventBridge rule's event pattern — matches `aws.s3` Object Created events for one bucket |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets the Lambda service assume the execution role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## S3 Object Created Event Sent Through EventBridge
 
 ## 🎯 Goal
@@ -227,6 +237,8 @@ This gives Lambda basic permission for CloudWatch Logs.
 - Role name: `s3-eventbridge-lambda-role`
 - Click **Create role**
 
+> 🔐 **Trust policy:** choosing **AWS service → Lambda** as the trusted entity makes the console write a trust policy that lets the Lambda service assume this role. The exact JSON is in [trust_policy.json](trust_policy.json).
+
 ✅ Role is ready.
 
 ---
@@ -254,41 +266,7 @@ Click **Create function**.
 
 Open: **Lambda** → `s3-eventbridge-lambda` → **Code**
 
-Replace the existing code with:
-
-```python
-import json
-
-
-def lambda_handler(event, context):
-
-    print("===== S3 EVENT THROUGH EVENTBRIDGE =====")
-
-    print("Full Event:")
-    print(json.dumps(event, indent=2))
-
-    print("----- Event Details -----")
-
-    print(f"Event Type : {event.get('detail-type')}")
-    print(f"Source     : {event.get('source')}")
-    print(f"Event Time : {event.get('time')}")
-
-    detail = event.get("detail", {})
-
-    bucket = detail.get("bucket", {})
-    obj = detail.get("object", {})
-
-    print("----- S3 File Details -----")
-
-    print(f"Bucket Name : {bucket.get('name')}")
-    print(f"File Name   : {obj.get('key')}")
-    print(f"File Size   : {obj.get('size')} bytes")
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps("S3 EventBridge event processed successfully")
-    }
-```
+Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 
@@ -442,35 +420,9 @@ We want:
 
 ### Event Pattern
 
-```json
-{
-  "source": ["aws.s3"],
-  "detail-type": ["Object Created"],
-  "detail": {
-    "bucket": {
-      "name": [
-        "YOUR-BUCKET-NAME"
-      ]
-    }
-  }
-}
-```
+Copy the pattern from [eventbridge_pattern.json](eventbridge_pattern.json) into the **Event pattern** box and replace `YOUR BUCKET NAME` with your real bucket name — for example `s3-eventbridge-lambda-demo-123`.
 
-Replace `YOUR-BUCKET-NAME` with your real bucket name. Example:
-
-```json
-{
-  "source": ["aws.s3"],
-  "detail-type": ["Object Created"],
-  "detail": {
-    "bucket": {
-      "name": [
-        "s3-eventbridge-lambda-demo-123"
-      ]
-    }
-  }
-}
-```
+This is the same pattern as above, with `YOUR BUCKET NAME` replaced by the example bucket — see [eventbridge_pattern.json](eventbridge_pattern.json).
 
 ### 🧠 Understand the Event Pattern
 
@@ -866,7 +818,7 @@ S3 → (all events) → EventBridge → Rule filters Object Created → Lambda
 | 7 | Lambda → Functions → Create function → Author from scratch |
 | 8 | Name: `s3-eventbridge-lambda`, Python 3.x |
 | 9 | Use existing role: `s3-eventbridge-lambda-role` |
-| 10 | Paste the Python code → **Deploy** |
+| 10 | Paste [lambda_function.py](lambda_function.py) → **Deploy** |
 | 11 | Test by hand (event `{}`) ✅ |
 | 12 | S3 → bucket → Properties → Event Notifications → Amazon EventBridge |
 | 13 | Turn ON: send notifications to EventBridge (all events) |

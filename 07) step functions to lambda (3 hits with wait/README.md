@@ -2,6 +2,16 @@
 
 ## The Same Lambda Runs 3 Times, with a 2-Minute Wait Between Each Run
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler — reads `hit_number` from the event and returns First / Second / Third Hit |
+| [state_machine.json](state_machine.json) | The complete Step Functions definition — three `lambda:invoke` tasks separated by two 120-second Wait states |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets Step Functions and Lambda share one execution role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 We want to make a **Step Functions workflow that calls one Lambda function 3 times**.
@@ -135,23 +145,7 @@ stepfunctions-lambda-demo-role
 
 ### IAM Trust Policy
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": [
-          "states.amazonaws.com",
-          "lambda.amazonaws.com"
-        ]
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json) — paste it into the **Custom trust policy** editor.
 
 **What this means:** both `states.amazonaws.com` (Step Functions) and `lambda.amazonaws.com` (Lambda) can use this role.
 
@@ -191,36 +185,9 @@ Click **Create function**.
 
 ### 💻 Lambda Code
 
-Open the function → **Code** → **Code source**. Replace the code with:
+Open the function → **Code** → **Code source**.
 
-```python
-def lambda_handler(event, context):
-
-    hit_number = event.get("hit_number")
-
-    if hit_number == 1:
-        message = "First Hit"
-
-    elif hit_number == 2:
-        message = "Second Hit"
-
-    elif hit_number == 3:
-        message = "Third Hit"
-
-    else:
-        message = "Unknown Hit"
-
-    print("================================")
-    print(f"Lambda executed: {message}")
-    print(f"Hit Number: {hit_number}")
-    print("================================")
-
-    return {
-        "statusCode": 200,
-        "hit_number": hit_number,
-        "message": message
-    }
-```
+Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 
@@ -281,62 +248,7 @@ One important point: the state machine uses **`QueryLanguage = JSONPath`**.
 
 For JSONPath we must use **`Parameters`** — **not** `Arguments`.
 
-```json
-{
-  "Comment": "Invoke Lambda three times with a 2 minute interval",
-  "StartAt": "FirstLambdaHit",
-  "States": {
-
-    "FirstLambdaHit": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
-        "Payload": {
-          "hit_number": 1
-        }
-      },
-      "Next": "WaitTwoMinutesAfterFirstHit"
-    },
-
-    "WaitTwoMinutesAfterFirstHit": {
-      "Type": "Wait",
-      "Seconds": 120,
-      "Next": "SecondLambdaHit"
-    },
-
-    "SecondLambdaHit": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
-        "Payload": {
-          "hit_number": 2
-        }
-      },
-      "Next": "WaitTwoMinutesAfterSecondHit"
-    },
-
-    "WaitTwoMinutesAfterSecondHit": {
-      "Type": "Wait",
-      "Seconds": 120,
-      "Next": "ThirdLambdaHit"
-    },
-
-    "ThirdLambdaHit": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
-        "Payload": {
-          "hit_number": 3
-        }
-      },
-      "End": true
-    }
-  }
-}
-```
+Copy the definition from [state_machine.json](state_machine.json) into the Step Functions **Definition** editor.
 
 > ⚠️ Replace **all three** `YOUR LAMBDA FUNCTION ARN` placeholders with your real Lambda ARN. They all point to the **same** Lambda function.
 
@@ -439,7 +351,7 @@ When creating the state machine, AWS asks for the execution role.
 |---------|-------|
 | State machine name | `lambda-three-hit-workflow` |
 | Type | Standard |
-| Definition | the JSON code above |
+| Definition | the JSON from [state_machine.json](state_machine.json) |
 | Execution role | `stepfunctions-lambda-demo-role` |
 
 Click **Create**.
@@ -598,25 +510,7 @@ Only **one** IAM role is used:
 stepfunctions-lambda-demo-role
 ```
 
-**Trust policy:**
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": [
-          "states.amazonaws.com",
-          "lambda.amazonaws.com"
-        ]
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-```
+**Trust policy:** the JSON is in [trust_policy.json](trust_policy.json) — the same policy pasted in Step 1.
 
 **Managed policies:**
 
@@ -632,15 +526,15 @@ AWSLambdaRole
 | Step | What to Do |
 |------|-----------|
 | 1 | IAM → Roles → Create role → **Custom trust policy** |
-| 2 | Paste trust policy with `states.amazonaws.com` + `lambda.amazonaws.com` |
+| 2 | Paste the trust policy from `trust_policy.json` (`states.amazonaws.com` + `lambda.amazonaws.com`) |
 | 3 | Attach `AWSLambdaBasicExecutionRole` + `AWSLambdaRole` |
 | 4 | Role name: `stepfunctions-lambda-demo-role` |
 | 5 | Lambda → Functions → Create function → Author from scratch |
 | 6 | Name: `stepfunctions-three-hit-lambda`, Python 3.x, use existing role |
-| 7 | Paste the Lambda code → **Deploy** |
+| 7 | Paste the Lambda code from `lambda_function.py` → **Deploy** |
 | 8 | Step Functions → State machines → Create state machine |
 | 9 | Choose **Write your workflow in code** → type **Standard** |
-| 10 | Paste the state machine JSON (use `Parameters`, not `Arguments`) |
+| 10 | Paste `state_machine.json` (use `Parameters`, not `Arguments`) |
 | 11 | Replace all three `YOUR LAMBDA FUNCTION ARN` placeholders |
 | 12 | Execution role: **Use an existing role** → `stepfunctions-lambda-demo-role` |
 | 13 | Name: `lambda-three-hit-workflow` → **Create** |

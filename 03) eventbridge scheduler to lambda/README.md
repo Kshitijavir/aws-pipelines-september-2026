@@ -1,5 +1,15 @@
 # Amazon EventBridge Scheduler → Lambda Pipeline
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler — prints the run time and the schedule, then dumps the event EventBridge sent |
+| [scheduler_input.json](scheduler_input.json) | The target input payload — the small JSON EventBridge Scheduler passes to Lambda on every run |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets the Lambda service assume the execution role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## Rate-Based Schedule — Lambda Runs Every 1 Minute
 
 ## 🎯 Goal
@@ -139,6 +149,8 @@ Why we need this role:
 - Role name: `eventbridge-lambda-execution-role`
 - Click **Create role**
 
+> 🔐 **Trust policy:** choosing **AWS service → Lambda** as the trusted entity makes the console write a trust policy that lets the Lambda service assume this role. The exact JSON is in [trust_policy.json](trust_policy.json).
+
 ✅ The Lambda role is ready.
 
 ---
@@ -173,31 +185,9 @@ Click **Create function**.
 
 ## 💻 Step 3: Write Lambda Code
 
-Open the Lambda function → **Code** section, replace the existing code with:
+Open the Lambda function → **Code** section.
 
-```python
-import json
-from datetime import datetime, timezone
-
-
-def lambda_handler(event, context):
-
-    current_time = datetime.now(timezone.utc)
-
-    print("===== EVENTBRIDGE SCHEDULE TRIGGERED =====")
-    print(f"Lambda execution time : {current_time}")
-    print("Message               : Lambda executed successfully")
-    print("Trigger               : EventBridge Scheduler")
-    print("Schedule              : rate(1 minute)")
-
-    print("Event received from EventBridge:")
-    print(json.dumps(event, indent=2))
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps("Lambda executed successfully")
-    }
-```
+Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 
@@ -349,14 +339,7 @@ graph TD
 
 ## 📦 Optional: Input / Payload
 
-The Scheduler may ask for an input. For this practice pipeline use:
-
-```json
-{
-    "source": "eventbridge",
-    "schedule": "rate(1 minute)"
-}
-```
+The Scheduler may ask for an input. For this practice pipeline use the payload in [scheduler_input.json](scheduler_input.json) — paste it into the Scheduler's input box.
 
 Lambda gets this JSON as its `event` — so we can clearly see what EventBridge sent. (If we give no input, Scheduler starts Lambda with an empty event.)
 
@@ -430,7 +413,7 @@ Event received from EventBridge:
 | 5 | Open **Lambda** → **Functions** → **Create function** → **Author from scratch** |
 | 6 | Name: `eventbridge-rate-lambda` → Runtime: Python 3.x |
 | 7 | Execution role: **Use an existing role** → `eventbridge-lambda-execution-role` |
-| 8 | Create the Lambda → paste the Python code → **Deploy** |
+| 8 | Create the Lambda → paste [lambda_function.py](lambda_function.py) → **Deploy** |
 | 9 | **Test by hand first** (event `{}`) ✅ |
 | 10 | Open **EventBridge** → **Scheduler** → **Schedules** → **Create schedule** |
 | 11 | Name: `lambda-every-1-minute` |

@@ -2,6 +2,19 @@
 
 ## Pass → Choice → Parallel → Wait → Map → Succeed / Fail
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_a.py](lambda_a.py) | The handler for Lambda A — one of the three Parallel branches (function name `lambda-a`) |
+| [lambda_b.py](lambda_b.py) | The handler for Lambda B — one of the three Parallel branches (function name `lambda-b`) |
+| [lambda_c.py](lambda_c.py) | The handler for Lambda C — one of the three Parallel branches (function name `lambda-c`) |
+| [lambda_map.py](lambda_map.py) | The Map state's Lambda — reads one student at a time from the list (function name `process-student`) |
+| [state_machine.json](state_machine.json) | The complete Step Functions definition — all 7 states wired together |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets Step Functions and Lambda assume the execution role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 We want **one working pipeline** that uses **all 7 states** together:
@@ -14,11 +27,7 @@ This is the summary pipeline — after learning each state on its own, this show
 
 ## 📊 Pipeline Diagram
 
-![All Step Functions states combined in one pipeline](architecture.png)
-
-> 📌 **Save the diagram in this folder as `architecture.png`** for it to show above.
-
-Here is the same flow as a diagram that always renders:
+The flow as a diagram:
 
 ```mermaid
 graph TD
@@ -86,24 +95,7 @@ stepfunctions-combined-demo-role
 
 ### Trust Policy
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": [
-                    "states.amazonaws.com",
-                    "lambda.amazonaws.com"
-                ]
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json).
 
 ### 🧠 What This Trust Policy Means
 
@@ -135,51 +127,7 @@ Click **Create role**.
 | Runtime | Python 3.x (select latest available) |
 | Execution role | Use an existing role → `stepfunctions-combined-demo-role` |
 
-```python
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("          LAMBDA A STARTED")
-    print("====================================")
-
-    print(f"Received event: {event}")
-
-    student = event["student"]
-    marks = event["marks"]
-
-    ist_time = datetime.now(
-        ZoneInfo("Asia/Kolkata")
-    )
-
-    print(f"Lambda      : Lambda A")
-    print(f"Student     : {student}")
-    print(f"Marks       : {marks}")
-    print(
-        f"Hitting Time (IST): "
-        f"{ist_time.strftime('%Y-%m-%d %H:%M:%S %Z')}"
-    )
-
-    print("Lambda A is processing the request...")
-
-    result = {
-        "lambda": "Lambda A",
-        "student": student,
-        "status": "SUCCESS",
-        "time_ist": ist_time.strftime(
-            "%Y-%m-%d %H:%M:%S %Z"
-        )
-    }
-
-    print(f"Returning result: {result}")
-
-    print("========== LAMBDA A FINISHED ==========")
-
-    return result
-```
+Copy the code from [lambda_a.py](lambda_a.py) into the Lambda A function code editor (function name `lambda-a`), replacing the default handler.
 
 Click **Deploy**.
 
@@ -193,51 +141,7 @@ Click **Deploy**.
 | Runtime | Python 3.x |
 | Execution role | Use an existing role → `stepfunctions-combined-demo-role` |
 
-```python
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("          LAMBDA B STARTED")
-    print("====================================")
-
-    print(f"Received event: {event}")
-
-    student = event["student"]
-    marks = event["marks"]
-
-    ist_time = datetime.now(
-        ZoneInfo("Asia/Kolkata")
-    )
-
-    print(f"Lambda      : Lambda B")
-    print(f"Student     : {student}")
-    print(f"Marks       : {marks}")
-    print(
-        f"Hitting Time (IST): "
-        f"{ist_time.strftime('%Y-%m-%d %H:%M:%S %Z')}"
-    )
-
-    print("Lambda B is processing the request...")
-
-    result = {
-        "lambda": "Lambda B",
-        "student": student,
-        "status": "SUCCESS",
-        "time_ist": ist_time.strftime(
-            "%Y-%m-%d %H:%M:%S %Z"
-        )
-    }
-
-    print(f"Returning result: {result}")
-
-    print("========== LAMBDA B FINISHED ==========")
-
-    return result
-```
+Copy the code from [lambda_b.py](lambda_b.py) into the Lambda B function code editor (function name `lambda-b`), replacing the default handler.
 
 Click **Deploy**.
 
@@ -251,51 +155,7 @@ Click **Deploy**.
 | Runtime | Python 3.x |
 | Execution role | Use an existing role → `stepfunctions-combined-demo-role` |
 
-```python
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("          LAMBDA C STARTED")
-    print("====================================")
-
-    print(f"Received event: {event}")
-
-    student = event["student"]
-    marks = event["marks"]
-
-    ist_time = datetime.now(
-        ZoneInfo("Asia/Kolkata")
-    )
-
-    print(f"Lambda      : Lambda C")
-    print(f"Student     : {student}")
-    print(f"Marks       : {marks}")
-    print(
-        f"Hitting Time (IST): "
-        f"{ist_time.strftime('%Y-%m-%d %H:%M:%S %Z')}"
-    )
-
-    print("Lambda C is processing the request...")
-
-    result = {
-        "lambda": "Lambda C",
-        "student": student,
-        "status": "SUCCESS",
-        "time_ist": ist_time.strftime(
-            "%Y-%m-%d %H:%M:%S %Z"
-        )
-    }
-
-    print(f"Returning result: {result}")
-
-    print("========== LAMBDA C FINISHED ==========")
-
-    return result
-```
+Copy the code from [lambda_c.py](lambda_c.py) into the Lambda C function code editor (function name `lambda-c`), replacing the default handler.
 
 Click **Deploy**.
 
@@ -311,64 +171,7 @@ This Lambda is called by the **Map** state — once per student.
 | Runtime | Python 3.x |
 | Execution role | Use an existing role → `stepfunctions-combined-demo-role` |
 
-```python
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("       MAP LAMBDA STARTED")
-    print("====================================")
-
-    print(f"Received student event: {event}")
-
-    student = event["name"]
-    marks = event["marks"]
-
-    ist_time = datetime.now(
-        ZoneInfo("Asia/Kolkata")
-    )
-
-    print(f"Student     : {student}")
-    print(f"Marks       : {marks}")
-    print(
-        f"Processing Time (IST): "
-        f"{ist_time.strftime('%Y-%m-%d %H:%M:%S %Z')}"
-    )
-
-    if marks >= 7:
-
-        status = "PASS"
-
-        print(
-            f"Result: {student} PASSED with {marks} marks."
-        )
-
-    else:
-
-        status = "FAIL"
-
-        print(
-            f"Result: {student} FAILED with {marks} marks."
-        )
-
-    result = {
-        "student": student,
-        "marks": marks,
-        "status": status,
-        "processed_time_ist": ist_time.strftime(
-            "%Y-%m-%d %H:%M:%S %Z"
-        )
-    }
-
-    print(f"Returning result: {result}")
-
-    print("========== MAP LAMBDA FINISHED ==========")
-
-    return result
-```
+Copy the code from [lambda_map.py](lambda_map.py) into the Map Lambda function code editor (function name `process-student`), replacing the default handler.
 
 Click **Deploy**.
 
@@ -389,140 +192,15 @@ Click **Deploy**.
 
 > ⚠️ Replace all **four** Lambda ARN placeholders first.
 
-```json
-{
-  "StartAt": "PrepareStudentData",
-  "States": {
-
-    "PrepareStudentData": {
-      "Type": "Pass",
-      "Result": {
-        "student": "Kshitij",
-        "marks": 8
-      },
-      "ResultPath": "$.student_check",
-      "Next": "CheckStudentMarks"
-    },
-
-    "CheckStudentMarks": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Variable": "$.student_check.marks",
-          "NumericGreaterThanEquals": 7,
-          "Next": "RunParallelLambdas"
-        }
-      ],
-      "Default": "StudentFailed"
-    },
-
-    "RunParallelLambdas": {
-      "Type": "Parallel",
-
-      "Branches": [
-
-        {
-          "StartAt": "LambdaA",
-          "States": {
-            "LambdaA": {
-              "Type": "Task",
-              "Resource": "YOUR_LAMBDA_A_ARN",
-              "Parameters": {
-                "lambda_name": "Lambda A",
-                "student.$": "$.student_check.student",
-                "marks.$": "$.student_check.marks"
-              },
-              "End": true
-            }
-          }
-        },
-
-        {
-          "StartAt": "LambdaB",
-          "States": {
-            "LambdaB": {
-              "Type": "Task",
-              "Resource": "YOUR_LAMBDA_B_ARN",
-              "Parameters": {
-                "lambda_name": "Lambda B",
-                "student.$": "$.student_check.student",
-                "marks.$": "$.student_check.marks"
-              },
-              "End": true
-            }
-          }
-        },
-
-        {
-          "StartAt": "LambdaC",
-          "States": {
-            "LambdaC": {
-              "Type": "Task",
-              "Resource": "YOUR_LAMBDA_C_ARN",
-              "Parameters": {
-                "lambda_name": "Lambda C",
-                "student.$": "$.student_check.student",
-                "marks.$": "$.student_check.marks"
-              },
-              "End": true
-            }
-          }
-        }
-
-      ],
-
-      "ResultPath": "$.parallel_results",
-      "Next": "Wait10Seconds"
-    },
-
-    "Wait10Seconds": {
-      "Type": "Wait",
-      "Seconds": 10,
-      "Next": "ProcessStudents"
-    },
-
-    "ProcessStudents": {
-      "Type": "Map",
-      "ItemsPath": "$.students",
-
-      "Iterator": {
-        "StartAt": "ProcessOneStudent",
-
-        "States": {
-
-          "ProcessOneStudent": {
-            "Type": "Task",
-            "Resource": "YOUR_MAP_LAMBDA_ARN",
-            "End": true
-          }
-
-        }
-      },
-
-      "ResultPath": "$.map_results",
-      "Next": "WorkflowSucceeded"
-    },
-
-    "WorkflowSucceeded": {
-      "Type": "Succeed"
-    },
-
-    "StudentFailed": {
-      "Type": "Fail",
-      "Error": "StudentFailed",
-      "Cause": "Student marks are less than 7"
-    }
-  }
-}
-```
+Copy the definition from [state_machine.json](state_machine.json) into the Step Functions **Definition** editor.
 
 ### ⚠️ Replace All Four Placeholders
 
 ```text
-YOUR_LAMBDA_A_ARN    →  arn:aws:lambda:us-east-1:123456789012:function:lambda-a
-YOUR_LAMBDA_B_ARN    →  arn:aws:lambda:us-east-1:123456789012:function:lambda-b
-YOUR_LAMBDA_C_ARN    →  arn:aws:lambda:us-east-1:123456789012:function:lambda-c
-YOUR_MAP_LAMBDA_ARN  →  arn:aws:lambda:us-east-1:123456789012:function:process-student
+YOUR LAMBDA A ARN    →  arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:lambda-a
+YOUR LAMBDA B ARN    →  arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:lambda-b
+YOUR LAMBDA C ARN    →  arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:lambda-c
+YOUR MAP LAMBDA ARN  →  arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:process-student
 ```
 
 ---

@@ -2,6 +2,17 @@
 
 ## Step Functions Decides Which Lambda to Run
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_pass.py](lambda_pass.py) | The PASS Lambda handler — goes into `pass-lambda`; prints the student's details and returns `status: PASS` |
+| [lambda_fail.py](lambda_fail.py) | The FAIL Lambda handler — goes into `fail-lambda`; prints the student's details and returns `status: FAIL` |
+| [state_machine.json](state_machine.json) | The complete Step Functions definition — the Choice state and the two Task states it chooses between |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets Step Functions and Lambda share one role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 We want a Step Functions workflow that **looks at a student's marks** and then sends the work to **one of two Lambda functions**:
@@ -111,24 +122,7 @@ stepfunctions-choice-demo-role
 
 ### Trust Policy
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": [
-                    "states.amazonaws.com",
-                    "lambda.amazonaws.com"
-                ]
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json).
 
 ### 🧠 What This Trust Policy Means
 
@@ -166,38 +160,7 @@ Click **Create function**.
 
 ### 💻 PASS Lambda Code
 
-Open the function → **Code** → **Code source**. Replace the code with:
-
-```python
-def lambda_handler(event, context):
-
-    print("========== PASS LAMBDA STARTED ==========")
-
-    print(f"Received event: {event}")
-
-    student = event["student"]
-    marks = event["marks"]
-
-    print(f"Student Name : {student}")
-    print(f"Student Marks: {marks}")
-
-    print(f"Checking PASS condition...")
-    print(f"Marks received = {marks}")
-
-    print(f"Student {student} has PASSED.")
-
-    result = {
-        "student": student,
-        "status": "PASS",
-        "message": f"{student} passed with {marks} marks"
-    }
-
-    print(f"Returning result: {result}")
-
-    print("========== PASS LAMBDA FINISHED ==========")
-
-    return result
-```
+Open the function → **Code** → **Code source**. Copy the code from [lambda_pass.py](lambda_pass.py) into the `pass-lambda` code editor, replacing the default handler.
 
 Click **Deploy**.
 
@@ -215,36 +178,7 @@ Same steps as above, but a different name and code.
 
 ### 💻 FAIL Lambda Code
 
-```python
-def lambda_handler(event, context):
-
-    print("========== FAIL LAMBDA STARTED ==========")
-
-    print(f"Received event: {event}")
-
-    student = event["student"]
-    marks = event["marks"]
-
-    print(f"Student Name : {student}")
-    print(f"Student Marks: {marks}")
-
-    print(f"Checking PASS condition...")
-    print(f"Marks received = {marks}")
-
-    print(f"Student {student} has FAILED.")
-
-    result = {
-        "student": student,
-        "status": "FAIL",
-        "message": f"{student} failed with {marks} marks"
-    }
-
-    print(f"Returning result: {result}")
-
-    print("========== FAIL LAMBDA FINISHED ==========")
-
-    return result
-```
+Copy the code from [lambda_fail.py](lambda_fail.py) into the `fail-lambda` code editor, replacing the default handler.
 
 Click **Deploy**.
 
@@ -264,20 +198,20 @@ Click **Deploy**.
 
 ## 🔗 Step 4: Get Both Lambda ARNs
 
-You need the ARN of each Lambda for the Step Functions code.
+You need the ARN of each Lambda for the state machine definition in [state_machine.json](state_machine.json).
 
 ### 📍 Go to: Lambda → `pass-lambda` → **copy the ARN** at the top right
 
 It looks like:
 
 ```text
-arn:aws:lambda:us-east-1:123456789012:function:pass-lambda
+arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:pass-lambda
 ```
 
 Do the same for `fail-lambda`:
 
 ```text
-arn:aws:lambda:us-east-1:123456789012:function:fail-lambda
+arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:fail-lambda
 ```
 
 > 📌 Keep both ARNs ready — you paste them in the next step.
@@ -298,67 +232,13 @@ arn:aws:lambda:us-east-1:123456789012:function:fail-lambda
 
 ### 📝 State Machine Code
 
-```json
-{
-  "StartAt": "CheckMarks",
-  "States": {
-    "CheckMarks": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Variable": "$.marks",
-          "NumericGreaterThan": 7,
-          "Next": "PassStudent"
-        }
-      ],
-      "Default": "FailStudent"
-    },
-    "PassStudent": {
-      "Type": "Task",
-      "Resource": "LAMBDA PASS ARN",
-      "End": true
-    },
-    "FailStudent": {
-      "Type": "Task",
-      "Resource": "LAMBDA FAIL ARN",
-      "End": true
-    }
-  }
-}
-```
+Copy the definition from [state_machine.json](state_machine.json) into the Step Functions **Definition** editor.
 
-> ⚠️ **Replace** `LAMBDA PASS ARN` and `LAMBDA FAIL ARN` with your real Lambda ARNs (with the quotes kept).
+> ⚠️ **Replace** `YOUR LAMBDA PASS ARN` and `YOUR LAMBDA FAIL ARN` with your real Lambda ARNs (with the quotes kept).
 
 ### ✅ After Replacing the ARNs
 
-```json
-{
-  "StartAt": "CheckMarks",
-  "States": {
-    "CheckMarks": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Variable": "$.marks",
-          "NumericGreaterThan": 7,
-          "Next": "PassStudent"
-        }
-      ],
-      "Default": "FailStudent"
-    },
-    "PassStudent": {
-      "Type": "Task",
-      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:pass-lambda",
-      "End": true
-    },
-    "FailStudent": {
-      "Type": "Task",
-      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:fail-lambda",
-      "End": true
-    }
-  }
-}
-```
+This is the same definition as above with the placeholders filled in — see [state_machine.json](state_machine.json). Only the two `Resource` lines change: one points at `pass-lambda` and the other at `fail-lambda`.
 
 Click **Create**.
 

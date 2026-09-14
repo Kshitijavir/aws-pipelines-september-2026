@@ -2,6 +2,16 @@
 
 ## When Validation Goes Wrong, the Workflow Ends as FAILED
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler — checks the student name and marks and returns a `valid` flag |
+| [state_machine.json](state_machine.json) | The complete Step Functions definition — Task → Choice → Succeed / Fail |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets Step Functions and Lambda assume the execution role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 We want to understand the **Fail State**.
@@ -82,24 +92,7 @@ stepfunctions-fail-demo-role
 
 ### Trust Policy
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": [
-                    "states.amazonaws.com",
-                    "lambda.amazonaws.com"
-                ]
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json).
 
 ### 🧠 What This Trust Policy Means
 
@@ -138,66 +131,7 @@ Click **Create function**.
 
 ### 💻 Lambda Code
 
-Open the function → **Code** → **Code source**. Replace the code with:
-
-```python
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("       VALIDATION LAMBDA STARTED")
-    print("====================================")
-
-    print(f"Received event: {event}")
-
-    student = event.get("student")
-    marks = event.get("marks")
-
-    print(f"Student Name : {student}")
-    print(f"Student Marks: {marks}")
-
-    print("Checking student data...")
-
-    if student is None:
-        print("ERROR: Student name is missing.")
-
-        return {
-            "valid": False,
-            "reason": "Student name is missing"
-        }
-
-    if marks is None:
-        print("ERROR: Marks are missing.")
-
-        return {
-            "valid": False,
-            "reason": "Marks are missing"
-        }
-
-    if marks < 0 or marks > 10:
-        print("ERROR: Marks are invalid.")
-
-        return {
-            "valid": False,
-            "reason": "Marks must be between 0 and 10"
-        }
-
-    print("Student data is valid.")
-
-    result = {
-        "valid": True,
-        "student": student,
-        "marks": marks,
-        "message": "Student data is valid"
-    }
-
-    print(f"Returning result: {result}")
-
-    print("====================================")
-    print("       VALIDATION LAMBDA FINISHED")
-    print("====================================")
-
-    return result
-```
+Open the function → **Code** → **Code source**. Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor (function name `validate-student`), replacing the default handler.
 
 Click **Deploy**.
 
@@ -227,43 +161,9 @@ Click **Deploy**.
 
 ### 📝 State Machine Code
 
-```json
-{
-  "StartAt": "ValidateStudent",
-  "States": {
+Copy the definition from [state_machine.json](state_machine.json) into the Step Functions **Definition** editor.
 
-    "ValidateStudent": {
-      "Type": "Task",
-      "Resource": "YOUR_LAMBDA_ARN",
-      "Next": "CheckValidation"
-    },
-
-    "CheckValidation": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Variable": "$.valid",
-          "BooleanEquals": true,
-          "Next": "StudentValid"
-        }
-      ],
-      "Default": "StudentValidationFailed"
-    },
-
-    "StudentValid": {
-      "Type": "Succeed"
-    },
-
-    "StudentValidationFailed": {
-      "Type": "Fail",
-      "Error": "StudentValidationError",
-      "Cause": "Student data validation failed"
-    }
-  }
-}
-```
-
-> ⚠️ Replace `YOUR_LAMBDA_ARN` with your real Lambda ARN.
+> ⚠️ Replace `YOUR LAMBDA ARN` with your real Lambda ARN.
 
 Click **Create**.
 
@@ -628,7 +528,7 @@ Fail    → ERROR + STOP
 | 8 | Step Functions → State machines → Create state machine |
 | 9 | Choose **Write your workflow in code** → type **Standard** |
 | 10 | Name: `student-fail-workflow` |
-| 11 | Paste the state machine code → replace `YOUR_LAMBDA_ARN` |
+| 11 | Paste the state machine code → replace `YOUR LAMBDA ARN` |
 | 12 | Execution role: existing → `stepfunctions-fail-demo-role` |
 | 13 | Create the state machine |
 | 14 | Start execution with `{"student": "Kshitij", "marks": 9}` → **Succeeded** ✅ |

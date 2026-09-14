@@ -2,6 +2,16 @@
 
 ## Click Test on Lambda → Amazon SES Sends a Professional HTML Email
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler — config, the HTML/plain-text builders, and the `ses.send_email` call |
+| [email.html](email.html) | The HTML email body — design only, loaded at runtime by the handler |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy for the Lambda execution role (`lambda.amazonaws.com` only) |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 When you click **Test** on an AWS Lambda function, Lambda uses **Amazon SES** to send a **nice HTML email** to verified recipients.
@@ -55,24 +65,7 @@ graph TD
 
 ### Trust Policy (auto-created — keep it exactly like this)
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "sts:AssumeRole"
-            ],
-            "Principal": {
-                "Service": [
-                    "lambda.amazonaws.com"
-                ]
-            }
-        }
-    ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json) — it trusts `lambda.amazonaws.com` and nothing else.
 
 > ❌ Do **NOT** add `ses.amazonaws.com` to the trust policy. SES is **not** assuming your role — Lambda is.
 

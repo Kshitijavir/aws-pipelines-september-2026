@@ -2,6 +2,17 @@
 
 ## Step Functions Runs Glue, Waits for It, Then Sends the Result to Lambda
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets Step Functions, Glue and Lambda share one role |
+| [glue_job.py](glue_job.py) | The Glue job script — reads `--status` and either succeeds or raises on purpose |
+| [state_machine.json](state_machine.json) | The complete Step Functions definition — Glue `.sync`, `Catch`, the two Pass states and the Lambda task |
+| [lambda_function.py](lambda_function.py) | The Lambda handler — prints the Glue job name and the final status |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 We want Step Functions to **control a Glue job**, **wait** for that Glue job to finish, and then **send the final result to Lambda**.
@@ -51,12 +62,6 @@ Print FAILED
 Lambda does **not** run immediately. It runs **after** Glue is done. This is called running **synchronously** (`.sync`).
 
 ## 📊 Pipeline Flowchart
-
-![Step Functions to Glue to Lambda flowchart](architecture.png)
-
-> 📌 **Save the flowchart in this folder as `architecture.png`** for it to show above.
-
-Here is the same flow as a diagram that always renders:
 
 ```mermaid
 graph TD
@@ -135,24 +140,7 @@ lambda.amazonaws.com
 
 ### Trust Policy
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": [
-          "states.amazonaws.com",
-          "glue.amazonaws.com",
-          "lambda.amazonaws.com"
-        ]
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json) — paste it into the **Custom trust policy** editor.
 
 ### 🧠 What This Trust Policy Means
 
@@ -238,7 +226,7 @@ Go to **AWS Glue** → **ETL jobs** → **Create job**.
 | ------- | ----- |
 | Job name | `SF-to-glue-to-lambda` |
 | IAM Role | `SF-Glue-Lambda-Role` |
-| Script | The Glue code below |
+| Script | the code in [glue_job.py](glue_job.py) |
 
 The Glue job receives the status from Step Functions:
 
@@ -250,72 +238,7 @@ The Glue job receives the status from Step Functions:
 
 ## 💻 Step 4: Glue Code
 
-```python
-import sys
-from awsglue.utils import getResolvedOptions
-
-print("===================================")
-print("Glue Job Started")
-print("===================================")
-
-# Get status passed from Step Functions
-args = getResolvedOptions(sys.argv, ["status"])
-
-status = args["status"].upper()
-
-print(f"Status received from Step Functions: {status}")
-
-try:
-
-    print("Processing started...")
-
-    # ==========================================
-    # SUCCESS
-    # ==========================================
-
-    if status == "SUCCESS":
-
-        print("Step Functions requested SUCCESS")
-        print("Processing completed successfully")
-
-    # ==========================================
-    # FAILURE
-    # ==========================================
-
-    elif status == "FAILED":
-
-        print("Step Functions requested FAILED")
-        print("Intentionally failing Glue job...")
-
-        raise Exception(
-            "Glue job failed as requested by Step Functions"
-        )
-
-    # ==========================================
-    # INVALID STATUS
-    # ==========================================
-
-    else:
-
-        raise Exception(
-            f"Invalid status received from Step Functions: {status}"
-        )
-
-except Exception as e:
-
-    print("===================================")
-    print("Glue Job Failed")
-    print("===================================")
-
-    print(f"Error: {str(e)}")
-
-    # Make sure Glue marks the job as FAILED
-    raise
-
-print("===================================")
-print("Glue Job Completed Successfully")
-print("===================================")
-```
+Copy the code from [glue_job.py](glue_job.py) into the Glue job's script editor.
 
 ### 🔍 How the Glue Code Works
 
@@ -368,78 +291,7 @@ Go to **Step Functions** → **State machines** → **Create state machine**.
 
 ### 📝 State Machine JSON
 
-```json
-{
-  "Comment": "Step Functions runs Glue based on input status and sends result to Lambda",
-
-  "StartAt": "Run Glue Job",
-
-  "States": {
-
-    "Run Glue Job": {
-      "Type": "Task",
-
-      "Resource": "arn:aws:states:::glue:startJobRun.sync",
-
-      "Parameters": {
-        "JobName": "YOUR GLUE JOB NAME",
-        "Arguments": {
-          "--status.$": "$.status"
-        }
-      },
-
-      "ResultPath": "$.GlueResult",
-
-      "Catch": [
-        {
-          "ErrorEquals": [
-            "States.ALL"
-          ],
-          "ResultPath": "$.GlueError",
-          "Next": "Set Failure Status"
-        }
-      ],
-
-      "Next": "Set Success Status"
-    },
-
-    "Set Success Status": {
-      "Type": "Pass",
-
-      "Parameters": {
-        "glue_job_name": "YOUR GLUE JOB NAME",
-        "status": "SUCCESS"
-      },
-
-      "Next": "Send To Lambda"
-    },
-
-    "Set Failure Status": {
-      "Type": "Pass",
-
-      "Parameters": {
-        "glue_job_name": "YOUR GLUE JOB NAME",
-        "status": "FAILED"
-      },
-
-      "Next": "Send To Lambda"
-    },
-
-    "Send To Lambda": {
-      "Type": "Task",
-
-      "Resource": "arn:aws:states:::lambda:invoke",
-
-      "Parameters": {
-        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
-        "Payload.$": "$"
-      },
-
-      "End": true
-    }
-  }
-}
-```
+Copy the definition from [state_machine.json](state_machine.json) into the Step Functions **Definition** editor.
 
 ### ⚠️ Replace the Placeholders Before Using
 
@@ -562,43 +414,7 @@ This says:
 
 ## 💻 Step 7: Lambda Code
 
-```python
-def lambda_handler(event, context):
-
-    print("===================================")
-    print("Lambda Started")
-    print("===================================")
-
-    print("Received event:")
-    print(event)
-
-    glue_job_name = event.get("glue_job_name")
-    status = event.get("status")
-
-    print(f"Glue Job Name : {glue_job_name}")
-    print(f"Glue Job Status : {status}")
-
-    if status == "SUCCESS":
-
-        print("Glue Job completed successfully.")
-
-    elif status == "FAILED":
-
-        print("Glue Job failed.")
-
-    else:
-
-        print("Unknown Glue Job status.")
-
-    print("===================================")
-    print("Lambda Completed")
-    print("===================================")
-
-    return {
-        "glue_job_name": glue_job_name,
-        "status": status
-    }
-```
+Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 
@@ -863,20 +679,20 @@ graph TD
 | Step | What to Do |
 |------|-----------|
 | 1 | IAM → Roles → Create role → **Custom trust policy** |
-| 2 | Paste the trust policy with `states`, `glue`, `lambda` |
+| 2 | Paste the trust policy from `trust_policy.json` (`states`, `glue`, `lambda`) |
 | 3 | Attach `AWSLambdaBasicExecutionRole`, `AWSLambdaRole`, `AWSGlueConsoleFullAccess` |
 | 4 | Role name: `SF-Glue-Lambda-Role` |
 | 5 | Glue → ETL jobs → Create job → `SF-to-glue-to-lambda` |
 | 6 | Set job IAM role to `SF-Glue-Lambda-Role` |
-| 7 | Paste the Glue code (uses `getResolvedOptions` for `status`) |
+| 7 | Paste the Glue code from `glue_job.py` (uses `getResolvedOptions` for `status`) |
 | 8 | Lambda → Create function → `SF-to-glue-to-lambda` |
 | 9 | Execution role: `SF-Glue-Lambda-Role` |
-| 10 | Paste the Lambda code → **Deploy** |
+| 10 | Paste the Lambda code from `lambda_function.py` → **Deploy** |
 | 11 | Copy the Lambda ARN |
 | 12 | Step Functions → State machines → Create state machine |
 | 13 | Type **Standard** → write in code |
 | 14 | Name: `SF-to-glue-to-lambda-workflow` |
-| 15 | Paste the JSON → replace the Lambda ARN |
+| 15 | Paste `state_machine.json` → replace the Lambda ARN |
 | 16 | Execution role: existing → `SF-Glue-Lambda-Role` |
 | 17 | Create the state machine |
 | 18 | Start execution with `{"status": "SUCCESS"}` ✅ |

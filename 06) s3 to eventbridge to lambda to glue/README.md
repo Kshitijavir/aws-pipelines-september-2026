@@ -9,6 +9,8 @@
 | [lambda_function.py](lambda_function.py) | The Lambda code — reads the S3 event and starts the Glue job |
 | [glue_job.py](glue_job.py) | The Glue job script — reads the file from S3 and prints its name |
 | [eventbridge_pattern.json](eventbridge_pattern.json) | The EventBridge rule's event pattern — decides which S3 events trigger the pipeline |
+| [trust_policy_lambda.json](trust_policy_lambda.json) | The IAM trust policy for the Lambda execution role |
+| [trust_policy_glue.json](trust_policy_glue.json) | The IAM trust policy for the Glue execution role |
 
 This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
 
@@ -230,6 +232,8 @@ s3-eventbridge-glue-demo-123
 - Role name: `s3-eventbridge-glue-lambda-role`
 - Click **Create role**
 
+> 🔐 The trust policy this role uses — the one that lets the Lambda service assume it — is in [trust_policy_lambda.json](trust_policy_lambda.json).
+
 ---
 
 ## 🐍 Step 3: Create Lambda Function
@@ -365,7 +369,7 @@ sales.csv → S3 → Object Created Event → EventBridge
 
 We want to match: **Source = S3**, **Event = Object Created**, **Bucket = our bucket**.
 
-Copy the pattern from [eventbridge_pattern.json](eventbridge_pattern.json) into the **Event pattern** box and replace `BUCKET NAME` with your real bucket name (the example used in this guide is `s3-eventbridge-glue-demo-123`).
+Copy the pattern from [eventbridge_pattern.json](eventbridge_pattern.json) into the **Event pattern** box and replace `YOUR BUCKET NAME` with your real bucket name (the example used in this guide is `s3-eventbridge-glue-demo-123`).
 
 ### 🧠 Understand the Pattern
 
@@ -414,6 +418,8 @@ Attach permissions for Glue to:
 
 - Role name: `s3-read-file-glue-role`
 - Click **Create role**
+
+> 🔐 The trust policy this role uses — the one that lets the Glue service assume it — is in [trust_policy_glue.json](trust_policy_glue.json).
 
 ---
 
@@ -814,7 +820,7 @@ CloudWatch stores the logs
 | 15 | Rule name: `s3-object-created-start-glue` |
 | 16 | Event bus: default |
 | 17 | Rule type: Rule with an event pattern |
-| 18 | Pattern: paste `eventbridge_pattern.json`, replace `BUCKET NAME` |
+| 18 | Pattern: paste `eventbridge_pattern.json`, replace `YOUR BUCKET NAME` |
 | 19 | Target: Lambda → `s3-eventbridge-start-glue` |
 | 20 | Create the rule |
 | 21 | Upload `sales.csv` to S3 |

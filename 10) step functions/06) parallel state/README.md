@@ -2,6 +2,18 @@
 
 ## Three Lambda Functions Run at the Same Time
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_a.py](lambda_a.py) | The handler for Lambda A — prints its name and the current IST time (function name `lambda-a`) |
+| [lambda_b.py](lambda_b.py) | The handler for Lambda B — the same code with `B` in place of `A` (function name `lambda-b`) |
+| [lambda_c.py](lambda_c.py) | The handler for Lambda C — the same code with `C` in place of `A` (function name `lambda-c`) |
+| [state_machine.json](state_machine.json) | The complete Step Functions definition — one Parallel state with three branches, then Succeed |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets Step Functions and Lambda assume the execution role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 We want Step Functions to call **3 different Lambda functions at the same time**:
@@ -74,24 +86,7 @@ stepfunctions-parallel-demo-role
 
 ### Trust Policy
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": [
-                    "states.amazonaws.com",
-                    "lambda.amazonaws.com"
-                ]
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json).
 
 ### 🧠 What This Trust Policy Means
 
@@ -130,43 +125,7 @@ Click **Create role**.
 
 ### 💻 Code
 
-```python
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("       LAMBDA A STARTED")
-    print("====================================")
-
-    print(f"Received event: {event}")
-
-    # Get current IST time
-    ist_time = datetime.now(ZoneInfo("Asia/Kolkata"))
-
-    print(f"Lambda Name : Lambda A")
-    print(f"Execution Time (IST): {ist_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-
-    print("Lambda A is processing the request...")
-
-    result = {
-        "lambda": "Lambda A",
-        "status": "SUCCESS",
-        "execution_time_ist": ist_time.strftime(
-            "%Y-%m-%d %H:%M:%S %Z"
-        )
-    }
-
-    print(f"Returning result: {result}")
-
-    print("====================================")
-    print("       LAMBDA A FINISHED")
-    print("====================================")
-
-    return result
-```
+Copy the code from [lambda_a.py](lambda_a.py) into the Lambda A function code editor (function name `lambda-a`), replacing the default handler.
 
 Click **Deploy**.
 
@@ -184,42 +143,7 @@ Same thing, with the name changed to `lambda-b` and every `A` changed to `B`.
 
 ### 💻 Code
 
-```python
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("       LAMBDA B STARTED")
-    print("====================================")
-
-    print(f"Received event: {event}")
-
-    ist_time = datetime.now(ZoneInfo("Asia/Kolkata"))
-
-    print(f"Lambda Name : Lambda B")
-    print(f"Execution Time (IST): {ist_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-
-    print("Lambda B is processing the request...")
-
-    result = {
-        "lambda": "Lambda B",
-        "status": "SUCCESS",
-        "execution_time_ist": ist_time.strftime(
-            "%Y-%m-%d %H:%M:%S %Z"
-        )
-    }
-
-    print(f"Returning result: {result}")
-
-    print("====================================")
-    print("       LAMBDA B FINISHED")
-    print("====================================")
-
-    return result
-```
+Copy the code from [lambda_b.py](lambda_b.py) into the Lambda B function code editor (function name `lambda-b`), replacing the default handler.
 
 Click **Deploy**.
 
@@ -235,42 +159,7 @@ Click **Deploy**.
 
 ### 💻 Code
 
-```python
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("       LAMBDA C STARTED")
-    print("====================================")
-
-    print(f"Received event: {event}")
-
-    ist_time = datetime.now(ZoneInfo("Asia/Kolkata"))
-
-    print(f"Lambda Name : Lambda C")
-    print(f"Execution Time (IST): {ist_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-
-    print("Lambda C is processing the request...")
-
-    result = {
-        "lambda": "Lambda C",
-        "status": "SUCCESS",
-        "execution_time_ist": ist_time.strftime(
-            "%Y-%m-%d %H:%M:%S %Z"
-        )
-    }
-
-    print(f"Returning result: {result}")
-
-    print("====================================")
-    print("       LAMBDA C FINISHED")
-    print("====================================")
-
-    return result
-```
+Copy the code from [lambda_c.py](lambda_c.py) into the Lambda C function code editor (function name `lambda-c`), replacing the default handler.
 
 Click **Deploy**.
 
@@ -293,67 +182,14 @@ Click **Deploy**.
 
 ### 📝 State Machine Definition
 
-```json
-{
-  "StartAt": "RunLambdasInParallel",
-  "States": {
-
-    "RunLambdasInParallel": {
-      "Type": "Parallel",
-
-      "Branches": [
-
-        {
-          "StartAt": "LambdaA",
-          "States": {
-            "LambdaA": {
-              "Type": "Task",
-              "Resource": "YOUR_LAMBDA_A_ARN",
-              "End": true
-            }
-          }
-        },
-
-        {
-          "StartAt": "LambdaB",
-          "States": {
-            "LambdaB": {
-              "Type": "Task",
-              "Resource": "YOUR_LAMBDA_B_ARN",
-              "End": true
-            }
-          }
-        },
-
-        {
-          "StartAt": "LambdaC",
-          "States": {
-            "LambdaC": {
-              "Type": "Task",
-              "Resource": "YOUR_LAMBDA_C_ARN",
-              "End": true
-            }
-          }
-        }
-
-      ],
-
-      "Next": "WorkflowCompleted"
-    },
-
-    "WorkflowCompleted": {
-      "Type": "Succeed"
-    }
-  }
-}
-```
+Copy the definition from [state_machine.json](state_machine.json) into the Step Functions **Definition** editor.
 
 > ⚠️ Replace **all three** placeholders with your real Lambda ARNs:
 
 ```text
-YOUR_LAMBDA_A_ARN  →  arn:aws:lambda:us-east-1:123456789012:function:lambda-a
-YOUR_LAMBDA_B_ARN  →  arn:aws:lambda:us-east-1:123456789012:function:lambda-b
-YOUR_LAMBDA_C_ARN  →  arn:aws:lambda:us-east-1:123456789012:function:lambda-c
+YOUR LAMBDA A ARN  →  arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:lambda-a
+YOUR LAMBDA B ARN  →  arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:lambda-b
+YOUR LAMBDA C ARN  →  arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:function:lambda-c
 ```
 
 Click **Create**.

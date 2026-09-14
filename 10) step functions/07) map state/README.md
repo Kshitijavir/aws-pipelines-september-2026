@@ -2,6 +2,16 @@
 
 ## One Lambda Runs Once for Every Student in the List
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler — receives ONE student, checks the marks and returns PASS or FAIL (function name `process-student`) |
+| [state_machine.json](state_machine.json) | The complete Step Functions definition — a Map state with an Iterator, then Succeed |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets Step Functions and Lambda assume the execution role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 Suppose we receive **3 students** in one input:
@@ -118,24 +128,7 @@ stepfunctions-map-demo-role
 
 ### Trust Policy
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": [
-                    "states.amazonaws.com",
-                    "lambda.amazonaws.com"
-                ]
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
+The trust policy this role uses is in [trust_policy.json](trust_policy.json).
 
 ### 🧠 What This Trust Policy Means
 
@@ -172,71 +165,7 @@ Click **Create role**.
 
 ### 💻 Lambda Code
 
-```python
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-
-def lambda_handler(event, context):
-
-    print("====================================")
-    print("       STUDENT LAMBDA STARTED")
-    print("====================================")
-
-    print(f"Received student data: {event}")
-
-    student_name = event["name"]
-    marks = event["marks"]
-
-    # Current IST time
-    ist_time = datetime.now(
-        ZoneInfo("Asia/Kolkata")
-    )
-
-    print(f"Student Name : {student_name}")
-    print(f"Student Marks: {marks}")
-    print(
-        f"Processing Time (IST): "
-        f"{ist_time.strftime('%Y-%m-%d %H:%M:%S %Z')}"
-    )
-
-    print("Checking student result...")
-
-    if marks > 7:
-
-        status = "PASS"
-
-        print(
-            f"{student_name} has PASSED "
-            f"with {marks} marks."
-        )
-
-    else:
-
-        status = "FAIL"
-
-        print(
-            f"{student_name} has FAILED "
-            f"with {marks} marks."
-        )
-
-    result = {
-        "student": student_name,
-        "marks": marks,
-        "status": status,
-        "processed_time_ist": ist_time.strftime(
-            "%Y-%m-%d %H:%M:%S %Z"
-        )
-    }
-
-    print(f"Returning result: {result}")
-
-    print("====================================")
-    print("       STUDENT LAMBDA FINISHED")
-    print("====================================")
-
-    return result
-```
+Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor (function name `process-student`), replacing the default handler.
 
 Click **Deploy**.
 
@@ -265,40 +194,9 @@ That is the whole point of Map — it hands out **one item at a time**. So the L
 
 ### 📝 State Machine Code
 
-```json
-{
-  "StartAt": "ProcessStudents",
-  "States": {
+Copy the definition from [state_machine.json](state_machine.json) into the Step Functions **Definition** editor.
 
-    "ProcessStudents": {
-      "Type": "Map",
-
-      "ItemsPath": "$.students",
-
-      "Iterator": {
-        "StartAt": "ProcessStudent",
-        "States": {
-
-          "ProcessStudent": {
-            "Type": "Task",
-            "Resource": "YOUR_LAMBDA_ARN",
-            "End": true
-          }
-
-        }
-      },
-
-      "Next": "WorkflowCompleted"
-    },
-
-    "WorkflowCompleted": {
-      "Type": "Succeed"
-    }
-  }
-}
-```
-
-> ⚠️ Replace `YOUR_LAMBDA_ARN` with your real Lambda ARN.
+> ⚠️ Replace `YOUR LAMBDA ARN` with your real Lambda ARN.
 
 Click **Create**.
 
@@ -659,7 +557,7 @@ Map      → REPEAT FOR EACH ITEM
 | 8 | Step Functions → State machines → Create state machine |
 | 9 | Choose **Write your workflow in code** → type **Standard** |
 | 10 | Name: `map-student-workflow` |
-| 11 | Paste the state machine code → replace `YOUR_LAMBDA_ARN` |
+| 11 | Paste the state machine code → replace `YOUR LAMBDA ARN` |
 | 12 | Execution role: existing → `stepfunctions-map-demo-role` |
 | 13 | Create the state machine |
 | 14 | Start execution with the 3-student JSON input |

@@ -1,5 +1,15 @@
 # EventBridge Scheduler → Lambda Pipeline — Cron
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda handler — prints the run time and the cron trigger, then dumps the event it received |
+| [scheduler_input.json](scheduler_input.json) | The target input payload — the JSON EventBridge Scheduler passes to Lambda on each daily run |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets the Lambda service assume the execution role |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## Daily Schedule — Lambda Runs Every Day at 6:00 PM
 
 ## 🎯 Goal
@@ -141,6 +151,8 @@ This lets Lambda write its logs. Click **Next**.
 - Role name: `eventbridge-cron-lambda-role`
 - Click **Create role**
 
+> 🔐 **Trust policy:** picking **AWS service → Lambda** as the trusted entity makes the console write a trust policy that lets the Lambda service assume this role. The exact JSON is in [trust_policy.json](trust_policy.json).
+
 ✅ Role is ready.
 
 ---
@@ -168,35 +180,7 @@ Click **Create function**.
 
 Open: **Lambda** → `eventbridge-cron-lambda` → **Code**
 
-Replace the existing code with:
-
-```python
-import json
-from datetime import datetime, timezone
-
-
-def lambda_handler(event, context):
-
-    current_time = datetime.now(timezone.utc)
-
-    print("===== EVENTBRIDGE CRON TRIGGERED =====")
-
-    print(f"Lambda execution time : {current_time}")
-
-    print("Trigger  : EventBridge Scheduler")
-
-    print("Schedule : Every day at 6 PM")
-
-    print("Message  : Lambda executed successfully")
-
-    print("Event received:")
-    print(json.dumps(event, indent=2))
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps("Lambda executed successfully")
-    }
-```
+Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 
@@ -460,15 +444,7 @@ graph TD
 
 ## 📦 Optional: Input / Payload
 
-You can give an input. For example:
-
-```json
-{
-    "source": "eventbridge",
-    "schedule_type": "cron",
-    "schedule": "daily-6-pm"
-}
-```
+You can give an input. Use the payload in [scheduler_input.json](scheduler_input.json) — paste it into the Scheduler's input box.
 
 Lambda gets this JSON in its `event`. Good for testing and for seeing what the scheduler sends.
 
@@ -642,7 +618,7 @@ Simple rule:
 | 5 | Open **Lambda** → **Functions** → **Create function** → **Author from scratch** |
 | 6 | Name: `eventbridge-cron-lambda` → Runtime: Python 3.x |
 | 7 | Execution role: **Use an existing role** → `eventbridge-cron-lambda-role` |
-| 8 | Create Lambda → paste the code → **Deploy** |
+| 8 | Create Lambda → paste [lambda_function.py](lambda_function.py) → **Deploy** |
 | 9 | Test by hand (event `{}`) ✅ |
 | 10 | Open **EventBridge** → **Scheduler** → **Schedules** → **Create schedule** |
 | 11 | Name: `lambda-daily-6pm` |

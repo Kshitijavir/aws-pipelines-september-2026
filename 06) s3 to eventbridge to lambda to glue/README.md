@@ -8,8 +8,9 @@
 | ---- | ---------- |
 | [lambda_function.py](lambda_function.py) | The Lambda code — reads the S3 event and starts the Glue job |
 | [glue_job.py](glue_job.py) | The Glue job script — reads the file from S3 and prints its name |
+| [eventbridge_pattern.json](eventbridge_pattern.json) | The EventBridge rule's event pattern — decides which S3 events trigger the pipeline |
 
-This README explains the **theory** — how the pieces fit together and why. The code itself lives in the two files above.
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
 
 ## 🎯 Goal
 
@@ -364,21 +365,7 @@ sales.csv → S3 → Object Created Event → EventBridge
 
 We want to match: **Source = S3**, **Event = Object Created**, **Bucket = our bucket**.
 
-```json
-{
-  "source": ["aws.s3"],
-  "detail-type": ["Object Created"],
-  "detail": {
-    "bucket": {
-      "name": [
-        "s3-eventbridge-glue-demo-123"
-      ]
-    }
-  }
-}
-```
-
-Replace `s3-eventbridge-glue-demo-123` with your real bucket name.
+Copy the pattern from [eventbridge_pattern.json](eventbridge_pattern.json) into the **Event pattern** box and replace `BUCKET NAME` with your real bucket name (the example used in this guide is `s3-eventbridge-glue-demo-123`).
 
 ### 🧠 Understand the Pattern
 
@@ -827,7 +814,7 @@ CloudWatch stores the logs
 | 15 | Rule name: `s3-object-created-start-glue` |
 | 16 | Event bus: default |
 | 17 | Rule type: Rule with an event pattern |
-| 18 | Pattern: aws.s3 + Object Created + your bucket |
+| 18 | Pattern: paste `eventbridge_pattern.json`, replace `BUCKET NAME` |
 | 19 | Target: Lambda → `s3-eventbridge-start-glue` |
 | 20 | Create the rule |
 | 21 | Upload `sales.csv` to S3 |

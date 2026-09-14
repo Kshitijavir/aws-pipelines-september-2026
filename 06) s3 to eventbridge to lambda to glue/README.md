@@ -2,6 +2,16 @@
 
 ## File Upload → EventBridge → Lambda → Start Glue Job → Read File → Print File Name
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda code — reads the S3 event and starts the Glue job |
+| [glue_job.py](glue_job.py) | The Glue job script — reads the file from S3 and prints its name |
+| [eventbridge_pattern.json](eventbridge_pattern.json) | The EventBridge rule's event pattern — decides which S3 events trigger the pipeline |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+
 ## 🎯 Goal
 
 We want to make an **automatic data pipeline**:
@@ -22,9 +32,10 @@ Read S3 File
 Print File Name
 ```
 
-The most important point: the **bucket name and file name are NOT hardcoded**.
+The most important point: **nothing is hardcoded** — not the bucket name, not the file name, and not the Glue job name.
 
-They come from the S3 event.
+- The **bucket name and object key** come from the S3 event.
+- The **Glue job name** comes from a Lambda **environment variable**, so the same Lambda can start any Glue job.
 
 So if we upload:
 
@@ -113,7 +124,7 @@ graph TD
     A["📤 Upload File"] -->|Object Created| B["🪣 S3 Bucket<br/>EventBridge enabled"]
     B -->|event| C["🚌 EventBridge Rule<br/>s3-object-created-start-glue"]
     C -->|invoke| D["⚡ Lambda<br/>s3-eventbridge-start-glue"]
-    D -->|bucket + key as arguments| E["🧪 Glue Job<br/>s3-read-file-glue-job"]
+    D -->|bucket + key as arguments| E["🧪 Glue Job<br/>name from Lambda config"]
     E -->|read file| F["📄 Print File Name"]
     F --> G["☁️ CloudWatch Logs"]
 
@@ -244,66 +255,37 @@ The Lambda will:
 1. Receive the EventBridge event
 2. Extract bucket name
 3. Extract object key
-4. Start the Glue job
-5. Pass bucket name and object key to Glue
+4. Read the Glue job name from its environment variable
+5. Start the Glue job
+6. Pass bucket name and object key to Glue
 ```
 
-Replace the code with:
-
-```python
-import json
-import boto3
-
-glue = boto3.client("glue")
-
-
-def lambda_handler(event, context):
-
-    print("===== EVENTBRIDGE EVENT RECEIVED =====")
-
-    print(json.dumps(event, indent=2))
-
-    # Get S3 bucket name dynamically
-    bucket_name = event["detail"]["bucket"]["name"]
-
-    # Get S3 object key dynamically
-    object_key = event["detail"]["object"]["key"]
-
-    print("===== S3 DETAILS =====")
-
-    print(f"Bucket Name : {bucket_name}")
-    print(f"Object Key  : {object_key}")
-
-    # Start Glue Job
-    response = glue.start_job_run(
-        JobName="s3-read-file-glue-job",
-        Arguments={
-            "--bucket_name": bucket_name,
-            "--object_key": object_key
-        }
-    )
-
-    job_run_id = response["JobRunId"]
-
-    print("===== GLUE JOB STARTED =====")
-
-    print(f"Glue Job Name  : s3-read-file-glue-job")
-    print(f"Glue Job Run ID: {job_run_id}")
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps({
-            "message": "Glue job started successfully",
-            "bucket_name": bucket_name,
-            "object_key": object_key,
-            "job_run_id": job_run_id
-        })
-    }
-```
+Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 Click **Deploy**.
 
-> ⚠️ **The `JobName` value must match your Glue job name exactly.** This guide uses the example name `s3-read-file-glue-job` everywhere (in this Lambda code, in the Glue job you create, and in the Glue script). If you named your Glue job something else, change the `JobName` line here to match — otherwise Glue returns `EntityNotFoundException`.
+### ⚙️ Set the Glue Job Name (Environment Variable)
+
+The Glue job name is **not written inside the code**. Lambda reads it from an environment variable:
+
+```python
+GLUE_JOB_NAME = os.environ.get("GLUE_JOB_NAME")
+```
+
+So we tell Lambda which job to start, without touching the code:
+
+1. Go to **Lambda** → `s3-eventbridge-start-glue` → **Configuration** → **Environment variables**
+2. Click **Edit** → **Add environment variable**
+
+| Key | Value |
+|-----|-------|
+| `GLUE_JOB_NAME` | the name of your Glue job (example: `glue-lambda-pipline1`) |
+
+3. Click **Save**
+
+Now the same Lambda works with **any** Glue job: create another job, change this one value, done. **No code change.** ✅
+
+> ⚠️ **The `GLUE_JOB_NAME` value must match your Glue job name exactly**, otherwise Glue returns `EntityNotFoundException`. The rest of this guide uses the example name `glue-lambda-pipline1`.
 
 ### 🧠 What Is Lambda Doing?
 
@@ -383,21 +365,7 @@ sales.csv → S3 → Object Created Event → EventBridge
 
 We want to match: **Source = S3**, **Event = Object Created**, **Bucket = our bucket**.
 
-```json
-{
-  "source": ["aws.s3"],
-  "detail-type": ["Object Created"],
-  "detail": {
-    "bucket": {
-      "name": [
-        "s3-eventbridge-glue-demo-123"
-      ]
-    }
-  }
-}
-```
-
-Replace `s3-eventbridge-glue-demo-123` with your real bucket name.
+Copy the pattern from [eventbridge_pattern.json](eventbridge_pattern.json) into the **Event pattern** box and replace `BUCKET NAME` with your real bucket name (the example used in this guide is `s3-eventbridge-glue-demo-123`).
 
 ### 🧠 Understand the Pattern
 
@@ -453,7 +421,8 @@ Attach permissions for Glue to:
 
 1. Go to **AWS Glue** → **ETL jobs** → **Create job**
 2. Choose the visual/script editor option available in your console
-3. Job name: `s3-read-file-glue-job`
+3. Job name: **any name you like** — this guide uses `glue-lambda-pipline1`
+   - ⚠️ Whatever name you pick, put the **same** name in the Lambda `GLUE_JOB_NAME` environment variable (Step 4)
 4. IAM role: `s3-read-file-glue-role`
 
 This role lets Glue read the S3 file and write logs.
@@ -501,69 +470,9 @@ Arguments={
 
 Glue needs to read the arguments passed by Lambda.
 
-```python
-import sys
+Copy the code from [glue_job.py](glue_job.py) into the Glue job's script editor.
 
-from awsglue.context import GlueContext
-from awsglue.job import Job
-from awsglue.utils import getResolvedOptions
-from pyspark.context import SparkContext
-
-
-# Get arguments passed by Lambda
-args = getResolvedOptions(
-    sys.argv,
-    ["bucket_name", "object_key"]
-)
-
-bucket_name = args["bucket_name"]
-object_key = args["object_key"]
-
-
-# Create Spark Context
-sc = SparkContext.getOrCreate()
-
-glueContext = GlueContext(sc)
-
-spark = glueContext.spark_session
-
-
-# Initialize Glue Job
-job = Job(glueContext)
-
-job.init("s3-read-file-glue-job", args)
-
-
-# Build S3 path dynamically
-s3_path = f"s3://{bucket_name}/{object_key}"
-
-
-print("===== GLUE JOB STARTED =====")
-
-print(f"Bucket Name : {bucket_name}")
-print(f"Object Key  : {object_key}")
-print(f"S3 Path     : {s3_path}")
-
-
-print("===== READING FILE =====")
-
-
-df = spark.read.option(
-    "header",
-    "true"
-).csv(s3_path)
-
-
-print("File read successfully")
-
-print(f"File Name / Object Key: {object_key}")
-
-
-df.show()
-
-
-job.commit()
-```
+Glue reads the two arguments Lambda sent, builds the S3 path at runtime, reads the file and prints its name. The job name is not written down anywhere — Glue tells the script its own name through `JOB_NAME`.
 
 ### 🧠 What Is `getResolvedOptions()`?
 
@@ -572,13 +481,15 @@ This code:
 ```python
 args = getResolvedOptions(
     sys.argv,
-    ["bucket_name", "object_key"]
+    ["JOB_NAME", "bucket_name", "object_key"]
 )
 ```
 
 means:
 
-> Get the values passed to this Glue job for `bucket_name` and `object_key`.
+> Get the values passed to this Glue job for `JOB_NAME`, `bucket_name` and `object_key`.
+
+`JOB_NAME` is special: **we never send it ourselves.** Glue fills it in automatically with the name of the job that is running, so `job.init()` can use it without anyone hardcoding a job name.
 
 If Lambda sends:
 
@@ -592,6 +503,7 @@ Then Glue gets:
 ```python
 args["bucket_name"]   # my-demo-bucket
 args["object_key"]    # sales.csv
+args["JOB_NAME"]      # glue-lambda-pipline1 — added by Glue, not by Lambda
 ```
 
 ### 🔄 Dynamic S3 Path
@@ -690,7 +602,7 @@ Object Key  : sales.csv
 
 ===== GLUE JOB STARTED =====
 
-Glue Job Name  : s3-read-file-glue-job
+Glue Job Name  : glue-lambda-pipline1
 Glue Job Run ID: ...
 ```
 
@@ -698,7 +610,7 @@ Glue Job Run ID: ...
 
 ## ☁️ Step 14: Check Glue Logs
 
-Go to: **Glue** → **ETL jobs** → `s3-read-file-glue-job` → **Runs**
+Go to: **Glue** → **ETL jobs** → `glue-lambda-pipline1` → **Runs**
 
 Open the latest run and check the logs:
 
@@ -753,18 +665,20 @@ We are **not** writing:
 ```python
 bucket_name = "my-demo-bucket"
 file_name = "sales.csv"
+job_name = "glue-lambda-pipline1"
 ```
 
-That is **hardcoding** — the code would only ever work for one file.
+That is **hardcoding** — the code would only ever work for one file and one job.
 
 Instead:
 
 ```python
 bucket_name = event["detail"]["bucket"]["name"]
 object_key = event["detail"]["object"]["key"]
+job_name = os.environ["GLUE_JOB_NAME"]
 ```
 
-The values come **from the event**.
+The bucket and key come **from the event**. The job name comes **from configuration**. Nothing is baked into the code.
 
 ---
 
@@ -777,6 +691,8 @@ EventBridge
       ↓
 Extract: Bucket Name + Object Key
       ↓
+Read: Glue Job Name (environment variable)
+      ↓
 Start Glue
       ↓
 Pass Arguments
@@ -786,6 +702,12 @@ Glue
 getResolvedOptions()
       ↓
 Read S3 File
+```
+
+Lambda reads which job to start from its own configuration:
+
+```python
+GLUE_JOB_NAME = os.environ.get("GLUE_JOB_NAME")
 ```
 
 Lambda sends:
@@ -802,7 +724,7 @@ Glue reads:
 ```python
 args = getResolvedOptions(
     sys.argv,
-    ["bucket_name", "object_key"]
+    ["JOB_NAME", "bucket_name", "object_key"]
 )
 ```
 
@@ -880,29 +802,30 @@ CloudWatch stores the logs
 | 3 | Create Lambda IAM role: `AWSLambdaBasicExecutionRole` + Glue start permission |
 | 4 | Lambda → Functions → Create function → Author from scratch |
 | 5 | Name: `s3-eventbridge-start-glue`, Python 3.x, use existing role |
-| 6 | Paste the Lambda code → **Deploy** |
-| 7 | Create Glue IAM role: read S3 + write logs → `s3-read-file-glue-role` |
-| 8 | Glue → ETL jobs → Create job → `s3-read-file-glue-job` |
-| 9 | Attach the Glue role to the job |
-| 10 | Job accepts `--bucket_name` and `--object_key` (values come from Lambda) |
-| 11 | Paste the Glue code (uses `getResolvedOptions()`) |
-| 12 | S3 bucket → Properties → Event Notifications → Amazon EventBridge → ON |
-| 13 | EventBridge → Rules → Create rule |
-| 14 | Rule name: `s3-object-created-start-glue` |
-| 15 | Event bus: default |
-| 16 | Rule type: Rule with an event pattern |
-| 17 | Pattern: aws.s3 + Object Created + your bucket |
-| 18 | Target: Lambda → `s3-eventbridge-start-glue` |
-| 19 | Create the rule |
-| 20 | Upload `sales.csv` to S3 |
-| 21 | S3 creates Object Created → EventBridge → rule matches |
-| 22 | Lambda extracts bucket name + object key |
-| 23 | Lambda starts Glue and passes `--bucket_name` + `--object_key` |
-| 24 | Glue builds `s3://bucket/key` and reads the file |
-| 25 | Glue prints the file name |
-| 26 | Check Lambda logs in CloudWatch |
-| 27 | Check Glue job logs (Glue → ETL jobs → Runs) |
-| 28 | Upload `customer.csv` → same flow, no code change ✅ |
+| 6 | Paste the Lambda code from `lambda_function.py` → **Deploy** |
+| 7 | Lambda → Configuration → Environment variables → add `GLUE_JOB_NAME` |
+| 8 | Create Glue IAM role: read S3 + write logs → `s3-read-file-glue-role` |
+| 9 | Glue → ETL jobs → Create job → any name (example: `glue-lambda-pipline1`) |
+| 10 | Attach the Glue role to the job |
+| 11 | Job accepts `--bucket_name` and `--object_key` (values come from Lambda) |
+| 12 | Paste the Glue code from `glue_job.py` (uses `getResolvedOptions()`) |
+| 13 | S3 bucket → Properties → Event Notifications → Amazon EventBridge → ON |
+| 14 | EventBridge → Rules → Create rule |
+| 15 | Rule name: `s3-object-created-start-glue` |
+| 16 | Event bus: default |
+| 17 | Rule type: Rule with an event pattern |
+| 18 | Pattern: paste `eventbridge_pattern.json`, replace `BUCKET NAME` |
+| 19 | Target: Lambda → `s3-eventbridge-start-glue` |
+| 20 | Create the rule |
+| 21 | Upload `sales.csv` to S3 |
+| 22 | S3 creates Object Created → EventBridge → rule matches |
+| 23 | Lambda extracts bucket name + object key |
+| 24 | Lambda reads `GLUE_JOB_NAME` and calls `start_job_run` with `--bucket_name` + `--object_key` |
+| 25 | Glue builds `s3://bucket/key` and reads the file |
+| 26 | Glue prints the file name |
+| 27 | Check Lambda logs in CloudWatch |
+| 28 | Check Glue job logs (Glue → ETL jobs → Runs) |
+| 29 | Upload `customer.csv` → same flow, no code change ✅ |
 
 ---
 
@@ -910,7 +833,7 @@ CloudWatch stores the logs
 
 **Q: "Explain your S3 to EventBridge to Lambda to Glue pipeline."**
 
-> **"I created an S3 bucket and enabled EventBridge notifications for the bucket. Whenever an object is created, S3 sends the event to EventBridge. I created an EventBridge rule that filters Object Created events from my specific bucket and set Lambda as the target. Lambda receives the event and dynamically extracts the S3 bucket name and object key. Lambda then starts the Glue job using the StartJobRun API and passes the bucket name and object key as job arguments. The Glue job uses getResolvedOptions to read these arguments, dynamically builds the S3 path, reads the file, and prints the file name. Lambda and Glue logs are available in CloudWatch."**
+> **"I created an S3 bucket and enabled EventBridge notifications for the bucket. Whenever an object is created, S3 sends the event to EventBridge. I created an EventBridge rule that filters Object Created events from my specific bucket and set Lambda as the target. Lambda receives the event and dynamically extracts the S3 bucket name and object key. The Glue job name is not hardcoded in Lambda — I pass it in through the `GLUE_JOB_NAME` environment variable, so the same function can start any Glue job. Lambda then calls StartJobRun and passes the bucket name and object key as job arguments. The Glue job uses getResolvedOptions to read these arguments, dynamically builds the S3 path, reads the file, and prints the file name. Lambda and Glue logs are available in CloudWatch."**
 
 ---
 
@@ -921,7 +844,7 @@ CloudWatch stores the logs
 | **S3 Bucket** | Stores files, sends events to EventBridge |
 | **EventBridge Rule** | Filters: aws.s3 + Object Created + your bucket |
 | **Lambda** (`s3-eventbridge-start-glue`) | Extracts bucket + key, starts Glue with arguments |
-| **Glue Job** (`s3-read-file-glue-job`) | Reads arguments, builds S3 path, reads the file, prints the name |
+| **Glue Job** (name set by `GLUE_JOB_NAME`, e.g. `glue-lambda-pipline1`) | Reads arguments, builds S3 path, reads the file, prints the name |
 | **IAM Roles** | Lambda role (logs + start Glue), Glue role (read S3 + logs) |
 | **CloudWatch Logs** | Shows Lambda and Glue output |
 

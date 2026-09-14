@@ -2,6 +2,15 @@
 
 ## File Upload → EventBridge → Lambda → Start Glue Job → Read File → Print File Name
 
+## 📁 Files in This Folder
+
+| File | What It Is |
+| ---- | ---------- |
+| [lambda_function.py](lambda_function.py) | The Lambda code — reads the S3 event and starts the Glue job |
+| [glue_job.py](glue_job.py) | The Glue job script — reads the file from S3 and prints its name |
+
+This README explains the **theory** — how the pieces fit together and why. The code itself lives in the two files above.
+
 ## 🎯 Goal
 
 We want to make an **automatic data pipeline**:
@@ -474,71 +483,9 @@ Arguments={
 
 Glue needs to read the arguments passed by Lambda.
 
-```python
-import sys
+Copy the code from [glue_job.py](glue_job.py) into the Glue job's script editor.
 
-from awsglue.context import GlueContext
-from awsglue.job import Job
-from awsglue.utils import getResolvedOptions
-from pyspark.context import SparkContext
-
-
-# Get arguments passed by Lambda
-# JOB_NAME is filled in by Glue itself with the job's own name,
-# so this script never hardcodes the job name either.
-args = getResolvedOptions(
-    sys.argv,
-    ["JOB_NAME", "bucket_name", "object_key"]
-)
-
-bucket_name = args["bucket_name"]
-object_key = args["object_key"]
-
-
-# Create Spark Context
-sc = SparkContext.getOrCreate()
-
-glueContext = GlueContext(sc)
-
-spark = glueContext.spark_session
-
-
-# Initialize Glue Job
-job = Job(glueContext)
-
-job.init(args["JOB_NAME"], args)
-
-
-# Build S3 path dynamically
-s3_path = f"s3://{bucket_name}/{object_key}"
-
-
-print("===== GLUE JOB STARTED =====")
-
-print(f"Bucket Name : {bucket_name}")
-print(f"Object Key  : {object_key}")
-print(f"S3 Path     : {s3_path}")
-
-
-print("===== READING FILE =====")
-
-
-df = spark.read.option(
-    "header",
-    "true"
-).csv(s3_path)
-
-
-print("File read successfully")
-
-print(f"File Name / Object Key: {object_key}")
-
-
-df.show()
-
-
-job.commit()
-```
+Glue reads the two arguments Lambda sent, builds the S3 path at runtime, reads the file and prints its name. The job name is not written down anywhere — Glue tells the script its own name through `JOB_NAME`.
 
 ### 🧠 What Is `getResolvedOptions()`?
 
@@ -874,7 +821,7 @@ CloudWatch stores the logs
 | 9 | Glue → ETL jobs → Create job → any name (example: `glue-lambda-pipline1`) |
 | 10 | Attach the Glue role to the job |
 | 11 | Job accepts `--bucket_name` and `--object_key` (values come from Lambda) |
-| 12 | Paste the Glue code (uses `getResolvedOptions()`) |
+| 12 | Paste the Glue code from `glue_job.py` (uses `getResolvedOptions()`) |
 | 13 | S3 bucket → Properties → Event Notifications → Amazon EventBridge → ON |
 | 14 | EventBridge → Rules → Create rule |
 | 15 | Rule name: `s3-object-created-start-glue` |

@@ -157,7 +157,7 @@ Click **Create function**.
 
 **Go to:** Lambda Console → `test-ses-lambda` → **Code** tab
 
-You will see the inline code editor. Replace the default code with the code below.
+You will see the inline code editor. What you put in it depends on the approach you pick:
 
 > 📝 **Two ways to package this code — both send the exact same email.**
 
@@ -165,8 +165,6 @@ You will see the inline code editor. Replace the default code with the code belo
 |---|---|---|---|
 | **A — HTML embedded in Python** | `lambda_function.py` only | Paste straight into the Lambda inline editor — **no zip upload needed** ✅ | Learning / quick test |
 | **B — HTML in a separate file** | `lambda_function.py` + `email.html` | Zip both files, then **Upload from** → `.zip` in the Code tab | Real projects — HTML lives outside Python |
-
-Both files for **Approach B** are in this folder: [`lambda_function.py`](lambda_function.py) and [`email.html`](email.html).
 
 Approach B reads the template at runtime with:
 
@@ -192,228 +190,29 @@ zip -r function.zip lambda_function.py email.html
 
 > ⬆️ The single-file version is easier to paste, but the two-file version is what you'd actually ship. Same `ses.send_email` call, same `MessageId` response — only the way the HTML is loaded changes.
 
-The code below is **Approach A** (HTML embedded as a string). ➡️
+The full source for **Approach B** lives in this folder — **there is no code to copy out of this README**:
 
-### 📄 `lambda_function.py` (Approach A — embedded HTML)
+| File | What it holds |
+|---|---|
+| [`lambda_function.py`](lambda_function.py) | Config, the two helper functions, and `lambda_handler` — loads `email.html` at runtime |
+| [`email.html`](email.html) | The HTML email body — design only, no Python |
+
+**Approach A** is the same handler with one change: no `email.html`, no `load_html_template()`. Instead the HTML from `email.html` is pasted into a Python string at the top of the file and passed to `ses.send_email` directly:
 
 ```python
-import boto3
-
-# ─── Configuration ────────────────────────────────────────────────────────────
-REGION = "us-east-1"
-SENDER = "kshitijjavir@outlook.com"
-
-# Multiple recipients - as a list
-RECIPIENTS = [
-    "kshitijjavir110@gmail.com",
-    # "kshitijjavir111@gmail.com",   # uncomment + verify in SES first
-]
-
-SUBJECT = "AWS Lambda Notification - SES Trigger Successful"
-
-ses = boto3.client("ses", region_name=REGION)
-
-
-# ─── HTML Email Template (embedded) ───────────────────────────────────────────
 EMAIL_HTML = """<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AWS Lambda Notification</title>
-</head>
-<body style="margin:0; padding:0; background-color:#f4f6f8;
-             font-family: 'Segoe UI', Arial, sans-serif; color:#333333;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-         style="background-color:#f4f6f8; padding:24px 0;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0"
-               style="background:#ffffff; border-radius:8px; overflow:hidden;
-                      box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-
-          <!-- Header -->
-          <tr>
-            <td style="background:#232f3e; padding:24px 32px;">
-              <h1 style="margin:0; color:#ffffff; font-size:20px;
-                         font-weight:600; letter-spacing:0.3px;">
-                AWS Notification
-              </h1>
-              <p style="margin:4px 0 0; color:#d5dbdb; font-size:13px;">
-                Automated message from AWS Lambda
-              </p>
-            </td>
-          </tr>
-
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px;">
-              <p style="margin:0 0 16px; font-size:15px; line-height:1.6;">
-                Hello,
-              </p>
-              <p style="margin:0 0 24px; font-size:15px; line-height:1.6;">
-                This is an automated notification confirming that your
-                <strong>AWS Lambda</strong> function was triggered successfully
-                and has dispatched this email through
-                <strong>Amazon SES</strong>.
-              </p>
-
-              <!-- Status box -->
-              <table role="presentation" width="100%" cellspacing="0"
-                     cellpadding="0"
-                     style="background:#e8f5e9; border-left:4px solid #2e7d32;
-                            border-radius:4px; margin-bottom:24px;">
-                <tr>
-                  <td style="padding:16px 20px;">
-                    <p style="margin:0; font-size:14px; color:#2e7d32;
-                              font-weight:600;">
-                      &#9989; Status: Lambda hit SES successfully
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Details -->
-              <h2 style="margin:0 0 12px; font-size:15px; color:#232f3e;
-                         font-weight:600;">
-                Execution Details
-              </h2>
-              <table role="presentation" width="100%" cellspacing="0"
-                     cellpadding="0"
-                     style="border:1px solid #e1e4e8; border-radius:6px;
-                            font-size:14px;">
-                <tr>
-                  <td style="padding:10px 16px; background:#fafbfc;
-                             border-bottom:1px solid #e1e4e8;
-                             width:40%; color:#586069;">
-                    Lambda Function
-                  </td>
-                  <td style="padding:10px 16px; border-bottom:1px solid #e1e4e8;">
-                    test-ses-lambda
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:10px 16px; background:#fafbfc;
-                             border-bottom:1px solid #e1e4e8; color:#586069;">
-                    AWS Region
-                  </td>
-                  <td style="padding:10px 16px; border-bottom:1px solid #e1e4e8;">
-                    us-east-1 (N. Virginia)
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:10px 16px; background:#fafbfc;
-                             border-bottom:1px solid #e1e4e8; color:#586069;">
-                    Service
-                  </td>
-                  <td style="padding:10px 16px; border-bottom:1px solid #e1e4e8;">
-                    Amazon SES
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:10px 16px; background:#fafbfc;
-                             color:#586069;">
-                    Trigger
-                  </td>
-                  <td style="padding:10px 16px;">Manual Test Invocation</td>
-                </tr>
-              </table>
-
-              <p style="margin:24px 0 0; font-size:14px; color:#586069;
-                        line-height:1.6;">
-                No action is required. This message is sent for verification
-                purposes only.
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="background:#fafbfc; padding:20px 32px;
-                       border-top:1px solid #e1e4e8;">
-              <p style="margin:0; font-size:12px; color:#8a94a0;
-                        line-height:1.6;">
-                This is an automated email generated by AWS Lambda and
-                delivered via Amazon SES. Please do not reply to this message.
-              </p>
-              <p style="margin:8px 0 0; font-size:12px; color:#8a94a0;">
-                &copy; 2026 &middot; Sent from us-east-1
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
+...contents of email.html...
 """
-
-
-# ─── Plain-text fallback ──────────────────────────────────────────────────────
-EMAIL_TEXT = (
-    "Hello,\n\n"
-    "This is an automated notification confirming that your AWS Lambda "
-    "function was triggered successfully and has dispatched this email "
-    "through Amazon SES.\n\n"
-    "STATUS: Lambda hit SES successfully\n\n"
-    "EXECUTION DETAILS\n"
-    "-----------------\n"
-    "Lambda Function : test-ses-lambda\n"
-    "AWS Region      : us-east-1 (N. Virginia)\n"
-    "Service         : Amazon SES\n"
-    "Trigger         : Manual Test Invocation\n\n"
-    "No action is required. This message is sent for verification "
-    "purposes only.\n\n"
-    "--\n"
-    "This is an automated email generated by AWS Lambda and delivered "
-    "via Amazon SES.\n"
-    "Please do not reply to this message.\n"
-)
-
-
-# ─── Handler ──────────────────────────────────────────────────────────────────
-def lambda_handler(event, context):
-    try:
-        response = ses.send_email(
-            Source=SENDER,
-            Destination={"ToAddresses": RECIPIENTS},
-            Message={
-                "Subject": {
-                    "Data": SUBJECT,
-                    "Charset": "UTF-8"
-                },
-                "Body": {
-                    "Text": {
-                        "Data": EMAIL_TEXT,
-                        "Charset": "UTF-8"
-                    },
-                    "Html": {
-                        "Data": EMAIL_HTML,
-                        "Charset": "UTF-8"
-                    }
-                }
-            }
-        )
-
-        message_id = response["MessageId"]
-        print(f"Email sent successfully! MessageId: {message_id}")
-
-        return {
-            "statusCode": 200,
-            "body": f"Email sent! MessageId: {message_id}"
-        }
-
-    except Exception as e:
-        print(f"Error sending email: {e}")
-        raise
 ```
 
-**After pasting the code:**
+Everything else — the config, the plain-text fallback, `lambda_handler` — stays exactly the same.
 
-1. Click **Deploy** (top-right of the Code editor)
-2. Wait for the green **"Successfully updated"** message
+**After adding the code:**
+
+- **Approach A** — paste the single file into the editor, then click **Deploy** (top-right of the Code editor)
+- **Approach B** — upload `function.zip` via **Upload from** → **.zip**, then click **Deploy**
+
+Wait for the green **"Successfully updated"** message.
 
 ### 🔍 What the Code Does (Simple Version)
 
@@ -422,8 +221,9 @@ def lambda_handler(event, context):
 | `SENDER` | The verified sender email |
 | `RECIPIENTS` | A **list** — you can send to more than one person |
 | `SUBJECT` | The email subject |
-| `EMAIL_HTML` | The nice HTML email (kept inside the Python file) |
-| `EMAIL_TEXT` | A plain-text version for email apps that don't show HTML |
+| `TEMPLATE_PATH` | Where `email.html` sits inside the deployment package |
+| `load_html_template()` | Reads `email.html` and returns the nice HTML email |
+| `build_text_fallback()` | A plain-text version for email apps that don't show HTML |
 | `ses.send_email(...)` | Tells SES to send the email |
 | `MessageId` | AWS's ID for that email — proof it was sent |
 
@@ -530,7 +330,7 @@ Click **"Report as not spam"** → future emails should go to the Inbox. ✅
 | **Region must match** | SES identities, Lambda, and the code's region should all be `us-east-1` |
 | **Verify first, send later** | New identities cannot send until the link is clicked |
 | **Check Spam** | First emails from a new SES sender often go to Spam |
-| **HTML inside Python** | Keeps it simple — no zip file upload needed |
+| **Where the HTML lives** | Approach A keeps it inside Python — paste-and-go, no zip. Approach B keeps it in its own `email.html` — easier to edit the design |
 | **Production** | Replace `AmazonSESFullAccess` with a small custom `ses:SendEmail` policy |
 
 ---

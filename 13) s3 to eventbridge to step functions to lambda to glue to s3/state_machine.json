@@ -1,0 +1,85 @@
+{
+  "Comment": "S3 to Glue file copy. Lambda starts the Glue job, then this workflow polls until the job finishes.",
+  "StartAt": "Start Glue Job",
+  "States": {
+    "Start Glue Job": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "YOUR LAMBDA FUNCTION ARN",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "Workflow Failed"
+        }
+      ],
+      "Next": "Wait For Glue Job"
+    },
+    "Wait For Glue Job": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "Check Glue Job Status"
+    },
+    "Check Glue Job Status": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getJobRun",
+      "Parameters": {
+        "JobName.$": "$.glue_job_name",
+        "RunId.$": "$.job_run_id"
+      },
+      "ResultPath": "$.glue_status",
+      "Next": "Glue Job Finished"
+    },
+    "Glue Job Finished": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.glue_status.JobRun.JobRunState",
+          "StringEquals": "SUCCEEDED",
+          "Next": "Workflow Succeeded"
+        },
+        {
+          "Variable": "$.glue_status.JobRun.JobRunState",
+          "StringEquals": "FAILED",
+          "Next": "Workflow Failed"
+        },
+        {
+          "Variable": "$.glue_status.JobRun.JobRunState",
+          "StringEquals": "TIMEOUT",
+          "Next": "Workflow Failed"
+        },
+        {
+          "Variable": "$.glue_status.JobRun.JobRunState",
+          "StringEquals": "STOPPED",
+          "Next": "Workflow Failed"
+        }
+      ],
+      "Default": "Wait For Glue Job"
+    },
+    "Workflow Succeeded": {
+      "Type": "Succeed"
+    },
+    "Workflow Failed": {
+      "Type": "Fail",
+      "Error": "GlueJobFailed",
+      "Cause": "The Glue job did not complete successfully. Open the Glue run and read its logs."
+    }
+  }
+}

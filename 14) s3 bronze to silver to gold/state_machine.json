@@ -1,0 +1,111 @@
+{
+  "Comment": "Bronze to Silver to Gold. Step Functions starts Lambda A, then polls the Gold bucket for the success marker Lambda B leaves behind.",
+  "StartAt": "Create Status Folder",
+  "States": {
+    "Create Status Folder": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
+      "Parameters": {
+        "Bucket": "YOUR GOLD BUCKET",
+        "Key": "_status/",
+        "Body": ""
+      },
+      "ResultPath": null,
+      "Next": "Start Lambda A"
+    },
+    "Start Lambda A": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "YOUR LAMBDA A ARN",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "Workflow Failed"
+        }
+      ],
+      "Next": "Prepare Polling"
+    },
+    "Prepare Polling": {
+      "Type": "Pass",
+      "Parameters": {
+        "bronze_key.$": "$.bronze_key",
+        "silver_key.$": "$.silver_key",
+        "status_key.$": "$.status_key",
+        "attempt": 0
+      },
+      "Next": "Wait For Lambda B"
+    },
+    "Wait For Lambda B": {
+      "Type": "Wait",
+      "Seconds": 20,
+      "Next": "Check For Success Marker"
+    },
+    "Check For Success Marker": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:s3:listObjectsV2",
+      "Parameters": {
+        "Bucket": "YOUR GOLD BUCKET",
+        "Prefix.$": "$.status_key"
+      },
+      "ResultPath": "$.marker",
+      "Next": "Success Marker Found"
+    },
+    "Success Marker Found": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.marker.KeyCount",
+          "NumericGreaterThan": 0,
+          "Next": "Workflow Succeeded"
+        },
+        {
+          "Variable": "$.attempt",
+          "NumericGreaterThanEquals": 15,
+          "Next": "Workflow Timed Out"
+        }
+      ],
+      "Default": "Increase Attempt"
+    },
+    "Increase Attempt": {
+      "Type": "Pass",
+      "Parameters": {
+        "bronze_key.$": "$.bronze_key",
+        "silver_key.$": "$.silver_key",
+        "status_key.$": "$.status_key",
+        "attempt.$": "States.MathAdd($.attempt, 1)"
+      },
+      "Next": "Wait For Lambda B"
+    },
+    "Workflow Succeeded": {
+      "Type": "Succeed"
+    },
+    "Workflow Timed Out": {
+      "Type": "Fail",
+      "Error": "SuccessMarkerNotFound",
+      "Cause": "Lambda B never wrote its success marker to the Gold bucket. Open the Lambda B logs and check the Silver bucket's event rule fired."
+    },
+    "Workflow Failed": {
+      "Type": "Fail",
+      "Error": "WorkflowFailed",
+      "Cause": "A state raised an error. Open the failed state's input above to see what it was."
+    }
+  }
+}

@@ -40,11 +40,9 @@ Read these in order. Each one only needs the one before it to make sense.
 
 ## 1️⃣ Bronze Bucket ➜ EventBridge Rule A
 
-```text
-┌───────────────┐                      ┌──────────────────────┐
-│ Bronze Bucket │ ── file uploaded ──► │ EventBridge Rule A   │
-└───────────────┘                      │ bronze-object-created│
-                                       └──────────────────────┘
+```mermaid
+graph LR
+    A["🪣 Bronze Bucket"] -->|file uploaded| B["🚌 EventBridge Rule A<br/>bronze-object-created"]
 ```
 
 | | |
@@ -55,11 +53,9 @@ Read these in order. Each one only needs the one before it to make sense.
 
 ## 2️⃣ EventBridge Rule A ➜ Step Functions
 
-```text
-┌──────────────────────┐                       ┌──────────────────────────┐
-│ EventBridge Rule A   │ ── start workflow ──► │ Step Functions           │
-└──────────────────────┘                       │ bronze-silver-gold-workflow│
-                                               └──────────────────────────┘
+```mermaid
+graph LR
+    A["🚌 EventBridge Rule A"] -->|start workflow| B["🔄 Step Functions<br/>bronze-silver-gold-workflow"]
 ```
 
 | | |
@@ -70,11 +66,9 @@ Read these in order. Each one only needs the one before it to make sense.
 
 ## 3️⃣ Step Functions ➜ Lambda A
 
-```text
-┌─────────────────┐                    ┌──────────────┐
-│ Step Functions  │ ── invoke ───────► │ Lambda A     │
-└─────────────────┘                    │ bronze-to-silver│
-                                       └──────────────┘
+```mermaid
+graph LR
+    A["🔄 Step Functions"] -->|invoke| B["⚡ Lambda A<br/>bronze-to-silver"]
 ```
 
 | | |
@@ -85,10 +79,9 @@ Read these in order. Each one only needs the one before it to make sense.
 
 ## 4️⃣ Lambda A ➜ Silver Bucket
 
-```text
-┌──────────────┐                        ┌───────────────┐
-│ Lambda A     │ ── copy the file ────► │ Silver Bucket │
-└──────────────┘    + add timestamp     └───────────────┘
+```mermaid
+graph LR
+    A["⚡ Lambda A"] -->|"copy + add timestamp"| B["🪣 Silver Bucket"]
 ```
 
 | | |
@@ -101,11 +94,9 @@ Read these in order. Each one only needs the one before it to make sense.
 
 ## 5️⃣ Silver Bucket ➜ EventBridge Rule B
 
-```text
-┌───────────────┐                      ┌──────────────────────┐
-│ Silver Bucket │ ── file uploaded ──► │ EventBridge Rule B   │
-└───────────────┘                      │ silver-object-created│
-                                       └──────────────────────┘
+```mermaid
+graph LR
+    A["🪣 Silver Bucket"] -->|file uploaded| B["🚌 EventBridge Rule B<br/>silver-object-created"]
 ```
 
 | | |
@@ -118,11 +109,9 @@ Read these in order. Each one only needs the one before it to make sense.
 
 ## 6️⃣ EventBridge Rule B ➜ Lambda B
 
-```text
-┌──────────────────────┐                    ┌──────────────┐
-│ EventBridge Rule B   │ ── run lambda ───► │ Lambda B     │
-└──────────────────────┘                    │ silver-to-gold│
-                                            └──────────────┘
+```mermaid
+graph LR
+    A["🚌 EventBridge Rule B"] -->|run lambda| B["⚡ Lambda B<br/>silver-to-gold"]
 ```
 
 | | |
@@ -133,11 +122,9 @@ Read these in order. Each one only needs the one before it to make sense.
 
 ## 7️⃣ Lambda B ➜ Gold Bucket (the actual file)
 
-```text
-┌──────────────┐                       ┌────────────────────────────────────┐
-│ Lambda B     │ ── copy the file ───► │ Gold Bucket                        │
-└──────────────┘                       │ 2026/09/15/customer_data_...csv    │
-                                       └────────────────────────────────────┘
+```mermaid
+graph LR
+    A["⚡ Lambda B"] -->|"copy into YYYY/MM/DD/"| B["🪣 Gold Bucket<br/>2026/09/15/customer_data_...csv"]
 ```
 
 | | |
@@ -148,18 +135,10 @@ Read these in order. Each one only needs the one before it to make sense.
 
 ## 8️⃣ Lambda B ➜ Gold Bucket (the marker) ➜ back to Step Functions
 
-```text
-┌──────────────┐                    ┌─────────────────────┐
-│ Lambda B     │ ── writes ───────► │ Gold Bucket         │
-└──────────────┘   _status/..._SUCCESS                    │
-                                       └─────────────────────┘
-                                                 ▲
-                                                 │ keeps checking
-                                                 │
-                                       ┌─────────────────────┐
-                                       │ Step Functions      │
-                                       │ (waiting)           │
-                                       └─────────────────────┘
+```mermaid
+graph LR
+    A["⚡ Lambda B"] -->|writes| B["🪣 Gold Bucket<br/>_status/..._SUCCESS"]
+    C["🔄 Step Functions"] -.->|keeps checking| B
 ```
 
 | | |
@@ -176,23 +155,27 @@ Read these in order. Each one only needs the one before it to make sense.
 
 **The solution.** The two never talk. Instead they **agree on a file name in advance.**
 
-```text
-Step Functions                     Lambda B
-      │                                  │
-      │ Lambda A told it to              │
-      │ watch for this name:             │
-      │                                  │
-      │  _status/customer_data_          │
-      │  2026-09-15_19-35-42.csv_SUCCESS │
-      │                                  │
-      │ checks Gold for it ──────────►   │ after copying,
-      │   ...not there yet...            │ creates that
-      │   ...not there yet...            │ exact file
-      │                                  │
-      │ ◄────── now it's there ──────────┘
-      │
-      ▼
-  SUCCEEDED ✅
+```mermaid
+sequenceDiagram
+    participant SF as Step Functions
+    participant Gold as Gold Bucket
+    participant LB as Lambda B
+
+    Note over SF: Lambda A told it to watch for<br/>_status/customer_data_2026-09-15_19-35-42.csv_SUCCESS
+
+    loop every 20 seconds
+        SF->>Gold: does that file exist yet?
+        Gold-->>SF: not yet
+    end
+
+    Note over LB: meanwhile Rule B ran Lambda B
+    LB->>Gold: copy the file into YYYY/MM/DD/
+    LB->>Gold: write _status/customer_data_2026-09-15_19-35-42.csv_SUCCESS
+
+    SF->>Gold: does that file exist yet?
+    Gold-->>SF: yes
+
+    Note over SF: SUCCEEDED ✅
 ```
 
 Step Functions keeps checking every 20 seconds. The moment the file exists, it declares success. If it never appears, the workflow fails after about 5 minutes with a clear message.
@@ -221,39 +204,20 @@ With the timestamp, that cannot happen.
 
 Step by step, in plain words.
 
-```text
-1.  You upload customer_data.csv to Bronze.
-        ↓
-2.  S3 announces it (EventBridge is ON on Bronze).
-        ↓
-3.  Rule A matches it, and starts Step Functions.
-        ↓
-4.  Step Functions creates the folder _status/ in Gold.
-        ↓
-5.  Step Functions calls Lambda A.
-        ↓
-6.  Lambda A copies the file to Silver, renaming it:
-        customer_data_2026-09-15_19-35-42.csv
-        ↓
-7.  Lambda A tells Step Functions: "watch for
-        _status/customer_data_2026-09-15_19-35-42.csv_SUCCESS"
-        ↓
-8.  Step Functions starts checking Gold for that file. Not there yet.
-        ↓
-9.  Meanwhile — the new file in Silver announces itself (EventBridge is ON on Silver).
-        ↓
+1. You upload `customer_data.csv` to Bronze.
+2. S3 announces it — EventBridge is ON on Bronze.
+3. Rule A matches it, and starts Step Functions.
+4. Step Functions creates the `_status/` folder in Gold.
+5. Step Functions calls Lambda A.
+6. Lambda A copies the file to Silver, renaming it `customer_data_2026-09-15_19-35-42.csv`.
+7. Lambda A tells Step Functions: *"watch for `_status/customer_data_2026-09-15_19-35-42.csv_SUCCESS`"*.
+8. Step Functions starts checking Gold for that file. Not there yet.
+9. Meanwhile, the new file in Silver announces itself — EventBridge is ON on Silver.
 10. Rule B matches it, and runs Lambda B.
-        ↓
-11. Lambda B copies the file to Gold inside today's date folder:
-        2026/09/15/customer_data_2026-09-15_19-35-42.csv
-        ↓
-12. Lambda B writes the marker:
-        _status/customer_data_2026-09-15_19-35-42.csv_SUCCESS
-        ↓
+11. Lambda B copies the file to Gold inside today's date folder: `2026/09/15/customer_data_2026-09-15_19-35-42.csv`.
+12. Lambda B writes the marker: `_status/customer_data_2026-09-15_19-35-42.csv_SUCCESS`.
 13. Step Functions' next check finds it.
-        ↓
-14. SUCCEEDED ✅
-```
+14. **SUCCEEDED** ✅
 
 ### Final result
 
@@ -426,14 +390,27 @@ No. `.csv`, `.xlsx`, `.pdf`, or no extension at all all work. Nothing in either 
 
 # Summary
 
-```text
-Bronze ──► Rule A ──► Step Functions ──► Lambda A ──► Silver
-                            │                           │
-                            │                           ▼
-                            │                        Rule B
-                            │                           │
-                            │                           ▼
-                            └────── marker ◄────── Lambda B ──► Gold
+```mermaid
+graph TD
+    Bronze["🪣 Bronze Bucket"] --> RuleA["🚌 EventBridge Rule A"]
+    RuleA --> SF["🔄 Step Functions"]
+    SF --> LambdaA["⚡ Lambda A"]
+    LambdaA --> Silver["🪣 Silver Bucket"]
+    Silver --> RuleB["🚌 EventBridge Rule B"]
+    RuleB --> LambdaB["⚡ Lambda B"]
+    LambdaB --> Gold["🪣 Gold Bucket"]
+    LambdaB -.->|writes| Marker["📄 _status/ marker"]
+    SF -.->|polls until it appears| Marker
+
+    style Bronze fill:#fff3e0
+    style Silver fill:#eceff1
+    style Gold fill:#fff9c4
+    style RuleA fill:#e3f2fd
+    style RuleB fill:#e3f2fd
+    style SF fill:#f3e5f5
+    style LambdaA fill:#e8f5e9
+    style LambdaB fill:#e8f5e9
+    style Marker fill:#c8e6c9
 ```
 
 | Piece | Job |

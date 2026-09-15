@@ -1,0 +1,6 @@
+Employee_ID|Employee_Name|Department|Salary|Joining_Date
+116|Pooja Verma|Data Engineering|82500|2023-11-05
+117|Aditya Menon|Analytics|80500|2024-08-09
+118|Tanvi Shah|Cloud Engineering|91000|2024-04-27
+119|Rahul Pillai|Data Science|89000|2023-09-12
+120|Sakshi Bansal|DevOps|98000|2024-05-31

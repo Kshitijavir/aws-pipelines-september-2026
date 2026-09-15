@@ -1,0 +1,6 @@
+Employee_ID|Employee_Name|Department|Salary|Joining_Date
+121|Manish Tiwari|Data Engineering|84500|2024-06-06
+122|Kavya Krishnan|Analytics|77500|2024-09-01
+123|Varun Chopra|Cloud Engineering|93000|2023-07-22
+124|Ritika Saxena|Data Science|90000|2024-07-03
+125|Harsh Agarwal|DevOps|99000|2024-08-16

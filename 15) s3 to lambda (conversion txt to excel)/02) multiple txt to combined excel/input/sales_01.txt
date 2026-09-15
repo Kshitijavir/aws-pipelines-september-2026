@@ -1,0 +1,6 @@
+Employee_ID|Employee_Name|Department|Salary|Joining_Date
+101|Rahul Sharma|Data Engineering|85000|2024-01-15
+102|Priya Mehta|Analytics|78000|2024-03-10
+103|Amit Kumar|Cloud Engineering|92000|2023-11-20
+104|Neha Singh|Data Science|88000|2024-02-05
+105|Vikram Patel|DevOps|95000|2023-09-18

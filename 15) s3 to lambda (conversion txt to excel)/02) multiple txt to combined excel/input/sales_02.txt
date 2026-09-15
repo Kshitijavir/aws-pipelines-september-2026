@@ -1,0 +1,6 @@
+Employee_ID|Employee_Name|Department|Salary|Joining_Date
+106|Ananya Iyer|Data Engineering|81000|2024-04-02
+107|Rohan Desai|Analytics|76500|2023-12-11
+108|Sneha Kulkarni|Cloud Engineering|90500|2024-05-19
+109|Arjun Nair|Data Science|89500|2023-10-07
+110|Meera Joshi|DevOps|97500|2024-06-23

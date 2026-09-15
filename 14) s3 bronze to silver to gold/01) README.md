@@ -1,402 +1,261 @@
 # Bronze → Silver → Gold Pipeline
 
-## S3 (Bronze) → EventBridge → Step Functions → Lambda A → S3 (Silver) → Lambda B → S3 (Gold)
-
 ## 📁 Files in This Folder
 
 | File | What It Is |
 | ---- | ---------- |
-| [lambda_a.py](lambda_a.py) | Lambda A — copies Bronze → Silver, timestamps the name, tells Step Functions which marker to watch |
-| [lambda_b.py](lambda_b.py) | Lambda B — triggered by Silver's own event, copies into Gold's date folders and writes the success marker |
-| [state_machine.json](state_machine.json) | The complete Step Functions definition — create the status folder, start Lambda A, poll for the marker |
-| [trust_policy.json](trust_policy.json) | The IAM trust policy for the shared role — EventBridge, Step Functions and Lambda |
-| [eventbridge_pattern_bronze.json](eventbridge_pattern_bronze.json) | The rule that starts the workflow when a file lands in Bronze |
-| [eventbridge_pattern_silver.json](eventbridge_pattern_silver.json) | The rule that runs Lambda B when a file lands in Silver |
+| [lambda_a.py](lambda_a.py) | Lambda A — copies Bronze → Silver, adds a timestamp to the file name |
+| [lambda_b.py](lambda_b.py) | Lambda B — copies Silver → Gold, then writes a "finished" marker |
+| [state_machine.json](state_machine.json) | The Step Functions workflow — start Lambda A, then wait for the marker |
+| [trust_policy.json](trust_policy.json) | The IAM trust policy for the one shared role |
+| [eventbridge_pattern_bronze.json](eventbridge_pattern_bronze.json) | The rule that starts the workflow |
+| [eventbridge_pattern_silver.json](eventbridge_pattern_silver.json) | The rule that runs Lambda B |
 
-This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
+---
 
-## 🎯 Goal
+# 🎯 What This Pipeline Does
 
-A file dropped into **Bronze** should end up in **Gold**, filed under the date it was processed:
+**In one sentence:** you drop a file into the Bronze bucket, and it ends up in the Gold bucket inside today's date folder.
 
 ```text
-Bronze:  customer_data.csv
-              ↓   Lambda A
-Silver:  customer_data_2026-09-15_19-35-42.csv
-              ↓   Lambda B
-Gold:    2026/09/15/customer_data_2026-09-15_19-35-42.csv
+You upload           It ends up here
+customer_data.csv    Gold/2026/09/15/customer_data_2026-09-15_19-35-42.csv
 ```
 
-And Step Functions should report **SUCCESS** only once the file is genuinely in Gold — never before.
+**In three buckets:**
 
-## 🤔 The Problem This Pipeline Actually Solves
+| Bucket | What it holds |
+| ------ | ------------- |
+| **Bronze** | The file you uploaded, untouched |
+| **Silver** | The same file, with a timestamp added to its name |
+| **Gold** | The file again, filed inside `Year/Month/Day/` — ready to query |
 
-The chain is easy to picture:
+**And Step Functions watches the whole thing** so you get a clear green **SUCCEEDED** or red **FAILED** at the end.
+
+---
+
+# 🔗 How Everything Is Connected — 8 Connections
+
+Read these in order. Each one only needs the one before it to make sense.
+
+## 1️⃣ Bronze Bucket ➜ EventBridge Rule A
 
 ```text
-Bronze → Silver → Gold
+┌───────────────┐                      ┌──────────────────────┐
+│ Bronze Bucket │ ── file uploaded ──► │ EventBridge Rule A   │
+└───────────────┘                      │ bronze-object-created│
+                                       └──────────────────────┘
 ```
 
-The hard part is the **middle**. Those are two separate Lambdas doing two separate copies, and only the first one is called by Step Functions:
+| | |
+| --- | --- |
+| **How to set it up** | Bronze bucket → **Properties** → **Event Notifications** → **Amazon EventBridge** → **ON** |
+| **What travels** | the S3 event that says "a new file appeared" |
+| **Why it's needed** | by itself, S3 does not call anything. Switching EventBridge ON makes S3 *announce* every upload. |
 
-- Step Functions calls **Lambda A** directly — that part is easy to track. It waits, it sees the return value, it knows if it threw.
-- **Lambda B is not called by Step Functions at all.** It is triggered by the Silver bucket's own S3 event. By the time Lambda B runs, Step Functions has no idea it exists.
-
-So when Lambda B finishes, Step Functions is sitting there with no way to know. If it just declared success after Lambda A returned, it would be lying — the file might never reach Gold.
-
-**This pipeline's whole design is about closing that gap.**
-
-## 💡 The Solution: A Success Marker in the Gold Bucket
-
-Step Functions and Lambda B never speak to each other. Instead they agree on **a file name in advance**:
+## 2️⃣ EventBridge Rule A ➜ Step Functions
 
 ```text
-Step Functions                          Lambda B
-      │                                     │
-      │ creates  _status/                   │
-      │ in Gold                             │
-      │                                     │
-      │ calls Lambda A                      │
-      │      │                              │
-      │      └─ Lambda A returns            │
-      │         status_key                  │
-      │                                     │
-      │ polls Gold for status_key ──────►   │ copies to Gold
-      │                                     │
-      │                                creates status_key
-      │ ◄──── status_key now exists ────────┘
+┌──────────────────────┐                       ┌──────────────────────────┐
+│ EventBridge Rule A   │ ── start workflow ──► │ Step Functions           │
+└──────────────────────┘                       │ bronze-silver-gold-workflow│
+                                               └──────────────────────────┘
+```
+
+| | |
+| --- | --- |
+| **How to set it up** | Rule A → **Target** → AWS service → **Step Functions state machine** → `bronze-silver-gold-workflow` |
+| **What travels** | the whole S3 event, unchanged |
+| **Why it's needed** | Rule A decides *which* uploads matter. Only uploads to Bronze pass through. Uploads to Silver or Gold do not. |
+
+## 3️⃣ Step Functions ➜ Lambda A
+
+```text
+┌─────────────────┐                    ┌──────────────┐
+│ Step Functions  │ ── invoke ───────► │ Lambda A     │
+└─────────────────┘                    │ bronze-to-silver│
+                                       └──────────────┘
+```
+
+| | |
+| --- | --- |
+| **How to set it up** | in `state_machine.json`, the `Start Lambda A` state. Replace `YOUR LAMBDA A ARN` with the real ARN |
+| **What travels** | the S3 event (`Payload.$: "$"` forwards it whole) |
+| **Why it's needed** | Lambda A is the only Lambda Step Functions calls directly — so **this is the only Lambda ARN that appears in the state machine.** |
+
+## 4️⃣ Lambda A ➜ Silver Bucket
+
+```text
+┌──────────────┐                        ┌───────────────┐
+│ Lambda A     │ ── copy the file ────► │ Silver Bucket │
+└──────────────┘    + add timestamp     └───────────────┘
+```
+
+| | |
+| --- | --- |
+| **How to set it up** | `SILVER_BUCKET` at the top of `lambda_a.py` |
+| **What travels** | the file itself |
+| **Why it's needed** | this is hop 1 of the copy. The name becomes `customer_data_2026-09-15_19-35-42.csv`. |
+
+> 📌 **Lambda A also returns one extra thing** — not the file, just a *name*: the name of the marker it expects Lambda B to create later. Step Functions holds on to that name. More about it in connection 8.
+
+## 5️⃣ Silver Bucket ➜ EventBridge Rule B
+
+```text
+┌───────────────┐                      ┌──────────────────────┐
+│ Silver Bucket │ ── file uploaded ──► │ EventBridge Rule B   │
+└───────────────┘                      │ silver-object-created│
+                                       └──────────────────────┘
+```
+
+| | |
+| --- | --- |
+| **How to set it up** | Silver bucket → **Properties** → **Event Notifications** → **Amazon EventBridge** → **ON** |
+| **What travels** | the S3 event for the file Lambda A just wrote |
+| **Why it's needed** | **this is the turning point of the whole pipeline.** Step Functions is *not* involved here. The file appearing in Silver is what starts hop 2 — not the workflow. |
+
+> ⚠️ **Gold must NOT have EventBridge turned on.** If it did, the marker Lambda B writes would fire an event and the pipeline would trigger itself forever.
+
+## 6️⃣ EventBridge Rule B ➜ Lambda B
+
+```text
+┌──────────────────────┐                    ┌──────────────┐
+│ EventBridge Rule B   │ ── run lambda ───► │ Lambda B     │
+└──────────────────────┘                    │ silver-to-gold│
+                                            └──────────────┘
+```
+
+| | |
+| --- | --- |
+| **How to set it up** | Rule B → **Target** → AWS service → **Lambda function** → `silver-to-gold` |
+| **What travels** | the S3 event for the file in Silver |
+| **Why it's needed** | Lambda B's ARN belongs **here**, in the EventBridge rule — not in the state machine. Step Functions never calls Lambda B. |
+
+## 7️⃣ Lambda B ➜ Gold Bucket (the actual file)
+
+```text
+┌──────────────┐                       ┌────────────────────────────────────┐
+│ Lambda B     │ ── copy the file ───► │ Gold Bucket                        │
+└──────────────┘                       │ 2026/09/15/customer_data_...csv    │
+                                       └────────────────────────────────────┘
+```
+
+| | |
+| --- | --- |
+| **How to set it up** | `GOLD_BUCKET` at the top of `lambda_b.py` |
+| **What travels** | the file, into `Year/Month/Day/` |
+| **Why it's needed** | this is hop 2 — the file reaches its final home |
+
+## 8️⃣ Lambda B ➜ Gold Bucket (the marker) ➜ back to Step Functions
+
+```text
+┌──────────────┐                    ┌─────────────────────┐
+│ Lambda B     │ ── writes ───────► │ Gold Bucket         │
+└──────────────┘   _status/..._SUCCESS                    │
+                                       └─────────────────────┘
+                                                 ▲
+                                                 │ keeps checking
+                                                 │
+                                       ┌─────────────────────┐
+                                       │ Step Functions      │
+                                       │ (waiting)           │
+                                       └─────────────────────┘
+```
+
+| | |
+| --- | --- |
+| **How to set it up** | nothing to configure — it's in the code |
+| **What travels** | a tiny empty file whose *name* is the message |
+| **Why it's needed** | **this is how Step Functions finds out the job is done** — explained next |
+
+---
+
+# 💡 The One Clever Bit: The Success Marker
+
+**The problem.** Step Functions calls Lambda A, so it knows when Lambda A finishes. But it does **not** call Lambda B — EventBridge does. So when Lambda B finishes, Step Functions has no way to know. It is just sitting there.
+
+**The solution.** The two never talk. Instead they **agree on a file name in advance.**
+
+```text
+Step Functions                     Lambda B
+      │                                  │
+      │ Lambda A told it to              │
+      │ watch for this name:             │
+      │                                  │
+      │  _status/customer_data_          │
+      │  2026-09-15_19-35-42.csv_SUCCESS │
+      │                                  │
+      │ checks Gold for it ──────────►   │ after copying,
+      │   ...not there yet...            │ creates that
+      │   ...not there yet...            │ exact file
+      │                                  │
+      │ ◄────── now it's there ──────────┘
       │
       ▼
-   SUCCESS
+  SUCCEEDED ✅
 ```
 
-That is the whole trick. There is no callback, no token, no queue — just a file that one side writes and the other side watches for.
+Step Functions keeps checking every 20 seconds. The moment the file exists, it declares success. If it never appears, the workflow fails after about 5 minutes with a clear message.
 
-### 🔑 Why the Marker Name Has a Timestamp In It
+### 🔑 Why the marker name has a timestamp in it
 
-This is the detail that makes it correct rather than almost-correct.
+This one detail stops a nasty bug.
 
-The marker is named after the file **Lambda A wrote to Silver**:
-
-```python
-# Lambda A
-silver_key = f"{file_name}_{timestamp}{file_extension}"
-status_key = f"_status/{silver_key}_SUCCESS"
-```
-
-Because Lambda A already adds a timestamp, that name is unique per run:
+Lambda A names the marker after the file **it** wrote to Silver — and that name has a timestamp:
 
 ```text
 _status/customer_data_2026-09-15_19-35-42.csv_SUCCESS
 ```
 
-Now imagine the marker had been named after the **original** file instead — `_status/customer_data.csv_SUCCESS`. You upload `customer_data.csv` on Monday, it works, the marker is left behind. On Tuesday you upload `customer_data.csv` again: Step Functions checks, finds Monday's marker still sitting there, and reports **SUCCESS immediately** — before Lambda B has copied anything.
+The timestamp makes each run's marker **unique**.
 
-The timestamp in the name makes every run's marker unique, so an old one can never be mistaken for this one.
+Now imagine the marker were named after the original file instead — `_status/customer_data.csv_SUCCESS`. You upload `customer_data.csv` on Monday. It works. The marker stays there forever. On Tuesday you upload `customer_data.csv` again — Step Functions looks, finds **Monday's** marker still sitting there, and says **SUCCEEDED immediately** — before Lambda B has copied anything.
 
-### 🎁 A Free Audit Trail
+With the timestamp, that cannot happen.
 
-Markers are never deleted, so `_status/` builds up into a history of every file the pipeline has ever processed:
+> 🎁 **A bonus:** markers are never deleted, so `_status/` ends up as a history of every file the pipeline has ever processed.
+
+---
+
+# 📤 What Happens When You Upload a File
+
+Step by step, in plain words.
 
 ```text
-_status/
-├── customer_data_2026-09-15_19-35-42.csv_SUCCESS
-├── invoice_2026-09-15_19-40-11.pdf_SUCCESS
-└── report_2026-09-16_09-12-03.xlsx_SUCCESS
+1.  You upload customer_data.csv to Bronze.
+        ↓
+2.  S3 announces it (EventBridge is ON on Bronze).
+        ↓
+3.  Rule A matches it, and starts Step Functions.
+        ↓
+4.  Step Functions creates the folder _status/ in Gold.
+        ↓
+5.  Step Functions calls Lambda A.
+        ↓
+6.  Lambda A copies the file to Silver, renaming it:
+        customer_data_2026-09-15_19-35-42.csv
+        ↓
+7.  Lambda A tells Step Functions: "watch for
+        _status/customer_data_2026-09-15_19-35-42.csv_SUCCESS"
+        ↓
+8.  Step Functions starts checking Gold for that file. Not there yet.
+        ↓
+9.  Meanwhile — the new file in Silver announces itself (EventBridge is ON on Silver).
+        ↓
+10. Rule B matches it, and runs Lambda B.
+        ↓
+11. Lambda B copies the file to Gold inside today's date folder:
+        2026/09/15/customer_data_2026-09-15_19-35-42.csv
+        ↓
+12. Lambda B writes the marker:
+        _status/customer_data_2026-09-15_19-35-42.csv_SUCCESS
+        ↓
+13. Step Functions' next check finds it.
+        ↓
+14. SUCCEEDED ✅
 ```
 
-## Architecture
-
-```mermaid
-graph TD
-    A["📤 Upload File"] -->|Object Created| B["🪣 Bronze Bucket"]
-    B -->|event| C["🚌 EventBridge Rule<br/>bronze-object-created"]
-    C -->|StartExecution| D["🔄 Step Functions<br/>bronze-silver-gold-workflow"]
-    D -->|"1. create _status/"| G["🪣 Gold Bucket"]
-    D -->|"2. invoke"| E["⚡ Lambda A<br/>bronze-to-silver"]
-    E -->|copy + timestamp| F["🪣 Silver Bucket"]
-    F -->|event| H["🚌 EventBridge Rule<br/>silver-object-created"]
-    H -->|invoke| I["⚡ Lambda B<br/>silver-to-gold"]
-    I -->|"copy to YYYY/MM/DD/"| G
-    I -->|"write _status/..._SUCCESS"| G
-    D -.->|"3. poll _status/ until the marker appears"| G
-    D -->|marker found| J["✅ Succeeded"]
-    D -->|timeout or error| K["❌ Failed"]
-
-    style A fill:#e1f5ff
-    style B fill:#fff3e0
-    style C fill:#e3f2fd
-    style D fill:#f3e5f5
-    style E fill:#e8f5e9
-    style F fill:#eceff1
-    style H fill:#e3f2fd
-    style I fill:#e8f5e9
-    style G fill:#fff9c4
-    style J fill:#c8e6c9
-    style K fill:#ffcdd2
-```
-
-## 🧠 What Each AWS Service Does
-
-| AWS Service | Its Job |
-| ----------- | ------- |
-| **Bronze Bucket** | Where files land — raw, untouched |
-| **EventBridge (bronze rule)** | Starts the workflow when a file arrives in Bronze |
-| **Step Functions** | Starts Lambda A, waits for the success marker, decides success or failure |
-| **Lambda A** | Copies Bronze → Silver and timestamps the name |
-| **Silver Bucket** | Holds the timestamped file, ready for the next hop |
-| **EventBridge (silver rule)** | Runs Lambda B when a file arrives in Silver |
-| **Lambda B** | Copies Silver → Gold into date folders and writes the success marker |
-| **Gold Bucket** | The finished, date-partitioned output, plus the `_status/` markers |
-| **CloudWatch** | Stores both Lambdas' logs |
-| **IAM** | One shared role for EventBridge, Step Functions and both Lambdas |
-
-## 🏅 Why Bronze, Silver, Gold?
-
-This is the **medallion** pattern, a common way to organise a data lake:
-
-| Layer | Meaning | Here |
-| ----- | ------- | ---- |
-| **Bronze** | Raw data, exactly as it arrived | the uploaded file, unchanged |
-| **Silver** | Cleaned, standardised, deduplicated | timestamped name, one file per run |
-| **Gold** | Business-ready, in the shape consumers query | partitioned `YYYY/MM/DD/`, ready for Athena |
-
-Each hop is allowed to do one job and nothing else. Bronze stays a perfect record of what arrived, so if a later step is ever wrong you can rebuild it without asking anyone to re-upload.
-
----
-
-## 🔐 IAM: One Shared Role
-
-```text
-EventBridge
-Step Functions
-Lambda A
-Lambda B
-      ↓
-Bronze-Silver-Gold-Role
-```
-
-### Step 1: Create the Role
-
-1. **IAM** → **Roles** → **Create role**
-2. Select **AWS service** → **Lambda**
-3. Attach the managed policies below
-4. Role name: `Bronze-Silver-Gold-Role`
-
-### Step 2: Trust Policy
-
-Replace the trust policy with [trust_policy.json](trust_policy.json).
-
-| Service | Why |
-| ------- | --- |
-| `events.amazonaws.com` | Both EventBridge rules start the workflow and invoke Lambda B |
-| `states.amazonaws.com` | Step Functions runs the workflow |
-| `lambda.amazonaws.com` | Both Lambdas run |
-
-### Step 3: Managed Policies
-
-```text
-Bronze-Silver-Gold-Role
-│
-├── AWSLambdaBasicExecutionRole     → both Lambdas write CloudWatch logs
-├── AWSLambdaRole                   → EventBridge invokes Lambda B
-├── AmazonS3FullAccess              → read Bronze/Silver, write Silver/Gold
-└── AWSStepFunctionsFullAccess      → EventBridge starts the execution
-```
-
-> ⚠️ Broad on purpose, for practice. In production, scope `AmazonS3FullAccess` to the three named buckets and replace `AWSStepFunctionsFullAccess` with a policy allowing only `states:StartExecution` on this one state machine.
-
----
-
-## 🪣 Step 4: Create Three Buckets
-
-| Bucket | Example Name | Layer |
-| ------ | ------------ | ----- |
-| Bronze | `kshitij-bronze-bucket` | raw input |
-| Silver | `kshitij-silver-bucket` | timestamped |
-| Gold | `kshitij-gold-bucket` | date-partitioned output |
-
-### Step 5: Enable EventBridge on Two Buckets
-
-Do this for **Bronze and Silver** (not Gold — nothing watches it):
-
-1. **S3** → bucket → **Properties**
-2. **Event Notifications** → **Amazon EventBridge** → **Edit**
-3. Turn ON: **Send notifications to Amazon EventBridge for all events in this bucket**
-4. **Save changes**
-
-Gold deliberately stays off. If Gold were watched, the success marker landing there would fire an event, and you would have built a pipeline that triggers itself forever.
-
----
-
-## ⚡ Step 6: Create Lambda A
-
-| Setting | Value |
-| ------- | ----- |
-| Function name | `bronze-to-silver` |
-| Runtime | Python 3.x (latest) |
-| Permissions | **Use an existing role** → `Bronze-Silver-Gold-Role` |
-
-Copy the code from [lambda_a.py](lambda_a.py) into the code editor, replacing the default handler. Set `SILVER_BUCKET` to your real Silver bucket name. Click **Deploy**.
-
-Lambda A does three things:
-
-1. Reads the Bronze bucket and key out of the event.
-2. Copies the object to Silver with an IST timestamp inserted before the extension.
-3. Returns `status_key` — the name of the marker it expects Lambda B to create.
-
-```python
-file_name, file_extension = os.path.splitext(original_file_name)
-silver_key = f"{file_name}_{timestamp}{file_extension}"
-status_key = f"{STATUS_FOLDER}/{silver_key}_SUCCESS"
-```
-
-No file extension is ever named — `.csv`, `.xlsx`, `.pdf` and files with no extension all pass through untouched.
-
-## ⚡ Step 7: Create Lambda B
-
-| Setting | Value |
-| ------- | ----- |
-| Function name | `silver-to-gold` |
-| Runtime | Python 3.x (latest) |
-| Permissions | **Use an existing role** → `Bronze-Silver-Gold-Role` |
-
-Copy the code from [lambda_b.py](lambda_b.py), set `GOLD_BUCKET` to your real Gold bucket name, and **Deploy**.
-
-Lambda B:
-
-1. Reads the Silver bucket and key out of the event.
-2. Builds a date folder from the current IST date — `2026-09-15` becomes `2026/09/15/`.
-3. Copies the object into that folder in Gold.
-4. **Writes the success marker** — and only after the copy has succeeded.
-
-That ordering is the point. If `copy_object` raises, the function exits before the marker line, so no marker is written and Step Functions keeps polling until it times out. A failure to copy can never look like a success.
-
----
-
-## 🔔 Step 8: Create the Bronze Rule (starts the workflow)
-
-| Setting | Value |
-| ------- | ----- |
-| Rule name | `bronze-object-created` |
-| Event bus | **default** |
-| Rule type | **Rule with an event pattern** |
-
-Copy [eventbridge_pattern_bronze.json](eventbridge_pattern_bronze.json) into the **Event pattern** box and replace `YOUR BRONZE BUCKET`.
-
-**Target:** AWS service → Step Functions state machine → `bronze-silver-gold-workflow`, execution role `Bronze-Silver-Gold-Role`.
-
-## 🔔 Step 9: Create the Silver Rule (runs Lambda B)
-
-| Setting | Value |
-| ------- | ----- |
-| Rule name | `silver-object-created` |
-| Event bus | **default** |
-| Rule type | **Rule with an event pattern** |
-
-Copy [eventbridge_pattern_silver.json](eventbridge_pattern_silver.json) into the **Event pattern** box and replace `YOUR SILVER BUCKET`.
-
-**Target:** AWS service → Lambda function → `silver-to-gold`.
-
-Two rules, two targets, two different trigger styles — that asymmetry is exactly what makes Step Functions lose sight of Lambda B.
-
----
-
-## 🔄 Step 10: Create the Step Functions State Machine
-
-| Setting | Value |
-| ------- | ----- |
-| Name | `bronze-silver-gold-workflow` |
-| Type | **Standard** |
-| Permissions | **Use an existing role** → `Bronze-Silver-Gold-Role` |
-
-Copy [state_machine.json](state_machine.json) into the **Definition** editor. Replace both occurrences of `YOUR GOLD BUCKET` with your Gold bucket name, and `YOUR LAMBDA A ARN` with Lambda A's ARN.
-
-### 🧠 The Workflow, State by State
-
-```text
-Create Status Folder        put _status/ into Gold
-      ↓
-Start Lambda A              invoke Lambda A, get status_key back
-      ↓
-Prepare Polling             attempt = 0
-      ↓
-Wait For Lambda B           wait 20 seconds
-      ↓
-Check For Success Marker    list Gold with Prefix = status_key
-      ↓
-Success Marker Found        Choice
-      ├── KeyCount > 0        → Succeeded
-      ├── attempt >= 15       → Timed Out (Failed)
-      └── otherwise           → Increase Attempt → back to Wait
-```
-
-### 🔑 `"ResultPath": null` on the First State
-
-```json
-"ResultPath": null
-```
-
-`putObject` returns an object of its own (an ETag and so on). Without `ResultPath`, that would **replace** the state's data — and the next state, `Start Lambda A`, would receive an ETag instead of the S3 event. Lambda A would then fail on `event["detail"]`.
-
-`"ResultPath": null` throws the result away and passes the input through untouched, so Lambda A still gets the original EventBridge event.
-
-### 🔑 Why `listObjectsV2` and Not `headObject`
-
-`headObject` on a missing key **raises** rather than returning a "no" — so the polling loop would have to be built out of `Catch` blocks, using exceptions as control flow.
-
-`listObjectsV2` with a `Prefix` just returns `KeyCount: 0` when nothing matches. That lets the Choice state read a plain number:
-
-```json
-"Variable": "$.marker.KeyCount",
-"NumericGreaterThan": 0
-```
-
-### 🔑 The Attempt Counter
-
-```json
-"attempt.$": "States.MathAdd($.attempt, 1)"
-```
-
-Step Functions has no arithmetic in the `Choice` state, but it does have the `States.MathAdd` intrinsic, which can be used inside a `Pass` state's `Parameters`. The counter starts at 0 in `Prepare Polling` and increments once per loop, and the Choice fails the workflow at 15.
-
-Without that guard the loop would simply run until the execution hit Step Functions' own maximum duration — up to a year. **15 attempts × 20 seconds ≈ 5 minutes**, which is a sensible ceiling for two S3 copies.
-
----
-
-## 🧪 Step 11: Test the Pipeline
-
-Upload any file to **Bronze**.
-
-### 🔄 What Happens After Upload?
-
-```text
-customer_data.csv arrives in Bronze
-        ↓
-Bronze's EventBridge rule matches
-        ↓
-Step Functions starts: bronze-silver-gold-workflow
-        ↓
-Creates the _status/ folder in Gold
-        ↓
-Invokes Lambda A
-        ↓
-Lambda A copies to Silver as customer_data_2026-09-15_19-35-42.csv
-        ↓
-Lambda A returns status_key = _status/customer_data_2026-09-15_19-35-42.csv_SUCCESS
-        ↓
-Silver's EventBridge rule fires on the new object
-        ↓
-Lambda B copies it to Gold/2026/09/15/
-        ↓
-Lambda B writes _status/customer_data_2026-09-15_19-35-42.csv_SUCCESS
-        ↓
-Step Functions' next poll finds the marker → SUCCEEDED ✅
-```
-
-### ✅ Checking the Result
-
-**Gold bucket:**
+### Final result
 
 ```text
 kshitij-gold-bucket
@@ -404,144 +263,188 @@ kshitij-gold-bucket
 ├── 2026/
 │   └── 09/
 │       └── 15/
-│           └── customer_data_2026-09-15_19-35-42.csv
+│           └── customer_data_2026-09-15_19-35-42.csv      ← the file
 │
 └── _status/
-    └── customer_data_2026-09-15_19-35-42.csv_SUCCESS
+    └── customer_data_2026-09-15_19-35-42.csv_SUCCESS      ← the marker
 ```
 
-**Step Functions** → `bronze-silver-gold-workflow` → **Executions** — green for Succeeded, red for Failed. Open an execution to see the state timeline and the input and output of every state.
+---
 
-**Lambda A logs** (`bronze-to-silver`):
+# 🏗️ Setting It Up
+
+## Step 1: IAM Role
+
+One role is shared by EventBridge, Step Functions, both Lambdas.
+
+1. **IAM** → **Roles** → **Create role** → **AWS service** → **Lambda**
+2. Name it `Bronze-Silver-Gold-Role`
+3. Replace its **trust policy** with [trust_policy.json](trust_policy.json)
+
+| Service in the trust policy | Why |
+| --------------------------- | --- |
+| `events.amazonaws.com` | both EventBridge rules |
+| `states.amazonaws.com` | Step Functions |
+| `lambda.amazonaws.com` | both Lambdas |
+
+4. Attach these **managed policies**:
 
 ```text
-==================================================
-LAMBDA A : BRONZE -> SILVER
-==================================================
-Bronze Bucket : kshitij-bronze-bucket
-Bronze Key    : customer_data.csv
-Silver Bucket : kshitij-silver-bucket
-Copied        : customer_data.csv -> customer_data_2026-09-15_19-35-42.csv
-Waiting For   : _status/customer_data_2026-09-15_19-35-42.csv_SUCCESS
-==================================================
+AWSLambdaBasicExecutionRole    → Lambdas can write CloudWatch logs
+AWSLambdaRole                  → EventBridge can run Lambda B
+AmazonS3FullAccess             → read Bronze/Silver, write Silver/Gold
+AWSStepFunctionsFullAccess     → EventBridge can start the workflow
 ```
 
-**Lambda B logs** (`silver-to-gold`):
+## Step 2: Create Three Buckets
 
-```text
-==================================================
-LAMBDA B : SILVER -> GOLD
-==================================================
-Silver Bucket : kshitij-silver-bucket
-Silver Key    : customer_data_2026-09-15_19-35-42.csv
-Gold Bucket   : kshitij-gold-bucket
-Copied        : customer_data_2026-09-15_19-35-42.csv -> 2026/09/15/customer_data_2026-09-15_19-35-42.csv
-Marker Written: _status/customer_data_2026-09-15_19-35-42.csv_SUCCESS
-==================================================
-```
+| Bucket | Example name |
+| ------ | ------------ |
+| Bronze | `kshitij-bronze-bucket` |
+| Silver | `kshitij-silver-bucket` |
+| Gold | `kshitij-gold-bucket` |
 
-### 🧪 Testing the Failure Path
+## Step 3: Turn EventBridge ON — but only on two of them
 
-Disable the **Silver** rule (`silver-object-created`) so Lambda B never fires. Upload a file to Bronze.
+| Bucket | EventBridge |
+| ------ | ----------- |
+| Bronze | ✅ **ON** |
+| Silver | ✅ **ON** |
+| Gold | ❌ **OFF** — leave it off |
 
-Lambda A still succeeds and Step Functions starts polling — and keeps polling, because the marker never arrives. After about five minutes the execution goes red:
+To turn it on: bucket → **Properties** → **Event Notifications** → **Amazon EventBridge** → **Edit** → **ON** → **Save**.
+
+## Step 4: Create the Two Lambdas
+
+| | Lambda A | Lambda B |
+| --- | --- | --- |
+| Function name | `bronze-to-silver` | `silver-to-gold` |
+| Runtime | Python 3.x | Python 3.x |
+| Role | `Bronze-Silver-Gold-Role` | `Bronze-Silver-Gold-Role` |
+| Code | [lambda_a.py](lambda_a.py) | [lambda_b.py](lambda_b.py) |
+| Change this line | `SILVER_BUCKET` | `GOLD_BUCKET` |
+
+Both times: **Create function** → paste the code → change the bucket name → **Deploy**.
+
+## Step 5: Create the Step Functions State Machine
+
+1. **Step Functions** → **State machines** → **Create state machine**
+2. Choose **Write workflow in code**
+3. Name: `bronze-silver-gold-workflow`
+4. Type: **Standard**
+5. Permissions: **Use an existing role** → `Bronze-Silver-Gold-Role`
+6. Paste [state_machine.json](state_machine.json)
+7. Replace these placeholders:
+
+| Placeholder | Replace with |
+| ----------- | ------------ |
+| `YOUR GOLD BUCKET` | your Gold bucket name — **it appears twice** |
+| `YOUR LAMBDA A ARN` | Lambda A's ARN |
+
+> ⚠️ There is **no Lambda B ARN** here, and that is correct. Lambda B is called by EventBridge, not by Step Functions.
+
+## Step 6: Create EventBridge Rule A (Bronze → workflow)
+
+1. **EventBridge** → **Rules** → **Create rule**
+2. Name: `bronze-object-created`
+3. Event bus: **default**
+4. Rule type: **Rule with an event pattern**
+5. Paste [eventbridge_pattern_bronze.json](eventbridge_pattern_bronze.json) → replace `YOUR BRONZE BUCKET`
+6. **Target:** AWS service → **Step Functions state machine** → `bronze-silver-gold-workflow`
+
+## Step 7: Create EventBridge Rule B (Silver → Lambda B)
+
+1. **EventBridge** → **Rules** → **Create rule**
+2. Name: `silver-object-created`
+3. Event bus: **default**
+4. Rule type: **Rule with an event pattern**
+5. Paste [eventbridge_pattern_silver.json](eventbridge_pattern_silver.json) → replace `YOUR SILVER BUCKET`
+6. **Target:** AWS service → **Lambda function** → `silver-to-gold`
+
+---
+
+# 🧪 Testing It
+
+Upload any file to the **Bronze** bucket.
+
+Then check:
+
+| Where | What to look for |
+| ----- | ---------------- |
+| **Step Functions** → `bronze-silver-gold-workflow` → Executions | a **green** Succeeded |
+| **Silver bucket** | `customer_data_2026-09-15_19-35-42.csv` |
+| **Gold bucket** | `2026/09/15/customer_data_2026-09-15_19-35-42.csv` |
+| **Gold bucket** `_status/` | `customer_data_2026-09-15_19-35-42.csv_SUCCESS` |
+| **Lambda A logs** | `bronze-to-silver` → Monitor → View CloudWatch logs |
+| **Lambda B logs** | `silver-to-gold` → Monitor → View CloudWatch logs |
+
+### 🧪 Seeing the failure path
+
+Turn **off** Rule B (`silver-object-created`), then upload a file.
+
+Lambda A still works, and Step Functions still starts checking. But the marker never arrives. After about 5 minutes the execution goes **red**:
 
 ```text
 Error : SuccessMarkerNotFound
 Cause : Lambda B never wrote its success marker to the Gold bucket.
-        Open the Lambda B logs and check the Silver bucket's event rule fired.
 ```
 
-That is exactly the behaviour you want: a broken second hop shows up as a **failed workflow**, not a silent success. Re-enable the rule afterwards.
+That is exactly right — a broken second hop shows up as a **failed workflow**, not a silent success. Turn Rule B back on afterwards.
 
 ---
 
-## 🆚 How This Differs From the Other Pipelines Here
+# ❓ Common Questions
 
-| | `13` Glue copy | `14` this one |
-| --- | --- | --- |
-| Second hop started by | Lambda (called by Step Functions) | an S3 event, outside Step Functions |
-| Step Functions waits by | polling Glue's `getJobRun` | polling S3 for a success marker |
-| What it polls | an AWS service's own status | a file the next Lambda leaves behind |
-| Failure surfaces as | Glue run `FAILED` | the marker never appearing |
+**Why can't Step Functions just call Lambda B too?**
+It could — and then this would be a much simpler pipeline. But then it would not be event-driven. Your design says the file appearing in **Silver** is what triggers the next hop, which is how real data pipelines chain: each layer reacts to the one before it. The price is that Step Functions loses sight of it, which is what the marker solves.
 
-Pipeline 13 could ask Glue for its status because Glue keeps one. Here the second hop is just "another Lambda that got triggered" — there is no status anywhere to ask for, so the pipeline **creates** one. The marker pattern is the general answer whenever you must wait on work that was started by an event rather than by the workflow.
+**Why does Step Functions create `_status/` if Lambda B is the one writing the marker?**
+So the folder exists and is obvious from the start. Lambda B drops files into it. It's a visible "this pipeline is running" signal.
+
+**What if I upload the same file name twice?**
+Fine. The timestamp in the name makes each run unique, so each run gets its own marker. Both make it to Gold. The second one does not overwrite the first.
+
+**Does the file type matter?**
+No. `.csv`, `.xlsx`, `.pdf`, or no extension at all all work. Nothing in either Lambda names a file extension — `os.path.splitext` splits whatever arrives.
 
 ---
 
-## ⭐ One-Line Summary
+# 🧩 Quick Reference
+
+| # | Connection | Set up where |
+| - | ---------- | ------------ |
+| 1 | Bronze ➜ Rule A | EventBridge ON, on Bronze |
+| 2 | Rule A ➜ Step Functions | Rule A's target |
+| 3 | Step Functions ➜ Lambda A | `state_machine.json` (`YOUR LAMBDA A ARN`) |
+| 4 | Lambda A ➜ Silver | `SILVER_BUCKET` in `lambda_a.py` |
+| 5 | Silver ➜ Rule B | EventBridge ON, on Silver |
+| 6 | Rule B ➜ Lambda B | Rule B's target |
+| 7 | Lambda B ➜ Gold | `GOLD_BUCKET` in `lambda_b.py` |
+| 8 | Lambda B ➜ marker ➜ Step Functions | automatic, in the code |
+
+---
+
+# Summary
 
 ```text
-A file lands in Bronze
-     ↓
-EventBridge starts Step Functions
-     ↓
-Step Functions creates _status/ in Gold and calls Lambda A
-     ↓
-Lambda A copies Bronze → Silver, timestamping the name
-     ↓
-Silver's own event runs Lambda B
-     ↓
-Lambda B copies Silver → Gold/YYYY/MM/DD/ and writes the success marker
-     ↓
-Step Functions' poll sees the marker → SUCCEEDED
-Marker never appears → FAILED after ~5 minutes
+Bronze ──► Rule A ──► Step Functions ──► Lambda A ──► Silver
+                            │                           │
+                            │                           ▼
+                            │                        Rule B
+                            │                           │
+                            │                           ▼
+                            └────── marker ◄────── Lambda B ──► Gold
 ```
 
-> **Main purpose: move a file from Bronze through Silver to Gold, date-partitioned, with Step Functions confirming success by finding a marker the last step left behind — so the workflow can never claim success before the data has actually arrived.**
+| Piece | Job |
+| ----- | --- |
+| **Bronze** | holds your upload |
+| **Rule A** | notices new files in Bronze, starts the workflow |
+| **Step Functions** | calls Lambda A, then waits for the marker |
+| **Lambda A** | copies Bronze → Silver with a timestamp |
+| **Silver** | holds the timestamped file, announces it |
+| **Rule B** | notices new files in Silver, runs Lambda B |
+| **Lambda B** | copies Silver → Gold, then writes the marker |
+| **Gold** | holds `Year/Month/Day/file` and the `_status/` markers |
 
----
-
-## 🧩 Full Step List (Quick Reference)
-
-| Step | What to Do |
-| ---- | ---------- |
-| 1 | Create IAM role `Bronze-Silver-Gold-Role` |
-| 2 | Replace its trust policy with `trust_policy.json` (events + states + lambda) |
-| 3 | Attach `AWSLambdaBasicExecutionRole`, `AWSLambdaRole`, `AmazonS3FullAccess`, `AWSStepFunctionsFullAccess` |
-| 4 | Create Bronze, Silver and Gold buckets |
-| 5 | Enable EventBridge on **Bronze** and **Silver** only |
-| 6 | Lambda → `bronze-to-silver` → paste `lambda_a.py`, set `SILVER_BUCKET` |
-| 7 | Lambda → `silver-to-gold` → paste `lambda_b.py`, set `GOLD_BUCKET` |
-| 8 | EventBridge → rule `bronze-object-created` → pattern from `eventbridge_pattern_bronze.json` |
-| 9 | Target of that rule: Step Functions `bronze-silver-gold-workflow` |
-| 10 | EventBridge → rule `silver-object-created` → pattern from `eventbridge_pattern_silver.json` |
-| 11 | Target of that rule: Lambda `silver-to-gold` |
-| 12 | Step Functions → Create state machine → Standard → use the shared role |
-| 13 | Paste `state_machine.json`, replace `YOUR GOLD BUCKET` (twice) and `YOUR LAMBDA A ARN` |
-| 14 | Upload any file to Bronze |
-| 15 | Watch the execution turn green in Step Functions |
-| 16 | Check Gold for `YYYY/MM/DD/filename_TIMESTAMP.ext` and `_status/..._SUCCESS` |
-| 17 | Disable the Silver rule and upload again to see the red timeout path ✅ |
-
----
-
-## 🎤 Interview Explanation
-
-**Q: "Explain your Bronze to Silver to Gold pipeline."**
-
-> **"It's a medallion pipeline across three S3 buckets. EventBridge notifications are on Bronze and Silver. A file landing in Bronze fires a rule that starts a Step Functions state machine. The first state writes a `_status/` folder marker into Gold; the second invokes Lambda A, which copies the object from Bronze to Silver with an IST timestamp inserted into the filename. Lambda A returns the marker key it expects — `_status/<silver filename>_SUCCESS`.
->
-> The Silver copy fires a second EventBridge rule whose target is Lambda B. That's the tricky part: Lambda B is **not** called by Step Functions, so Step Functions has no handle on it. Instead the two agree on a filename in advance. Lambda B copies the object into a `YYYY/MM/DD/` partition in Gold and then writes that marker. Step Functions polls the Gold bucket with `listObjectsV2` on the marker's prefix and succeeds when `KeyCount` is greater than zero. I use `listObjectsV2` rather than `headObject` because a missing key raises rather than returning a negative, which would mean building the loop out of Catch blocks.
->
-> The marker name carries the timestamp so it's unique per run — otherwise a second upload of the same filename would find the previous run's marker and report success instantly, before Lambda B had done anything. And the timestamp is written by Lambda A but the marker by Lambda B, so neither has to talk to the other.
->
-> There's a guard on the poll: a `States.MathAdd` counter in a Pass state fails the workflow after 15 attempts, about five minutes, so a broken second hop surfaces as a red execution instead of looping until Step Functions' own maximum duration. Gold has EventBridge notifications deliberately switched off — otherwise the marker landing there would trigger the pipeline again."**
-
----
-
-## Summary
-
-| Component | What It Does |
-| --------- | ------------ |
-| **Bronze Bucket** | Receives the raw uploaded file |
-| **EventBridge (bronze)** | Starts the workflow on Object Created |
-| **Step Functions** | Creates the status folder, starts Lambda A, polls Gold for the marker |
-| **Lambda A** | Copies Bronze → Silver with an IST timestamp, returns the marker key |
-| **Silver Bucket** | Holds the timestamped file and fires the second event |
-| **EventBridge (silver)** | Runs Lambda B on Object Created |
-| **Lambda B** | Copies Silver → `Gold/YYYY/MM/DD/`, then writes the success marker |
-| **Gold Bucket** | Date-partitioned output plus the `_status/` audit trail |
-| **IAM Role** | One shared role: trust policy + four managed policies |
-
-This pipeline shows **completing an event-driven hop**: when the next step runs on someone else's event and the workflow cannot see it, the two sides agree on a filename in advance — and the workflow trusts nothing until it sees that file.
+> **The idea in one line:** three buckets and two copies, where the middle hop is triggered by the bucket itself — so the workflow watches for a marker file instead of calling the second Lambda.

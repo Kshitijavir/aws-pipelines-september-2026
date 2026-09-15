@@ -1,21 +1,12 @@
-import json
-import os
 import urllib.parse
 
 import boto3
 
 glue = boto3.client("glue")
 
-# The Glue job name is NOT hardcoded. It comes from the Lambda environment
-# variable GLUE_JOB_NAME, so the same function can start any Glue job
-# without a code change.
-GLUE_JOB_NAME = os.environ.get("GLUE_JOB_NAME")
-
-if not GLUE_JOB_NAME:
-    raise RuntimeError(
-        "GLUE_JOB_NAME environment variable is not set. "
-        "Set it in Lambda -> Configuration -> Environment variables."
-    )
+# The Glue job name is set here, directly in the code.
+# Change this line if your Glue job is named something else.
+GLUE_JOB_NAME = "s3-file-copy-glue-job"
 
 
 def lambda_handler(event, context):

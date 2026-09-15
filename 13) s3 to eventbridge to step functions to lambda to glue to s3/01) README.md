@@ -183,20 +183,19 @@ kshitij-bucket-b
 | Runtime | Python 3.x (latest available) |
 | Permissions | **Use an existing role** → `S3-EventBridge-SFN-Lambda-Glue-Role` |
 
-Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler. Click **Deploy**.
+Copy the code from [lambda_function.py](lambda_function.py) into the Lambda code editor, replacing the default handler.
 
 ### ⚙️ Set the Glue Job Name
 
-The job name is **not written in the code**. Lambda reads it from an environment variable:
+The job name is set **inside the code**, on this line near the top of the file:
 
-1. **Lambda** → `s3-start-glue-lambda` → **Configuration** → **Environment variables**
-2. Add:
+```python
+GLUE_JOB_NAME = "s3-file-copy-glue-job"
+```
 
-| Key | Value |
-| --- | ----- |
-| `GLUE_JOB_NAME` | your Glue job name (example: `s3-file-copy-glue-job`) |
+Change it if your Glue job is named something else. It must match the job you create in Step 9 **exactly** — otherwise Glue returns `EntityNotFoundException` when Lambda calls `start_job_run`.
 
-3. **Save**
+Then click **Deploy**.
 
 ### 🧠 Why Lambda Returns the Job Run ID
 
@@ -320,7 +319,7 @@ That means changing the three failure branches to point at an SNS `Publish` task
 
 1. Go to **AWS Glue** → **ETL jobs** → **Create job**
 2. Job name: **any name you like** — this guide uses `s3-file-copy-glue-job`
-   - ⚠️ Put the **same** name in the Lambda `GLUE_JOB_NAME` environment variable
+   - ⚠️ Whatever name you pick, put the **same** name in `GLUE_JOB_NAME` at the top of [lambda_function.py](lambda_function.py)
 3. IAM role: `S3-EventBridge-SFN-Lambda-Glue-Role`
 
 Copy the code from [glue_job.py](glue_job.py) into the job's script editor. Change `DESTINATION_BUCKET` at the top to your real Bucket B name.
@@ -512,14 +511,13 @@ FAILED    → workflow ends red
 | 4 | Create `kshitij-bucket-a` and `kshitij-bucket-b` |
 | 5 | Bucket A → Properties → Event Notifications → Amazon EventBridge → ON |
 | 6 | Lambda → Create function → `s3-start-glue-lambda`, use the shared role |
-| 7 | Paste `lambda_function.py` → **Deploy** |
-| 8 | Add environment variable `GLUE_JOB_NAME` |
+| 7 | Paste `lambda_function.py`, set `GLUE_JOB_NAME`, → **Deploy** |
 | 9 | EventBridge → Rules → Create rule → `s3-file-upload-rule` |
 | 10 | Pattern: paste `eventbridge_pattern.json`, replace `YOUR SOURCE BUCKET` |
 | 11 | Target: Step Functions state machine `s3-glue-copy-workflow` |
 | 12 | Step Functions → Create state machine → Standard → use the shared role |
 | 13 | Paste `state_machine.json`, replace `YOUR LAMBDA FUNCTION ARN` |
-| 14 | Glue → ETL jobs → Create job → same name as `GLUE_JOB_NAME` |
+| 14 | Glue → ETL jobs → Create job → `s3-file-copy-glue-job` (same as the code) |
 | 15 | Paste `glue_job.py`, set `DESTINATION_BUCKET` to Bucket B |
 | 16 | Upload any file to Bucket A |
 | 17 | Watch the execution turn green in Step Functions |

@@ -6,7 +6,7 @@ glue = boto3.client("glue")
 
 # The Glue job name is set here, directly in the code.
 # Change this line if your Glue job is named something else.
-GLUE_JOB_NAME = "s3-file-copy-glue-job"
+GLUE_JOB_NAME = "YOUR GLUE JOB NAME"
 
 
 def lambda_handler(event, context):

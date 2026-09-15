@@ -1,0 +1,31 @@
+Student_ID|Student_Name|Department|Marks
+STU001|Aarav Sharma|Data Engineering|88
+STU002|Priya Mehta|Analytics|92
+STU003|Rahul Verma|Cloud Computing|76
+STU004|Sneha Iyer|Data Science|75
+STU005|Arjun Rao|DevOps|91
+STU006|Kavya Nair|Data Engineering|79
+STU007|Rohan Gupta|Analytics|94
+STU008|Ishita Menon|Cloud Computing|83
+STU009|Aditya Kulkarni|Data Science|87
+STU010|Meera Joshi|DevOps|90
+STU011|Karan Malhotra|Data Engineering|81
+STU012|Divya Reddy|Analytics|95
+STU013|Siddharth Bose|Cloud Computing|84
+STU014|Tanvi Shah|Data Science|89
+STU015|Nikhil Rao|DevOps|78
+STU016|Pooja Verma|Data Engineering|93
+STU017|Manish Tiwari|Analytics|86
+STU018|Ritika Saxena|Cloud Computing|82
+STU019|Varun Chopra|Data Science|80
+STU020|Simran Kaur|DevOps|93
+STU001|Aarav Sharma|Data Engineering|88
+STU002|Priya Mehta|Analytics|92
+STU003|Rahul Verma|Cloud Computing|76
+STU004|Sneha Iyer|Data Science|75
+STU005|Arjun Rao|DevOps|91
+STU006|Kavya Nair|Data Engineering|79
+STU007|Rohan Gupta|Analytics|94
+STU008|Ishita Menon|Cloud Computing|83
+STU009|Aditya Kulkarni|Data Science|87
+STU010|Meera Joshi|DevOps|90

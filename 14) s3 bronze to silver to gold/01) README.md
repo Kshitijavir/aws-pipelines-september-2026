@@ -1,6 +1,3 @@
-Absolutely bro 😎 — here is the **copy-paste-ready Markdown** with emojis/icons, while keeping the README clean and professional.
-
-````md
 # 🥉 Bronze → 🥈 Silver → 🥇 Gold Data Pipeline
 
 A simple **AWS event-driven data pipeline** that moves files through three S3 layers:
@@ -59,7 +56,7 @@ When you upload a file to the **Bronze S3 bucket**, the pipeline automatically m
      │
      ▼
 ✅ SUCCEEDED
-````
+```
 
 ### 📌 Example
 
@@ -1533,6 +1530,3 @@ The complete architecture is:
 ```
 
 **That's the entire Bronze → Silver → Gold pipeline. 🚀**
-
-```
-```

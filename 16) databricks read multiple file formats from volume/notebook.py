@@ -9,15 +9,22 @@
 #   CELL 2 -> %restart_python
 #   CELL 3 -> everything else (imports, path, list files, the loop)
 #
-# Paste them into Databricks in that order. Cell 1 must be run before Cell 3,
-# because Cell 3 needs openpyxl to read the .xlsx file.
+# Run them in that order. Cell 1 must run before Cell 3, because Cell 3 needs
+# openpyxl to read the .xlsx file.
+#
+# NOTE ON THE "# MAGIC" PREFIX
+# The %pip and %restart_python lines below are written as "# MAGIC %pip ...".
+# That is NOT commenting them out. Databricks strips the "# MAGIC" when it
+# reads this file and runs the command for real. It is the format Databricks
+# itself uses to store magics in a notebook source file, and it is the only
+# way to write a magic in a .py file without it being a Python syntax error.
 
 # ==========================================================
 # CELL 1 - run this FIRST
 # Installs openpyxl, the library used to read .xlsx files.
 # ==========================================================
 
-%pip install openpyxl
+# MAGIC %pip install openpyxl
 
 # COMMAND ----------
 
@@ -27,7 +34,7 @@
 # actually visible to the notebook.
 # ==========================================================
 
-%restart_python
+# MAGIC %restart_python
 
 # COMMAND ----------
 

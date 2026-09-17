@@ -1,0 +1,8 @@
+{
+  "statusCode": 200,
+  "body": {
+    "message": "Email sent successfully through Amazon SES",
+    "notificationStatus": "SUCCESS",
+    "messageId": "010001a0..."
+  }
+}

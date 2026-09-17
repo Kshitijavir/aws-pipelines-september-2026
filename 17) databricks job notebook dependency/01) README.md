@@ -7,7 +7,6 @@
 | [01) README.md](01%29%20README.md) | Complete explanation of the notebook dependency job |
 | [notebook_1.py](notebook_1.py) | Notebook 1 — the first task, runs on its own |
 | [notebook_2.py](notebook_2.py) | Notebook 2 — the second task, depends on Notebook 1 |
-| [job_definition.json](job_definition.json) | The job definition, showing the `depends_on` config between the two tasks |
 
 > 📌 This folder is the **Databricks side only**. There is no AWS component here — no Lambda, no trust policy. It is a Databricks Job made of two notebook tasks.
 
@@ -118,31 +117,56 @@ This means:
 
 > `notebook_2` will execute only after `notebook_1` completes successfully.
 
-In the Databricks UI this is the **Depends on** dropdown on the Task 2 configuration panel. Under the hood it is written into the job definition, which is what [job_definition.json](job_definition.json) shows:
+### Where to click in the Databricks UI
 
-```json
-{
-  "task_key": "notebook_2",
-  "depends_on": [
-    {
-      "task_key": "notebook_1"
-    }
-  ],
-  "notebook_task": {
-    "notebook_path": "/Workspace/Users/<your-email>/notebook_2"
-  },
-  "run_if": "ALL_SUCCESS"
-}
+Everything below is done from the Databricks UI. No code or config file is needed.
+
+```text
+1. Left sidebar
+2. Click "Workflows"  (older workspaces call it "Jobs")
+3. Click "Create job"
+
+   The canvas opens with the first task box already on it.
+
+4. Click that first task box and fill in:
+      Task name : notebook_1
+      Type      : Notebook          <- this is the default
+      Source    : Workspace
+      Path      : browse and select notebook_1
+      Compute   : pick your cluster (or Serverless)
+
+5. Click "+ Add task"  (top left of the canvas)
+   A second task box appears, joined to the first one by an arrow.
+
+6. Click the new second task box and fill in:
+      Task name : notebook_2
+      Type      : Notebook
+      Source    : Workspace
+      Path      : browse and select notebook_2
+      Compute   : pick your cluster (or Serverless)
+
+7. Still on the notebook_2 task box, look at the panel on the RIGHT.
+   Find the "Depends on" section and open the dropdown.
+   Select: notebook_1
+
+8. Click "Run now"  (top right)
 ```
 
-Two fields do the work here:
+That is the whole dependency. Step 7 is the only step that creates it — Steps 4 to 6 just create two independent tasks.
 
-| Field | Meaning |
-| ----- | ------- |
-| `depends_on` | Lists the tasks that must finish before this one starts. Here, `notebook_1` |
-| `run_if` | The condition for running. `ALL_SUCCESS` means every task in `depends_on` must succeed |
+### How to confirm it worked
 
-`run_if` defaults to `ALL_SUCCESS`, so it would behave the same way even if you left it out — writing it explicitly makes the intent readable.
+Open the run and look at the graph:
+
+```text
+  ┌──────────────┐         ┌──────────────┐
+  │  notebook_1  │ ──────► │  notebook_2  │
+  └──────────────┘         └──────────────┘
+```
+
+`notebook_1` turns green **first**. Only then does `notebook_2` start.
+
+If both boxes start at the same time, the dependency was not applied — go back to Step 7 and check the **Depends on** field on the `notebook_2` task.
 
 ---
 
@@ -236,9 +260,11 @@ Notebook 1  →  FAILED
 Notebook 2  →  UPSTREAM_FAILED
 ```
 
-Notebook 2 never ran. Its result state is **`UPSTREAM_FAILED`** — *"the run was skipped because of an upstream failure"* — because `run_if: ALL_SUCCESS` was never satisfied.
+Notebook 2 never ran. Its result state is **Upstream failed** (`UPSTREAM_FAILED`) — *"the run was skipped because of an upstream failure."* The **Run if** condition was left at its default, **All succeeded**, which was never satisfied.
 
-It is **not** reported as Failed. That distinction matters when you read a failed job run, because these two mean very different things:
+You see this in the UI by opening the run: `notebook_1` shows as Failed, and `notebook_2` shows as skipped — click either task box to see its state.
+
+Notebook 2 is **not** reported as Failed, and that distinction matters when you read a failed run, because these two mean very different things:
 
 | Result state | Meaning |
 | ------------ | ------- |
@@ -252,25 +278,31 @@ So if you see a task in a failed run, the first question is whether it says `FAI
 
 ### Running a task even when an upstream task fails
 
-A common need: run a cleanup or alerting notebook **whatever** happens upstream. For that, change the condition:
+A common need: run a cleanup or alerting notebook **whatever** happens upstream.
 
-```json
-"run_if": "ALL_DONE"
+In the UI, this is the **Run if** dropdown, sitting in the same right-hand panel as **Depends on** (Step 7 above).
+
+```text
+Click the notebook_2 task box
+   ↓
+Right-hand panel
+   ↓
+"Run if"  ->  change it from "All succeeded" to "All done"
 ```
 
-`ALL_DONE` runs the task once all dependencies have finished, **regardless of whether they succeeded or failed**. That is the correct choice for a failure-notification task.
+**All done** runs the task once all its dependencies have finished, **regardless of whether they succeeded or failed**. That is the correct choice for a failure-notification task.
 
-> ⚠️ Do **not** use `AT_LEAST_ONE_SUCCESS` for this. It means "at least one dependency succeeded" — with a single dependency that failed, that condition is still not satisfied, so the task would be skipped again. It looks like the right option and is not.
+> ⚠️ Do **not** pick **At least one succeeded** for this. It means exactly what it says — at least one dependency succeeded. With a single dependency that failed, that condition is still not satisfied, so the task gets skipped again. It looks like the right option and is not.
 
-The available `run_if` values:
+The **Run if** dropdown options:
 
-| Value | The task runs when… |
-| ----- | ------------------- |
-| `ALL_SUCCESS` | every dependency succeeded *(default)* |
-| `AT_LEAST_ONE_SUCCESS` | at least one dependency succeeded |
-| `ALL_DONE` | all dependencies finished, success or failure |
-| `AT_LEAST_ONE_FAILED` | at least one dependency failed |
-| `ALL_FAILED` | every dependency failed |
+| Dropdown option | The task runs when… |
+| --------------- | ------------------- |
+| All succeeded | every dependency succeeded *(default)* |
+| At least one succeeded | at least one dependency succeeded |
+| All done | all dependencies finished, success or failure |
+| At least one failed | at least one dependency failed |
+| All failed | every dependency failed |
 
 Remove the `raise` line before moving on.
 

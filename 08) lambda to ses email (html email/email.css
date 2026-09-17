@@ -1,0 +1,687 @@
+/* ==========================================================================
+   GLOBAL
+   ========================================================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+
+    background-color: #f1f5f9;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    color: #1e293b;
+}
+
+
+/* ==========================================================================
+   EMAIL WRAPPER
+   ========================================================================== */
+
+.email-wrapper {
+    width: 100%;
+
+    padding: 45px 15px;
+
+    background-color: #f1f5f9;
+}
+
+
+/* ==========================================================================
+   MAIN EMAIL CARD
+   ========================================================================== */
+
+.email-card {
+    width: 100%;
+    max-width: 640px;
+
+    margin: 0 auto;
+
+    background-color: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+}
+
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+
+.header {
+    padding: 30px 34px;
+
+    background-color: #172033;
+
+    border-bottom: 4px solid #ff9900;
+}
+
+.header-content {
+    width: 100%;
+}
+
+.brand-title {
+    color: #ffffff;
+
+    font-size: 23px;
+
+    font-weight: 700;
+
+    line-height: 1.3;
+}
+
+.brand-subtitle {
+    margin-top: 7px;
+
+    color: #aeb9c9;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+}
+
+.aws-badge {
+    float: right;
+
+    margin-top: -34px;
+
+    color: #ff9900;
+
+    font-size: 25px;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+}
+
+
+/* ==========================================================================
+   CONTENT
+   ========================================================================== */
+
+.content {
+    padding: 34px;
+}
+
+
+/* ==========================================================================
+   STATUS BANNER - COMMON
+   ========================================================================== */
+
+.status-banner {
+    width: 100%;
+
+    padding: 18px;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+.status-icon {
+    float: left;
+
+    width: 36px;
+    height: 36px;
+
+    margin-right: 14px;
+
+    border-radius: 50%;
+
+    color: #ffffff;
+
+    font-size: 21px;
+
+    font-weight: 700;
+
+    line-height: 36px;
+
+    text-align: center;
+}
+
+.status-content {
+    overflow: hidden;
+}
+
+.status-title {
+    font-size: 15px;
+
+    font-weight: 700;
+
+    line-height: 1.4;
+}
+
+.status-description {
+    margin-top: 5px;
+
+    font-size: 12px;
+
+    line-height: 1.6;
+}
+
+
+/* ==========================================================================
+   SUCCESS THEME
+   ========================================================================== */
+
+.success-theme .status-banner {
+    background-color: #ecfdf5;
+
+    border: 1px solid #bbf7d0;
+
+    border-left: 4px solid #16a34a;
+}
+
+.success-theme .status-icon {
+    background-color: #16a34a;
+}
+
+.success-theme .status-title {
+    color: #166534;
+}
+
+.success-theme .status-description {
+    color: #15803d;
+}
+
+.success-theme .status-badge {
+    background-color: #dcfce7;
+
+    border: 1px solid #bbf7d0;
+
+    color: #15803d;
+}
+
+.success-theme .footer-dot {
+    color: #16a34a;
+}
+
+
+/* ==========================================================================
+   FAILED THEME
+   ========================================================================== */
+
+.failed-theme .status-banner {
+    background-color: #fef2f2;
+
+    border: 1px solid #fecaca;
+
+    border-left: 4px solid #dc2626;
+}
+
+.failed-theme .status-icon {
+    background-color: #dc2626;
+}
+
+.failed-theme .status-title {
+    color: #991b1b;
+}
+
+.failed-theme .status-description {
+    color: #b91c1c;
+}
+
+.failed-theme .status-badge {
+    background-color: #fee2e2;
+
+    border: 1px solid #fecaca;
+
+    color: #b91c1c;
+}
+
+.failed-theme .footer-dot {
+    color: #dc2626;
+}
+
+
+/* ==========================================================================
+   GREETING
+   ========================================================================== */
+
+.greeting {
+    margin-top: 28px;
+
+    color: #334155;
+
+    font-size: 15px;
+
+    line-height: 1.5;
+}
+
+
+/* ==========================================================================
+   INTRODUCTION
+   ========================================================================== */
+
+.intro-text {
+    margin-top: 12px;
+
+    color: #475569;
+
+    font-size: 15px;
+
+    line-height: 1.7;
+}
+
+.intro-text strong {
+    color: #1e293b;
+
+    font-weight: 700;
+}
+
+
+/* ==========================================================================
+   SECTION TITLE
+   ========================================================================== */
+
+.section-title {
+    margin-top: 30px;
+
+    margin-bottom: 13px;
+
+    color: #172033;
+
+    font-size: 17px;
+
+    font-weight: 700;
+
+    line-height: 1.4;
+}
+
+
+/* ==========================================================================
+   EXECUTION DETAILS
+   ========================================================================== */
+
+.details-card {
+    width: 100%;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+.detail-row {
+    display: table;
+
+    width: 100%;
+
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    display: table-cell;
+
+    width: 42%;
+
+    padding: 15px 16px;
+
+    background-color: #f8fafc;
+
+    color: #64748b;
+
+    font-size: 13px;
+
+    font-weight: 500;
+
+    vertical-align: middle;
+}
+
+.detail-value {
+    display: table-cell;
+
+    padding: 15px 16px;
+
+    background-color: #ffffff;
+
+    color: #1e293b;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    vertical-align: middle;
+}
+
+.muted {
+    color: #64748b;
+
+    font-weight: 400;
+}
+
+
+/* ==========================================================================
+   STATUS
+   ========================================================================== */
+
+.status-cell {
+    display: table-cell;
+
+    padding: 15px 16px;
+
+    background-color: #ffffff;
+
+    vertical-align: middle;
+}
+
+.status-badge {
+    display: inline-block;
+
+    padding: 5px 11px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.6px;
+}
+
+
+/* ==========================================================================
+   FAILURE DETAILS
+   ========================================================================== */
+
+.error-heading {
+    color: #991b1b;
+}
+
+.error-card {
+    width: 100%;
+
+    background-color: #fffafa;
+
+    border: 1px solid #fecaca;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+.error-row {
+    display: table;
+
+    width: 100%;
+
+    border-bottom: 1px solid #fecaca;
+}
+
+.error-row:last-child {
+    border-bottom: none;
+}
+
+.error-label {
+    display: table-cell;
+
+    width: 42%;
+
+    padding: 15px 16px;
+
+    background-color: #fef2f2;
+
+    color: #991b1b;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    vertical-align: top;
+}
+
+.error-value {
+    display: table-cell;
+
+    padding: 15px 16px;
+
+    background-color: #ffffff;
+
+    color: #b91c1c;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    line-height: 1.5;
+
+    vertical-align: top;
+}
+
+
+/* ==========================================================================
+   NOTIFICATION BOX
+   ========================================================================== */
+
+.notification-box {
+    margin-top: 26px;
+
+    padding: 18px 20px;
+
+    background-color: #f8fafc;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+.notification-icon {
+    float: left;
+
+    width: 28px;
+    height: 28px;
+
+    margin-right: 13px;
+
+    background-color: #e2e8f0;
+
+    border-radius: 50%;
+
+    color: #475569;
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+    line-height: 28px;
+
+    text-align: center;
+}
+
+.notification-content {
+    overflow: hidden;
+}
+
+.notification-title {
+    color: #334155;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    line-height: 1.4;
+}
+
+.notification-text {
+    margin-top: 6px;
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    line-height: 1.6;
+}
+
+
+/* ==========================================================================
+   FAILURE NOTIFICATION BOX
+   ========================================================================== */
+
+.failed-theme .notification-box {
+    background-color: #fff7f7;
+
+    border-color: #fecaca;
+}
+
+.failed-theme .notification-icon {
+    background-color: #fee2e2;
+
+    color: #b91c1c;
+}
+
+.failed-theme .notification-title {
+    color: #991b1b;
+}
+
+
+/* ==========================================================================
+   CLOSING
+   ========================================================================== */
+
+.closing-message {
+    margin-top: 25px;
+
+    color: #64748b;
+
+    font-size: 13px;
+
+    line-height: 1.7;
+}
+
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+
+.footer {
+    padding: 25px 34px;
+
+    background-color: #f8fafc;
+
+    border-top: 1px solid #e2e8f0;
+}
+
+.footer-brand {
+    color: #475569;
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+.footer-dot {
+    padding: 0 5px;
+}
+
+.footer-text {
+    margin-top: 8px;
+
+    color: #94a3b8;
+
+    font-size: 11px;
+
+    line-height: 1.6;
+}
+
+.footer-meta {
+    margin-top: 7px;
+
+    color: #94a3b8;
+
+    font-size: 11px;
+}
+
+.footer-separator {
+    padding: 0 6px;
+
+    color: #cbd5e1;
+}
+
+.footer-note {
+    margin-top: 9px;
+
+    color: #b0b8c4;
+
+    font-size: 10px;
+}
+
+
+/* ==========================================================================
+   MOBILE
+   ========================================================================== */
+
+@media only screen and (max-width: 600px) {
+
+    .email-wrapper {
+        padding: 20px 10px;
+    }
+
+    .header {
+        padding: 25px 22px;
+    }
+
+    .content {
+        padding: 25px 22px;
+    }
+
+    .footer {
+        padding: 22px;
+    }
+
+    .brand-title {
+        font-size: 20px;
+    }
+
+    .brand-subtitle {
+        font-size: 12px;
+    }
+
+    .aws-badge {
+        font-size: 20px;
+    }
+
+    .detail-label,
+    .error-label {
+        width: 40%;
+
+        padding: 12px;
+
+        font-size: 12px;
+    }
+
+    .detail-value,
+    .error-value {
+        padding: 12px;
+
+        font-size: 12px;
+    }
+
+    .status-cell {
+        padding: 12px;
+    }
+
+    .status-banner {
+        padding: 15px;
+    }
+
+    .intro-text {
+        font-size: 14px;
+    }
+}

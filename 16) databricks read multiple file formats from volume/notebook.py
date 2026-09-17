@@ -1,24 +1,43 @@
 # Databricks notebook source
 # Read multiple file formats from a Unity Catalog Volume.
 #
-# THREE cells total. Cell boundaries are marked by the standard COMMAND
-# separator lines that Databricks uses when it exports a notebook as source.
-# Import this file into Databricks as notebook source, or paste the cells in order.
+# This notebook has THREE cells. The "# COMMAND ----------" lines mark where one
+# cell ends and the next begins.
 #
-# The magics (%pip, %restart_python) are written as "# MAGIC" comments, which is
-# how Databricks stores them on disk. They are comments here so the file is also
-# valid Python and no IDE flags it as a syntax error.
-
-# MAGIC %pip install openpyxl
-
-# COMMAND ----------
-
-# Cell 2 - Restart Python so the newly installed package is visible
-# MAGIC %restart_python
+#   CELL 1 -> %pip install openpyxl
+#   CELL 2 -> %restart_python
+#   CELL 3 -> everything else (imports, path, list files, the loop)
+#
+# Paste them into Databricks in that order. Cell 1 must be run before Cell 3,
+# because Cell 3 needs openpyxl to read the .xlsx file.
 
 # COMMAND ----------
 
-# Cell 3 - Imports, input path, list files, and the main processing loop
+# ==========================================================
+# CELL 1 - run this FIRST
+# Installs openpyxl, the library used to read .xlsx files.
+# ==========================================================
+
+%pip install openpyxl
+
+# COMMAND ----------
+
+# ==========================================================
+# CELL 2 - run this SECOND
+# Restarts Python so the openpyxl installed in Cell 1 is
+# actually visible to the notebook.
+# ==========================================================
+
+%restart_python
+
+# COMMAND ----------
+
+# ==========================================================
+# CELL 3 - run this LAST
+# Imports + Volume path + list files + the processing loop.
+# This is the only cell that does the actual work.
+# ==========================================================
+
 import pandas as pd
 
 path = "/Volumes/lambda-to-databricks/default/structured-2026"

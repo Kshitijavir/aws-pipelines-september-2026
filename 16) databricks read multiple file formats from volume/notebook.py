@@ -1,65 +1,57 @@
 # Databricks notebook source
-# Read multiple file formats from a Unity Catalog Volume.
 #
-# This notebook has exactly THREE cells, labelled CELL 1, CELL 2 and CELL 3
-# below. The separator lines between them are how Databricks marks a cell
-# boundary, so each labelled block is exactly one cell in the notebook.
+# PURPOSE
+#   Read every file in a Unity Catalog Volume, whatever format it is in.
 #
-#   CELL 1 -> %pip install openpyxl
-#   CELL 2 -> %restart_python
-#   CELL 3 -> everything else (imports, path, list files, the loop)
+#   .csv / .txt  ->  Spark CSV reader
+#   .json        ->  Spark JSON reader
+#   .xlsx        ->  pandas + openpyxl, then converted back to a Spark DataFrame
 #
-# Run them in that order. Cell 1 must run before Cell 3, because Cell 3 needs
-# openpyxl to read the .xlsx file.
-#
-# NOTE ON THE "# MAGIC" PREFIX
-# The %pip and %restart_python lines below are written as "# MAGIC %pip ...".
-# That is NOT commenting them out. Databricks strips the "# MAGIC" when it
-# reads this file and runs the command for real. It is the format Databricks
-# itself uses to store magics in a notebook source file, and it is the only
-# way to write a magic in a .py file without it being a Python syntax error.
+# HOW TO USE
+#   Three cells. Run them top to bottom, in order.
+#   Add the files you want to read to the volume, then run Cell 3.
 
-# ==========================================================
-# CELL 1 - run this FIRST
-# Installs openpyxl, the library used to read .xlsx files.
-# ==========================================================
+# ==================================================================
+# CELL 1 - run first
+# ==================================================================
+# Spark cannot read Excel files, so openpyxl has to be installed.
+# "%pip" is a Databricks magic. Inside a .py file magics are written with the
+# "# MAGIC" prefix, which is how Databricks stores them on disk.
 
 # MAGIC %pip install openpyxl
 
 # COMMAND ----------
-
-# ==========================================================
-# CELL 2 - run this SECOND
-# Restarts Python so the openpyxl installed in Cell 1 is
-# actually visible to the notebook.
-# ==========================================================
+# CELL 2 - run second
+# A notebook-scoped pip install only takes effect after Python restarts.
 
 # MAGIC %restart_python
 
 # COMMAND ----------
-
-# ==========================================================
-# CELL 3 - run this LAST
-# Imports + Volume path + list files + the processing loop.
-# This is the only cell that does the actual work.
-# ==========================================================
+# CELL 3 - run last: read every file in the volume
 
 import pandas as pd
 
+# The Unity Catalog Volume that holds the files.
 path = "/Volumes/lambda-to-databricks/default/structured-2026"
 
+# List the contents of the volume. Each entry has .name, .path and .size.
 files = dbutils.fs.ls(path)
 
 for file in files:
 
+    # dbutils returns paths as "dbfs:/Volumes/...". pandas cannot open a
+    # "dbfs:/..." URI, so drop the prefix and keep the plain /Volumes/ path.
+    # Spark understands both forms, so this line is safe for every branch.
     file_path = file.path.replace("dbfs:", "")
+
+    # Compare against the lowercased name so ".CSV" and ".csv" both match.
     file_name = file.name.lower()
 
     print("=" * 60)
     print(f"Reading: {file.name}")
     print("=" * 60)
 
-    # CSV
+    # CSV - first row holds the column names, Spark works out the data types.
     if file_name.endswith(".csv"):
 
         df = spark.read.csv(
@@ -68,7 +60,8 @@ for file in files:
             inferSchema=True
         )
 
-    # JSON
+    # JSON - multiLine is needed when one file holds a single nested JSON
+    # document, rather than one JSON object per line.
     elif file_name.endswith(".json"):
 
         df = (
@@ -77,7 +70,7 @@ for file in files:
             .json(file_path)
         )
 
-    # TXT
+    # TXT - same shape as CSV, so the CSV reader handles it.
     elif file_name.endswith(".txt"):
 
         df = spark.read.csv(
@@ -86,7 +79,9 @@ for file in files:
             inferSchema=True
         )
 
-    # Excel
+    # XLSX - Spark has no Excel reader. pandas reads the sheet with openpyxl,
+    # then spark.createDataFrame turns that pandas DataFrame back into Spark
+    # so the rest of the notebook can treat every file the same way.
     elif file_name.endswith(".xlsx"):
 
         pandas_df = pd.read_excel(
@@ -96,11 +91,13 @@ for file in files:
 
         df = spark.createDataFrame(pandas_df)
 
-    # Unsupported file
+    # Anything else: say so and move to the next file, do not fail the run.
     else:
 
         print(f"Skipping: {file.name}")
         continue
 
+    # Same two lines for every format, because every branch produced a Spark
+    # DataFrame. printSchema shows the columns and types, display shows rows.
     df.printSchema()
     display(df)

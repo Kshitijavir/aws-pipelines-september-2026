@@ -66,16 +66,7 @@ Role name: `stepfunctions-lambda-databricks-role`
 
 ## 🐍 Step 2: Create the Lambda
 
-⚠️ This Lambda is **not** a single-file paste — it reads `email.html` and `email.css` from disk. Those files must ship **inside the deployment package**.
-
-Build the zip (all three files at the zip root):
-
-```bash
-cd "/d/1) Learning & Study/AWS pipelines september 2026/aws-pipelines-september-2026/19) stepfunction to lambda to databricks"
-zip -r lambda-databricks.zip lambda_function.py email.html email.css
-```
-
-Lambda → Functions → Create function → **Upload from .zip file** → upload `lambda-databricks.zip`
+Lambda → Functions → Create function → **Author from scratch**
 
 | Setting | Value |
 |---------|-------|
@@ -83,7 +74,14 @@ Lambda → Functions → Create function → **Upload from .zip file** → uploa
 | Runtime | Python 3.x |
 | Permissions | Use an existing role → `stepfunctions-lambda-databricks-role` |
 
-> 📌 Lambda unpacks the zip into `/var/task`, and `BASE_DIR = os.path.dirname(__file__)` points there — so the templates load. Pasting the code in the console instead fails with `No such file or directory`.
+The code opens `email.html` and `email.css` from disk, so the function needs **three** files — not one:
+
+1. Paste [lambda_function.py](lambda_function.py) into the existing `lambda_function.py`
+2. In the console editor: right-click the function folder → **New File** → name it `email.html` → paste [email.html](email.html)
+3. Same for `email.css` → paste [email.css](email.css)
+4. Click **Deploy** and confirm the file tree lists all three files
+
+> 📌 `BASE_DIR = os.path.dirname(__file__)` points at the function root, so the templates load from next to the code. If a file is missing you get `FileNotFoundError: email.html`.
 
 > 💡 No layer is needed — the code uses the built-in `urllib` and `boto3`.
 
@@ -188,7 +186,7 @@ Verify: the execution graph shows `Invoke Databricks Lambda → Check Job Status
 
 | ❌ Mistake | ✅ Fix |
 |-----------|-------|
-| `No such file or directory: email.html` | Ship the HTML + CSS inside the deployment zip |
+| `No such file or directory: email.html` | Create `email.html` + `email.css` in the console editor, then **Deploy** |
 | Email never arrives | Verify sender **and** recipients in SES (sandbox mode) |
 | `Email address is not verified` | Verify the identity in the **same** region as `REGION` |
 | `401 Unauthorized` | Bad or expired Databricks token |

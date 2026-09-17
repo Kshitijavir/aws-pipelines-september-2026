@@ -148,7 +148,7 @@ Step Functions → State machines → Create state machine → **Write your work
 
 Paste [state_machine.json](state_machine.json).
 
-> ⚠️ Replace the ARN in `Parameters.FunctionName` with your own `SF-lambda-databricks` ARN.
+> ⚠️ Replace `"FunctionName": "YOUR LAMBDA ARN"` with the ARN of your `SF-lambda-databricks` function.
 
 | Setting | Value |
 |---------|-------|

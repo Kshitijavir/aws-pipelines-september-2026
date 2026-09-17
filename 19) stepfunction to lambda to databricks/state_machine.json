@@ -6,7 +6,7 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "arn:aws:lambda:us-east-1:772346609795:function:SF-lambda-databricks",
+        "FunctionName": "YOUR LAMBDA ARN",
         "Payload.$": "$"
       },
       "OutputPath": "$.Payload",

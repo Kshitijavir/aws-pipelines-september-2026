@@ -1,6 +1,7 @@
 # Databricks notebook — read multiple file formats from a Unity Catalog Volume.
 #
-# Each "# COMMAND ----------" block below is ONE notebook cell.
+# This notebook has THREE cells.
+# Each "# COMMAND ----------" block below is one cell.
 # Paste them into Databricks in order, or import this file as notebook source.
 
 # COMMAND ----------
@@ -15,22 +16,7 @@
 
 # COMMAND ----------
 
-# Cell 3 — Imports
-import pandas as pd
-
-# COMMAND ----------
-
-# Cell 4 — Input path (Unity Catalog Volume)
-path = "/Volumes/lambda-to-databricks/default/structured-2026"
-
-# COMMAND ----------
-
-# Cell 5 — List all files in the Volume
-files = dbutils.fs.ls(path)
-
-# COMMAND ----------
-
-# Cell 6 — Main processing logic
+# Cell 3 — Imports, input path, list files, and the main processing loop
 import pandas as pd
 
 path = "/Volumes/lambda-to-databricks/default/structured-2026"

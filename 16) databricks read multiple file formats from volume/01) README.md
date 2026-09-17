@@ -76,7 +76,7 @@ After installing the library, restart the Python environment.
 
 ## 4. Import Required Libraries
 
-### Cell 3 — Imports
+This goes in **Cell 3**, together with everything below.
 
 ```python
 import pandas as pd
@@ -88,7 +88,7 @@ import pandas as pd
 
 The files are stored inside a **Unity Catalog Volume**.
 
-### Cell 4 — Input Path
+Also in **Cell 3**.
 
 ```python
 path = "/Volumes/lambda-to-databricks/default/structured-2026"
@@ -100,7 +100,7 @@ path = "/Volumes/lambda-to-databricks/default/structured-2026"
 
 We use `dbutils.fs.ls()` to get all files available in the Volume.
 
-### Cell 5 — List Files
+Also in **Cell 3**.
 
 ```python
 files = dbutils.fs.ls(path)
@@ -110,13 +110,26 @@ files = dbutils.fs.ls(path)
 
 # 7. Complete Notebook Code
 
-### Cell 6 — Main Processing Logic
+### Cell 3 — Main Processing Logic
 
 The full notebook code lives in:
 
 [notebook.py](notebook.py)
 
-That file holds every cell in order, separated by `# COMMAND ----------` blocks, so it can be pasted into Databricks cell by cell or imported as notebook source.
+The notebook is **three cells** in total:
+
+```text
+Cell 1 → %pip install openpyxl
+Cell 2 → %restart_python
+Cell 3 → imports + input path + list files + the processing loop
+```
+
+Only the `%pip` install and the Python restart need their own cells.
+
+Everything else — imports, the volume path, listing the files, and the whole
+`for` loop — runs as one single cell.
+
+`notebook.py` holds all three in order, separated by `# COMMAND ----------` blocks, so it can be pasted into Databricks cell by cell or imported as notebook source.
 
 ---
 

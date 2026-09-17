@@ -10,7 +10,7 @@ We introduced the **`.ctl` control-file approach**, so Lambda starts the actual 
 
 | File | What It Is |
 | ---- | ---------- |
-| [01) README.md](01)%20README.md) | Complete explanation of the multiple TXT → Excel pipeline |
+| [01) README.md](01%29%20README.md) | Complete explanation of the multiple TXT → Excel pipeline |
 | [lambda_function.py](lambda_function.py) | Lambda function that validates the control file, reads all TXT files, merges them, and creates one Excel file |
 | [trust_policy.json](trust_policy.json) | IAM trust policy that allows Lambda to assume its execution role |
 | [input/sales_01.txt](input/sales_01.txt) | Input TXT file containing records 101–105 |

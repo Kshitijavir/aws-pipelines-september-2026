@@ -10,7 +10,7 @@ Lambda reads a **pipe-delimited TXT file** from the `input/` folder in S3, conve
 
 | File | What It Is |
 | ---- | ---------- |
-| [01) README.md](01)%20README.md) | Complete explanation of the TXT → Excel pipeline |
+| [01) README.md](01%29%20README.md) | Complete explanation of the TXT → Excel pipeline |
 | [lambda_function.py](lambda_function.py) | Lambda function that reads TXT from S3 and creates an Excel file |
 | [trust_policy.json](trust_policy.json) | IAM trust policy that allows Lambda to assume its execution role |
 | [input/input.txt](input/input.txt) | Sample pipe-delimited TXT file used as input |

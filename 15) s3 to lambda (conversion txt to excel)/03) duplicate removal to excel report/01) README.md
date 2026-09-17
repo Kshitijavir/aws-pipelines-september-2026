@@ -24,7 +24,7 @@ The Lambda function:
 
 | File | What It Is |
 | ---- | ---------- |
-| [01) README.md](01)%20README.md) | Complete explanation of the duplicate removal and Excel reporting pipeline |
+| [01) README.md](01%29%20README.md) | Complete explanation of the duplicate removal and Excel reporting pipeline |
 | [lambda_function.py](lambda_function.py) | Lambda function that removes duplicates and creates the Excel report |
 | [trust_policy.json](trust_policy.json) | IAM trust policy that allows Lambda to assume its execution role |
 | [input/student_marks.txt](input/student_marks.txt) | Input TXT file containing 30 records |

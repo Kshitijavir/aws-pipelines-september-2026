@@ -1,8 +1,9 @@
 # Databricks notebook source
 # Read multiple file formats from a Unity Catalog Volume.
 #
-# This notebook has THREE cells. The "# COMMAND ----------" lines mark where one
-# cell ends and the next begins.
+# This notebook has exactly THREE cells, labelled CELL 1, CELL 2 and CELL 3
+# below. The separator lines between them are how Databricks marks a cell
+# boundary, so each labelled block is exactly one cell in the notebook.
 #
 #   CELL 1 -> %pip install openpyxl
 #   CELL 2 -> %restart_python
@@ -10,8 +11,6 @@
 #
 # Paste them into Databricks in that order. Cell 1 must be run before Cell 3,
 # because Cell 3 needs openpyxl to read the .xlsx file.
-
-# COMMAND ----------
 
 # ==========================================================
 # CELL 1 - run this FIRST

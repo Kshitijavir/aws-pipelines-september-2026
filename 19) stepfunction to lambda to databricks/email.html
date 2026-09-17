@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Databricks Job Completed</title>
+
+</head>
+
+<body>
+
+    <div class="email-container">
+
+        <div class="header">
+
+            <h1>Databricks Job Completed</h1>
+
+        </div>
+
+        <div class="content">
+
+            <h2>Job Completed Successfully</h2>
+
+            <p>
+                Your Databricks job has completed successfully.
+            </p>
+
+            <div class="details">
+
+                <p>
+                    <strong>Job ID:</strong>
+                    {{JOB_ID}}
+                </p>
+
+                <p>
+                    <strong>Run ID:</strong>
+                    {{RUN_ID}}
+                </p>
+
+                <p>
+                    <strong>Status:</strong>
+                    SUCCESS
+                </p>
+
+            </div>
+
+            <p>
+                Notebook 1, Notebook 2 and Notebook 3
+                completed successfully.
+            </p>
+
+        </div>
+
+        <div class="footer">
+
+            <p>
+                This is an automated email from AWS Lambda.
+            </p>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

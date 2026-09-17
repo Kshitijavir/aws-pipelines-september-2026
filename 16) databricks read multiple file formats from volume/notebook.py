@@ -1,22 +1,24 @@
-# Databricks notebook — read multiple file formats from a Unity Catalog Volume.
+# Databricks notebook source
+# Read multiple file formats from a Unity Catalog Volume.
 #
-# This notebook has THREE cells.
-# Each "# COMMAND ----------" block below is one cell.
-# Paste them into Databricks in order, or import this file as notebook source.
+# THREE cells total. Cell boundaries are marked by the standard COMMAND
+# separator lines that Databricks uses when it exports a notebook as source.
+# Import this file into Databricks as notebook source, or paste the cells in order.
+#
+# The magics (%pip, %restart_python) are written as "# MAGIC" comments, which is
+# how Databricks stores them on disk. They are comments here so the file is also
+# valid Python and no IDE flags it as a syntax error.
+
+# MAGIC %pip install openpyxl
 
 # COMMAND ----------
 
-# Cell 1 — Install OpenPyXL (needed for the Excel branch)
-%pip install openpyxl
+# Cell 2 - Restart Python so the newly installed package is visible
+# MAGIC %restart_python
 
 # COMMAND ----------
 
-# Cell 2 — Restart Python so the newly installed package is visible
-%restart_python
-
-# COMMAND ----------
-
-# Cell 3 — Imports, input path, list files, and the main processing loop
+# Cell 3 - Imports, input path, list files, and the main processing loop
 import pandas as pd
 
 path = "/Volumes/lambda-to-databricks/default/structured-2026"

@@ -9,20 +9,10 @@ from botocore.exceptions import ClientError
 s3 = boto3.client("s3")
 
 
-# Expected input files
-REQUIRED_FILES = [
-    "sales_01.txt",
-    "sales_02.txt",
-    "sales_03.txt",
-    "sales_04.txt",
-    "sales_05.txt"
-]
-
-
 def lambda_handler(event, context):
 
     # ---------------------------------------------------------
-    # 1. Get bucket name and control-file key from S3 event
+    # 1. Get bucket name and uploaded file key
     # ---------------------------------------------------------
 
     record = event["Records"][0]
@@ -30,15 +20,20 @@ def lambda_handler(event, context):
     bucket_name = record["s3"]["bucket"]["name"]
 
     raw_key = record["s3"]["object"]["key"]
-    control_file_key = unquote_plus(raw_key)
 
-    print(f"Control file received: s3://{bucket_name}/{control_file_key}")
+    uploaded_file_key = unquote_plus(raw_key)
+
+    print(
+        f"File received: "
+        f"s3://{bucket_name}/{uploaded_file_key}"
+    )
 
     # ---------------------------------------------------------
-    # 2. Make sure the uploaded file is a .ctl file
+    # 2. Make sure uploaded file is a .ctl file
     # ---------------------------------------------------------
 
-    if not control_file_key.lower().endswith(".ctl"):
+    if not uploaded_file_key.lower().endswith(".ctl"):
+
         print("Uploaded file is not a control file. Skipping.")
 
         return {
@@ -52,84 +47,108 @@ def lambda_handler(event, context):
 
     input_prefix = "input/"
 
-    print("Checking required input files...")
+    print(
+        f"Searching for TXT files in "
+        f"s3://{bucket_name}/{input_prefix}"
+    )
 
     # ---------------------------------------------------------
-    # 4. Check whether all five TXT files exist
+    # 4. Find all TXT files dynamically
     # ---------------------------------------------------------
 
-    missing_files = []
+    txt_files = []
 
-    for file_name in REQUIRED_FILES:
+    continuation_token = None
 
-        file_key = f"{input_prefix}{file_name}"
+    while True:
 
-        try:
+        if continuation_token:
 
-            s3.head_object(
+            response = s3.list_objects_v2(
                 Bucket=bucket_name,
-                Key=file_key
+                Prefix=input_prefix,
+                ContinuationToken=continuation_token
             )
 
-            print(f"Found: {file_key}")
+        else:
 
-        except ClientError as error:
+            response = s3.list_objects_v2(
+                Bucket=bucket_name,
+                Prefix=input_prefix
+            )
 
-            error_code = error.response["Error"]["Code"]
+        for obj in response.get("Contents", []):
 
-            if error_code in ("404", "NoSuchKey", "NotFound"):
+            file_key = obj["Key"]
 
-                print(f"Missing: {file_key}")
+            if file_key.endswith("/"):
+                continue
 
-                missing_files.append(file_key)
+            if file_key.lower().endswith(".txt"):
 
-            else:
+                txt_files.append(file_key)
 
-                # Access denied, throttling, KMS failure, etc.
-                # These are NOT "file missing" and must not be silently
-                # swallowed into the missing_files list.
-                print(f"Error checking {file_key}: {error_code}")
+                print(f"Found TXT file: {file_key}")
 
-                raise
+        if response.get("IsTruncated"):
+
+            continuation_token = response[
+                "NextContinuationToken"
+            ]
+
+        else:
+
+            break
 
     # ---------------------------------------------------------
-    # 5. Stop if any required file is missing
+    # 5. Check whether TXT files exist
     # ---------------------------------------------------------
 
-    if missing_files:
+    if not txt_files:
 
-        print("Required input files are missing.")
-
-        for file_name in missing_files:
-            print(f"Missing file: {file_name}")
+        print("No TXT files found.")
 
         return {
             "statusCode": 400,
-            "message": "Required input files are missing.",
-            "missing_files": missing_files
+            "message": "No TXT files found in input folder."
         }
 
-    print("All required files are available.")
+    print(
+        f"Total TXT files found: {len(txt_files)}"
+    )
 
     # ---------------------------------------------------------
     # 6. Read and merge all TXT files
     # ---------------------------------------------------------
 
     all_rows = []
+
     header = None
 
-    for file_name in REQUIRED_FILES:
-
-        file_key = f"{input_prefix}{file_name}"
+    for file_key in txt_files:
 
         print(f"Reading: {file_key}")
 
-        response = s3.get_object(
-            Bucket=bucket_name,
-            Key=file_key
-        )
+        try:
 
-        file_content = response["Body"].read().decode("utf-8")
+            response = s3.get_object(
+                Bucket=bucket_name,
+                Key=file_key
+            )
+
+            file_content = (
+                response["Body"]
+                .read()
+                .decode("utf-8")
+            )
+
+        except ClientError as error:
+
+            print(
+                f"Error reading {file_key}: {error}"
+            )
+
+            raise
 
         reader = csv.reader(
             io.StringIO(file_content),
@@ -139,20 +158,23 @@ def lambda_handler(event, context):
         rows = list(reader)
 
         if not rows:
+
             print(f"File is empty: {file_key}")
+
             continue
 
-        # First file provides the Excel header
+        # First TXT file provides the header
         if header is None:
+
             header = rows[0]
 
-        # Add only data rows
+        # Add data rows only
         data_rows = rows[1:]
 
         all_rows.extend(data_rows)
 
         print(
-            f"{file_name}: "
+            f"{file_key}: "
             f"{len(data_rows)} records"
         )
 
@@ -161,16 +183,16 @@ def lambda_handler(event, context):
     # ---------------------------------------------------------
 
     if header is None:
+
         print("No valid data found.")
 
         return {
             "statusCode": 400,
-            "message": "No valid data found in input files."
+            "message": "No valid data found in TXT files."
         }
 
     print(
-        f"Total records merged: "
-        f"{len(all_rows)}"
+        f"Total records merged: {len(all_rows)}"
     )
 
     # ---------------------------------------------------------
@@ -186,8 +208,9 @@ def lambda_handler(event, context):
     # Write header
     worksheet.append(header)
 
-    # Write all records
+    # Write data
     for row in all_rows:
+
         worksheet.append(row)
 
     # ---------------------------------------------------------
@@ -231,7 +254,9 @@ def lambda_handler(event, context):
 
     return {
         "statusCode": 200,
-        "input_files": REQUIRED_FILES,
+        "control_file": uploaded_file_key,
+        "txt_files": txt_files,
+        "total_txt_files": len(txt_files),
         "total_records": len(all_rows),
         "output_file": output_key,
         "message": "TXT files merged into Excel successfully."

@@ -11,6 +11,10 @@
 | [email.html](email.html) | HTML email template with `{{JOB_ID}}` and `{{RUN_ID}}` placeholders |
 | [email.css](email.css) | Styling injected into the HTML `<head>` at runtime |
 | [trust_policy.json](trust_policy.json) | IAM trust policy for **both** Step Functions and Lambda |
+| [databricks.py](databricks.py) | All three Databricks notebooks in one file (one cell each) |
+| [databricks_notebook_1.py](databricks_notebook_1.py) | Databricks notebook 1 — the first task of the job |
+| [databricks_notebook_2.py](databricks_notebook_2.py) | Databricks notebook 2 — the second task of the job |
+| [databricks_notebook_3.py](databricks_notebook_3.py) | Databricks notebook 3 — the third task of the job |
 
 ## 🎯 Goal
 
@@ -41,6 +45,24 @@ graph LR
     C -->|"SUCCESS"| E["📧 SES email"]
     C -->|"FAILED"| F["❌ Fail state"]
 ```
+
+## 🧱 Step 0: The Databricks Job
+
+The job the Lambda triggers is built from three notebooks, wired as three tasks of a single job:
+
+| Notebook | Task | Runs |
+| -------- | ---- | ---- |
+| [databricks_notebook_1.py](databricks_notebook_1.py) | Notebook 1 | first |
+| [databricks_notebook_2.py](databricks_notebook_2.py) | Notebook 2 | after Notebook 1 |
+| [databricks_notebook_3.py](databricks_notebook_3.py) | Notebook 3 | after Notebook 2 |
+
+[databricks.py](databricks.py) is the same three notebooks in one file, one cell each, for pasting into a single notebook.
+
+Each notebook only logs progress in a 9-step loop with a 10-second sleep — roughly 90 seconds each, so a full run takes about 4–5 minutes. That is deliberate: it is long enough for Step Functions to loop through `STARTED` → `RUNNING` → `SUCCESS` and prove the polling works.
+
+Because it is **one job** with three chained tasks, `result_state` is only `SUCCESS` after the last notebook finishes — the Lambda polls the job, not the individual notebooks.
+
+> 📌 Get the `JOB_ID` from the job URL in Databricks: `.../jobs/<JOB_ID>?o=...`.
 
 ## 🔐 Step 1: IAM Role
 

@@ -1,8 +1,6 @@
 {
-  "statusCode": 200,
-  "body": {
-    "message": "Email sent successfully through Amazon SES",
-    "notificationStatus": "SUCCESS",
-    "messageId": "010001a0..."
-  }
+  "status": "FAILED",
+  "trigger": "Manual Test Invocation",
+  "errorType": "LambdaExecutionError",
+  "errorMessage": "Test failure: Lambda was unable to complete the requested operation."
 }

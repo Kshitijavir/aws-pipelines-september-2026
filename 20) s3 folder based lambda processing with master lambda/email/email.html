@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AWS Data Pipeline Notification</title>
+
+    <style>
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #eef3f8;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #14213d;
+        }
+
+        .email-wrapper {
+            width: 100%;
+            padding: 30px 10px;
+            box-sizing: border-box;
+        }
+
+        .email-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(15, 35, 65, 0.14);
+        }
+
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
+        .header {
+            background-color: #123f7a;
+            background-image:
+                linear-gradient(
+                    135deg,
+                    #123f7a 0%,
+                    #1555a0 55%,
+                    #0c3266 100%
+                );
+
+            padding: 28px 42px;
+            color: #ffffff;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .aws-logo {
+            font-size: 30px;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+
+        .aws-arrow {
+            color: #ff9900;
+            font-size: 26px;
+            font-weight: bold;
+        }
+
+        .header-divider {
+            border-left: 2px solid rgba(255,255,255,0.35);
+            height: 55px;
+            margin: 0 25px;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+
+        .header-subtitle {
+            margin-top: 7px;
+            color: #cbdcf3;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+
+        /* =====================================================
+           MAIN CONTENT
+        ===================================================== */
+
+        .content {
+            padding: 28px;
+        }
+
+
+        /* =====================================================
+           STATUS HERO
+        ===================================================== */
+
+        .status-card {
+            border-radius: 14px;
+            padding: 26px;
+            margin-bottom: 22px;
+        }
+
+        .success-card {
+            background-color: #f0fff6;
+            border: 1px solid #b9efd0;
+        }
+
+        .failure-card {
+            background-color: #fff4f4;
+            border: 1px solid #ffc7c7;
+        }
+
+        .status-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .status-icon-cell {
+            width: 110px;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        .status-icon {
+            width: 76px;
+            height: 76px;
+            line-height: 76px;
+            margin: 0 auto;
+            border-radius: 50%;
+            font-size: 42px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .success-icon {
+            background-color: #16a34a;
+        }
+
+        .failure-icon {
+            background-color: #dc2626;
+        }
+
+        .status-small {
+            font-size: 15px;
+            font-weight: bold;
+            letter-spacing: 0.8px;
+            margin-bottom: 5px;
+        }
+
+        .success-text {
+            color: #087f3f;
+        }
+
+        .failure-text {
+            color: #b91c1c;
+        }
+
+        .status-title {
+            font-size: 27px;
+            font-weight: bold;
+            color: #111827;
+            line-height: 1.25;
+        }
+
+        .status-description {
+            margin-top: 8px;
+            color: #64748b;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 9px 18px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .success-badge {
+            background-color: #b9efd0;
+            color: #087f3f;
+        }
+
+        .failure-badge {
+            background-color: #ffcaca;
+            color: #b91c1c;
+        }
+
+
+        /* =====================================================
+           SECTION TITLE
+        ===================================================== */
+
+        .section-header {
+            border: 1px solid #c9def5;
+            border-bottom: none;
+            background-color: #f6faff;
+            padding: 20px 22px;
+            border-radius: 14px 14px 0 0;
+        }
+
+        .section-icon {
+            display: inline-block;
+            width: 34px;
+            height: 34px;
+            line-height: 34px;
+            text-align: center;
+            border-radius: 9px;
+            background-color: #1976e8;
+            color: #ffffff;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #14213d;
+            vertical-align: middle;
+        }
+
+
+        /* =====================================================
+           EXECUTION DETAILS
+        ===================================================== */
+
+        .details-container {
+            border: 1px solid #c9def5;
+            border-radius: 0 0 14px 14px;
+            padding: 22px;
+            margin-bottom: 22px;
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .details-table td {
+            padding: 15px 10px;
+            border-bottom: 1px solid #e5edf5;
+            vertical-align: middle;
+        }
+
+        .details-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .detail-icon {
+            width: 45px;
+            text-align: center;
+        }
+
+        .icon-box {
+            display: inline-block;
+            width: 34px;
+            height: 34px;
+            line-height: 34px;
+            text-align: center;
+            border-radius: 9px;
+            font-size: 17px;
+        }
+
+        .bucket-icon {
+            background-color: #fff1d6;
+            color: #e87900;
+        }
+
+        .folder-icon {
+            background-color: #e4f0ff;
+            color: #1976e8;
+        }
+
+        .file-icon {
+            background-color: #f0e7ff;
+            color: #7435c8;
+        }
+
+        .lambda-icon {
+            background-color: #fff0dc;
+            color: #e87900;
+        }
+
+        .status-detail-icon {
+            background-color: #e7f8ef;
+            color: #168447;
+        }
+
+        .time-icon {
+            background-color: #e6f0ff;
+            color: #2465bd;
+        }
+
+        .detail-label {
+            display: block;
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+
+        .detail-value {
+            display: block;
+            font-size: 15px;
+            color: #111827;
+            font-weight: bold;
+            word-break: break-word;
+        }
+
+
+        /* =====================================================
+           EXECUTION MESSAGE
+        ===================================================== */
+
+        .message-header {
+            border: 1px solid #b8d9ff;
+            border-bottom: none;
+            background-color: #eef7ff;
+            padding: 20px 22px;
+            border-radius: 14px 14px 0 0;
+        }
+
+        .message-container {
+            border: 1px solid #b8d9ff;
+            border-radius: 0 0 14px 14px;
+            padding: 22px;
+            background-color: #f8fbff;
+            margin-bottom: 22px;
+        }
+
+        .message-box {
+            background-color: #ffffff;
+            border: 1px solid #d8e7f5;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .message-text {
+            margin: 0;
+            font-family: "Courier New", monospace;
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+
+        /* =====================================================
+           BOTTOM SUCCESS / FAILURE BANNER
+        ===================================================== */
+
+        .bottom-banner {
+            padding: 18px 22px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .bottom-success {
+            background-color: #e0f8eb;
+            border-left: 6px solid #16a34a;
+        }
+
+        .bottom-failure {
+            background-color: #fff0f0;
+            border-left: 6px solid #dc2626;
+        }
+
+        .bottom-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .bottom-message {
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .bottom-success .bottom-message {
+            color: #087f3f;
+        }
+
+        .bottom-failure .bottom-message {
+            color: #b91c1c;
+        }
+
+        .bottom-right {
+            text-align: right;
+            font-size: 13px;
+            color: #475569;
+        }
+
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        .footer {
+            background-color: #102f57;
+            color: #dbeafe;
+            padding: 25px 30px;
+            text-align: center;
+        }
+
+        .footer-main {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .footer-sub {
+            margin-top: 7px;
+            font-size: 12px;
+            color: #a9c4e5;
+        }
+
+        .footer-aws {
+            margin-top: 15px;
+            font-size: 17px;
+            font-weight: bold;
+        }
+
+        .footer-orange {
+            color: #ff9900;
+        }
+
+
+        /* =====================================================
+           MOBILE
+        ===================================================== */
+
+        @media only screen and (max-width: 600px) {
+
+            .email-wrapper {
+                padding: 10px 0;
+            }
+
+            .email-container {
+                border-radius: 0;
+            }
+
+            .header {
+                padding: 25px 20px;
+            }
+
+            .content {
+                padding: 18px;
+            }
+
+            .status-card {
+                padding: 18px;
+            }
+
+            .status-title {
+                font-size: 21px;
+            }
+
+            .status-icon-cell {
+                width: 85px;
+            }
+
+            .status-icon {
+                width: 60px;
+                height: 60px;
+                line-height: 60px;
+                font-size: 30px;
+            }
+
+            .details-container {
+                padding: 12px;
+            }
+
+            .detail-value {
+                font-size: 13px;
+            }
+
+            .bottom-right {
+                text-align: left;
+                padding-top: 10px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="email-wrapper">
+
+    <div class="email-container">
+
+        <!-- =================================================
+             HEADER
+        ================================================== -->
+
+        <div class="header">
+
+            <table class="header-table">
+
+                <tr>
+
+                    <td style="width: 120px; vertical-align: middle;">
+
+                        <div class="aws-logo">
+                            aws
+                        </div>
+
+                        <div class="aws-arrow">
+                            ───➤
+                        </div>
+
+                    </td>
+
+
+                    <td style="width: 25px; vertical-align: middle;">
+
+                        <div class="header-divider"></div>
+
+                    </td>
+
+
+                    <td style="vertical-align: middle;">
+
+                        <div class="header-title">
+                            AWS Data Pipeline
+                        </div>
+
+                        <div class="header-subtitle">
+                            Automate &nbsp; | &nbsp; Process &nbsp; | &nbsp; Deliver
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            </table>
+
+        </div>
+
+
+        <!-- =================================================
+             DYNAMIC SUCCESS / FAILURE CONTENT
+        ================================================== -->
+
+        <div class="content">
+
+            {{EMAIL_CONTENT}}
+
+        </div>
+
+
+        <!-- =================================================
+             FOOTER
+        ================================================== -->
+
+        <div class="footer">
+
+            <div class="footer-main">
+                This is an automated notification from AWS Data Pipeline.
+            </div>
+
+            <div class="footer-sub">
+                Reliable. Scalable. Serverless.
+            </div>
+
+            <div class="footer-aws">
+
+                aws
+
+                <span class="footer-orange">
+                    ───➤
+                </span>
+
+                &nbsp;&nbsp;
+
+                Innovation Builds Tomorrow
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>

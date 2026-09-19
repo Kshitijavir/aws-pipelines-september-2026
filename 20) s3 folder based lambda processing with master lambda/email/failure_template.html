@@ -1,0 +1,270 @@
+<div class="status-card failure-card">
+
+    <table class="status-table">
+
+        <tr>
+
+            <td class="status-icon-cell">
+
+                <div class="status-icon failure-icon">
+                    !
+                </div>
+
+            </td>
+
+
+            <td>
+
+                <div class="status-small failure-text">
+                    PROCESS FAILED
+                </div>
+
+                <div class="status-title">
+                    Lambda Processing Failed
+                </div>
+
+                <div class="status-description">
+                    The Lambda responsible for processing
+                    your S3 file encountered an error.
+                </div>
+
+            </td>
+
+
+            <td style="width: 120px; text-align: right; vertical-align: middle;">
+
+                <span class="status-badge failure-badge">
+                    FAILED
+                </span>
+
+            </td>
+
+        </tr>
+
+    </table>
+
+</div>
+
+
+<!-- =====================================================
+     EXECUTION DETAILS
+====================================================== -->
+
+<div class="section-header">
+
+    <span class="section-icon">
+        ▣
+    </span>
+
+    <span class="section-title">
+        Execution Details
+    </span>
+
+</div>
+
+
+<div class="details-container">
+
+    <table class="details-table">
+
+        <tr>
+
+            <td class="detail-icon">
+
+                <span class="icon-box bucket-icon">
+                    ▰
+                </span>
+
+            </td>
+
+            <td>
+
+                <span class="detail-label">
+                    S3 Bucket
+                </span>
+
+                <span class="detail-value">
+                    {{BUCKET_NAME}}
+                </span>
+
+            </td>
+
+
+            <td class="detail-icon">
+
+                <span class="icon-box lambda-icon">
+                    λ
+                </span>
+
+            </td>
+
+            <td>
+
+                <span class="detail-label">
+                    Lambda Function
+                </span>
+
+                <span class="detail-value">
+                    {{LAMBDA_NAME}}
+                </span>
+
+            </td>
+
+        </tr>
+
+
+        <tr>
+
+            <td class="detail-icon">
+
+                <span class="icon-box folder-icon">
+                    ▰
+                </span>
+
+            </td>
+
+            <td>
+
+                <span class="detail-label">
+                    Folder
+                </span>
+
+                <span class="detail-value">
+                    {{FOLDER_NAME}}
+                </span>
+
+            </td>
+
+
+            <td class="detail-icon">
+
+                <span class="icon-box status-detail-icon">
+                    !
+                </span>
+
+            </td>
+
+            <td>
+
+                <span class="detail-label">
+                    Status
+                </span>
+
+                <span class="detail-value">
+
+                    <span class="status-badge failure-badge">
+                        ✕ FAILED
+                    </span>
+
+                </span>
+
+            </td>
+
+        </tr>
+
+
+        <tr>
+
+            <td class="detail-icon">
+
+                <span class="icon-box file-icon">
+                    ▤
+                </span>
+
+            </td>
+
+            <td>
+
+                <span class="detail-label">
+                    File
+                </span>
+
+                <span class="detail-value">
+                    {{FILE_NAME}}
+                </span>
+
+            </td>
+
+
+            <td class="detail-icon">
+
+                <span class="icon-box time-icon">
+                    ◷
+                </span>
+
+            </td>
+
+            <td>
+
+                <span class="detail-label">
+                    Failed At
+                </span>
+
+                <span class="detail-value">
+                    {{COMPLETED_TIME}}
+                </span>
+
+            </td>
+
+        </tr>
+
+    </table>
+
+</div>
+
+
+<!-- =====================================================
+     ERROR MESSAGE
+====================================================== -->
+
+<div class="message-header">
+
+    <span class="section-icon">
+        !
+    </span>
+
+    <span class="section-title">
+        Error Details
+    </span>
+
+</div>
+
+
+<div class="message-container">
+
+    <div class="message-box">
+
+        <pre class="message-text">{{MESSAGE}}</pre>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     BOTTOM FAILURE MESSAGE
+====================================================== -->
+
+<div class="bottom-banner bottom-failure">
+
+    <table class="bottom-table">
+
+        <tr>
+
+            <td class="bottom-message">
+
+                ⚠️ Pipeline execution requires attention.
+
+            </td>
+
+            <td class="bottom-right">
+
+                Please review the Lambda logs for details.
+
+            </td>
+
+        </tr>
+
+    </table>
+
+</div>

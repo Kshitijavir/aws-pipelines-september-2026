@@ -1,0 +1,36 @@
+{
+  "bucket_name": "master-lambda-5-sub-lambda-2026",
+
+  "email": {
+    "sender": "no-reply@kshitijaws.site",
+    "recipient": "kshitijjavir111@gmail.com",
+    "subject_prefix": "AWS Pipeline Notification"
+  },
+
+  "folders": {
+    "a": {
+      "s3_path": "a/",
+      "lambda_name": "sub-lambda-1"
+    },
+
+    "b": {
+      "s3_path": "b/",
+      "lambda_name": "sub-lambda-2"
+    },
+
+    "c": {
+      "s3_path": "c/",
+      "lambda_name": "sub-lambda-3"
+    },
+
+    "d": {
+      "s3_path": "d/",
+      "lambda_name": "sub-lambda-4"
+    },
+
+    "e": {
+      "s3_path": "e/",
+      "lambda_name": "sub-lambda-5"
+    }
+  }
+}

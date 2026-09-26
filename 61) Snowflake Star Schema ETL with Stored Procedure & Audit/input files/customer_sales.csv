@@ -1,0 +1,6 @@
+customer_id,customer_name,email,city,country,product,quantity,unit_price,order_date
+1001,Rahul Sharma,rahul@gmail.com,Mumbai,India,Laptop,1,75000,2026-09-01
+1002,Priya Patil,priya@gmail.com,Pune,India,Mobile,2,25000,2026-09-02
+1003,Amit Verma,amit@gmail.com,Delhi,India,Monitor,1,18000,2026-09-03
+1001,Rahul Sharma,rahul@gmail.com,Mumbai,India,Mouse,2,1500,2026-09-04
+1004,Sneha Joshi,sneha@gmail.com,Bengaluru,India,Keyboard,1,3000,2026-09-05

@@ -1,0 +1,4 @@
+employee_id,employee_name,email,department,salary,joining_date
+9001,Rahul Sharma,rahul@example.com,IT,85000,2026-09-20
+9002,Priya Patil,priya@example.com,HR,62000,2026-09-21
+9003,Amit Verma,amit@example.com,Finance,95000,2026-09-22

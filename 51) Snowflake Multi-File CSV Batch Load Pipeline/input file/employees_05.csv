@@ -1,0 +1,4 @@
+employee_id,employee_name,email,country,department,joining_date,salary
+2013,Rahul More,rahul.more@example.com,India,Sales,2026-09-13,64000
+2014,Priya Shah,priya.shah@example.com,India,IT,2026-09-14,85000
+2015,Sagar Joshi,sagar.joshi@example.com,India,Finance,2026-09-15,79000

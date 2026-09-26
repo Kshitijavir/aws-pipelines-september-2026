@@ -1,4 +1,4 @@
-# 50) Snowflake — First Pipeline
+# 50) Snowflake — Basic CSV Batch Load Pipeline
 
 ## 📁 Files in This Folder
 
@@ -395,4 +395,4 @@ Table      = destination
 COPY INTO  = the loader that connects the last two
 ```
 
-Pipeline 2 builds on this same setup rather than starting from zero.
+The follow-up is [51) Snowflake — Multi-File CSV Batch Load Pipeline](../51%29%20Snowflake%20Multi-File%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), which loads five CSVs through this exact same setup.

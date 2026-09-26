@@ -7,8 +7,6 @@
 | [00) README.md](00%29%20README.md) | This explanation |
 | [input files/](input%20files/) | `sales_01_initial.csv`, `sales_02_incremental.csv`, `sales_03_incremental.csv` |
 
-This pipeline is **Snowflake only** — no AWS component. It follows on from [50) Snowflake — Basic CSV Batch Load Pipeline](../50%29%20Snowflake%20Basic%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), [51) Snowflake — Multi-File CSV Batch Load Pipeline](../51%29%20Snowflake%20Multi-File%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md) and [52) Snowflake — Table-to-Stage Export Pipeline](../52%29%20Snowflake%20Table-to-Stage%20Export%20Pipeline/00%29%20README.md).
-
 ## 🎯 Goal
 
 Now we move to a **very important Snowflake concept: Incremental Loading**.
@@ -92,7 +90,7 @@ sales_03_incremental.csv
 
 ---
 
-## Step 1 — Create the Database
+## 🗄️ Step 1 — Create the Database
 
 ```sql
 CREATE DATABASE SNOWFLAKE_INCREMENTAL_PRACTICE;
@@ -102,7 +100,7 @@ USE DATABASE SNOWFLAKE_INCREMENTAL_PRACTICE;
 
 ---
 
-## Step 2 — Create the Schema
+## 📂 Step 2 — Create the Schema
 
 ```sql
 CREATE SCHEMA INCREMENTAL_SCHEMA;
@@ -112,7 +110,7 @@ USE SCHEMA INCREMENTAL_SCHEMA;
 
 ---
 
-## Step 3 — Create the Warehouse
+## ⚙️ Step 3 — Create the Warehouse
 
 ```sql
 CREATE WAREHOUSE INCREMENTAL_WH
@@ -125,7 +123,7 @@ USE WAREHOUSE INCREMENTAL_WH;
 
 ---
 
-## Step 4 — Create the Table
+## 📋 Step 4 — Create the Table
 
 ```sql
 CREATE TABLE SALES (
@@ -146,7 +144,7 @@ DESC TABLE SALES;
 
 ---
 
-## Step 5 — Create the File Format
+## 📄 Step 5 — Create the File Format
 
 ```sql
 CREATE FILE FORMAT SALES_CSV_FORMAT
@@ -159,7 +157,7 @@ CREATE FILE FORMAT SALES_CSV_FORMAT
 
 ---
 
-## Step 6 — Create the Internal Stage
+## 📥 Step 6 — Create the Internal Stage
 
 ```sql
 CREATE STAGE SALES_STAGE
@@ -174,7 +172,7 @@ SHOW STAGES;
 
 ---
 
-## Step 7 — Upload Only the First File
+## ⬆️ Step 7 — Upload Only the First File
 
 From [input files/](input%20files/), take:
 
@@ -196,7 +194,7 @@ sales_01_initial.csv
 
 ---
 
-## Step 8 — Load the First File
+## 🚚 Step 8 — Load the First File
 
 ```sql
 COPY INTO SALES
@@ -223,7 +221,7 @@ Expected:
 
 ---
 
-## Step 9 — Now Add the Second File
+## ➕ Step 9 — Now Add the Second File
 
 Do **not** remove the first file.
 
@@ -250,7 +248,7 @@ LIST @SALES_STAGE;
 
 ---
 
-## Step 10 — Run COPY INTO Again
+## 🔁 Step 10 — Run COPY INTO Again
 
 This is the important part.
 
@@ -287,7 +285,7 @@ Expected:
 
 ---
 
-## Step 11 — Check the Data
+## 🔍 Step 11 — Check the Data
 
 ```sql
 SELECT * FROM SALES ORDER BY ORDER_ID;
@@ -306,7 +304,7 @@ You should have:
 
 ---
 
-## Step 12 — Add the Third File
+## ➕ Step 12 — Add the Third File
 
 Now upload:
 
@@ -345,7 +343,7 @@ Expected:
 
 ---
 
-## Step 13 — See Which Files Were Loaded
+## 🕘 Step 13 — See Which Files Were Loaded
 
 Run:
 
@@ -370,7 +368,7 @@ This is very useful for understanding **which files Snowflake actually loaded**.
 
 ---
 
-## Step 14 — The Key Concept
+## 🧠 Step 14 — The Key Concept
 
 The important thing here is **not** just `COPY INTO`.
 

@@ -6,8 +6,6 @@
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This explanation |
 
-This pipeline is **Snowflake only** — no AWS component. It runs in the opposite direction to [50) Snowflake — Basic CSV Batch Load Pipeline](../50%29%20Snowflake%20Basic%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md) and [51) Snowflake — Multi-File CSV Batch Load Pipeline](../51%29%20Snowflake%20Multi-File%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md).
-
 ## 🎯 Goal
 
 Snowflake's equivalent of Redshift `UNLOAD` is `COPY INTO <location>` — the same statement used for loading, only the direction changes:
@@ -29,7 +27,7 @@ Download to Computer
 
 ---
 
-## Step 1 — Create the Database
+## 🗄️ Step 1 — Create the Database
 
 ```sql
 CREATE DATABASE SNOWFLAKE_UNLOAD_PRACTICE;
@@ -39,7 +37,7 @@ USE DATABASE SNOWFLAKE_UNLOAD_PRACTICE;
 
 ---
 
-## Step 2 — Create the Schema
+## 📂 Step 2 — Create the Schema
 
 ```sql
 CREATE SCHEMA EXPORT_SCHEMA;
@@ -49,7 +47,7 @@ USE SCHEMA EXPORT_SCHEMA;
 
 ---
 
-## Step 3 — Create the Warehouse
+## ⚙️ Step 3 — Create the Warehouse
 
 ```sql
 CREATE WAREHOUSE EXPORT_WH
@@ -62,7 +60,7 @@ USE WAREHOUSE EXPORT_WH;
 
 ---
 
-## Step 4 — Create the Source Table
+## 📋 Step 4 — Create the Source Table
 
 This table is the **source** for the export.
 
@@ -79,7 +77,7 @@ CREATE TABLE CUSTOMER_EXPORT (
 
 ---
 
-## Step 5 — Insert Data
+## ✍️ Step 5 — Insert Data
 
 ```sql
 INSERT INTO CUSTOMER_EXPORT VALUES
@@ -105,7 +103,7 @@ Expected:
 
 ---
 
-## Step 6 — Create the Export File Format
+## 📄 Step 6 — Create the Export File Format
 
 Here we are exporting **Snowflake → CSV**.
 
@@ -117,7 +115,7 @@ COMPRESSION = 'NONE'
 FIELD_OPTIONALLY_ENCLOSED_BY = '"';
 ```
 
-### Why `COMPRESSION = 'NONE'`?
+### 💡 Why `COMPRESSION = 'NONE'`?
 
 Because we want to download a normal `.csv` file that can be opened directly in Excel.
 
@@ -125,7 +123,7 @@ Without this, Snowflake can use compression depending on the configuration.
 
 ---
 
-## Step 7 — Create the Internal Stage
+## 📥 Step 7 — Create the Internal Stage
 
 ```sql
 CREATE STAGE CUSTOMER_EXPORT_STAGE
@@ -146,7 +144,7 @@ CUSTOMER_EXPORT_STAGE
 
 ---
 
-## Step 8 — Main Export Command
+## 🚚 Step 8 — Main Export Command
 
 This is the most important part of Pipeline 52.
 
@@ -169,7 +167,7 @@ This is Snowflake's **unload/export** operation.
 
 ---
 
-## Step 9 — Check the Exported File
+## 🔍 Step 9 — Check the Exported File
 
 ```sql
 LIST @CUSTOMER_EXPORT_STAGE;
@@ -185,7 +183,7 @@ The exact filename can vary.
 
 ---
 
-## Step 10 — Download the File
+## ⬇️ Step 10 — Download the File
 
 In Snowsight, navigate to:
 
@@ -199,7 +197,7 @@ Download it and open it in Excel.
 
 ---
 
-## Step 11 — Export With Column Headers
+## 🏷️ Step 11 — Export With Column Headers
 
 By default, Snowflake exports the **data rows**, but not the column names.
 
@@ -269,7 +267,7 @@ Then download the new file.
 
 ---
 
-## Step 12 — Export Only Selected Columns
+## 🎯 Step 12 — Export Only Selected Columns
 
 You don't have to export the entire table.
 
@@ -299,7 +297,7 @@ TOTAL_PURCHASE
 
 ---
 
-## Step 13 — Export Filtered Data
+## 🔎 Step 13 — Export Filtered Data
 
 You can also export only specific records.
 
@@ -335,7 +333,7 @@ COPY INTO @STAGE
 
 ---
 
-## Step 14 — Multiple Export Files
+## 📦 Step 14 — Multiple Export Files
 
 For small data you may get a single file:
 

@@ -6,8 +6,6 @@
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This explanation |
 
-This pipeline is **Snowflake only** — no AWS component. It follows on from [50) Snowflake — Basic CSV Batch Load Pipeline](../50%29%20Snowflake%20Basic%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), [51) Snowflake — Multi-File CSV Batch Load Pipeline](../51%29%20Snowflake%20Multi-File%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), [52) Snowflake — Table-to-Stage Export Pipeline](../52%29%20Snowflake%20Table-to-Stage%20Export%20Pipeline/00%29%20README.md) and [53) Snowflake — Incremental File Load Pipeline](../53%29%20Snowflake%20Incremental%20File%20Load%20Pipeline/00%29%20README.md).
-
 ## 🎯 Goal
 
 This one is important because now we practise **transforming data inside Snowflake using SQL**.
@@ -38,7 +36,7 @@ And we'll keep it **pure Snowflake** — no AWS.
 
 ---
 
-## Step 1 — Create the Database
+## 🗄️ Step 1 — Create the Database
 
 ```sql
 CREATE DATABASE SNOWFLAKE_TRANSFORMATION_PRACTICE;
@@ -48,7 +46,7 @@ USE DATABASE SNOWFLAKE_TRANSFORMATION_PRACTICE;
 
 ---
 
-## Step 2 — Create the Schema
+## 📂 Step 2 — Create the Schema
 
 ```sql
 CREATE SCHEMA TRANSFORMATION_SCHEMA;
@@ -58,7 +56,7 @@ USE SCHEMA TRANSFORMATION_SCHEMA;
 
 ---
 
-## Step 3 — Create the Warehouse
+## ⚙️ Step 3 — Create the Warehouse
 
 ```sql
 CREATE WAREHOUSE TRANSFORMATION_WH
@@ -71,7 +69,7 @@ USE WAREHOUSE TRANSFORMATION_WH;
 
 ---
 
-## Step 4 — Create the Raw Employee Table
+## 📋 Step 4 — Create the Raw Employee Table
 
 This is the **source / raw table**.
 
@@ -89,7 +87,7 @@ CREATE TABLE RAW_EMPLOYEE (
 
 ---
 
-## Step 5 — Insert Sample Data
+## ✍️ Step 5 — Insert Sample Data
 
 ```sql
 INSERT INTO RAW_EMPLOYEE VALUES
@@ -111,7 +109,7 @@ SELECT * FROM RAW_EMPLOYEE;
 
 ---
 
-## Step 6 — Basic Transformation
+## 🔄 Step 6 — Basic Transformation
 
 First let's create a transformed table.
 
@@ -143,7 +141,7 @@ FROM RAW_EMPLOYEE;
 
 ---
 
-## Step 7 — Check the Transformed Table
+## 🔍 Step 7 — Check the Transformed Table
 
 ```sql
 SELECT * FROM TRANSFORMED_EMPLOYEE;
@@ -171,7 +169,7 @@ For example, the first row:
 
 ---
 
-## Step 8 — Practice `WHERE`
+## 🎯 Step 8 — Practice `WHERE`
 
 Now let's create another transformed table containing only IT employees.
 
@@ -195,7 +193,7 @@ SELECT * FROM IT_EMPLOYEES;
 
 ---
 
-## Step 9 — Practice Aggregation
+## 📊 Step 9 — Practice Aggregation
 
 Now let's calculate department-level statistics.
 
@@ -225,7 +223,7 @@ Sales      | 2              | ...          | ...            | ...        | ...
 
 ---
 
-## Step 10 — Create the Department Summary Table
+## 💾 Step 10 — Create the Department Summary Table
 
 Now let's actually persist that transformation.
 
@@ -250,7 +248,7 @@ SELECT * FROM DEPARTMENT_SUMMARY;
 
 ---
 
-## Step 11 — Practice Date Transformation
+## 📅 Step 11 — Practice Date Transformation
 
 Let's calculate how many years an employee has been working.
 
@@ -265,7 +263,7 @@ FROM RAW_EMPLOYEE;
 
 ---
 
-## Step 12 — Practice String Transformation
+## 🔤 Step 12 — Practice String Transformation
 
 ```sql
 SELECT
@@ -278,7 +276,7 @@ FROM RAW_EMPLOYEE;
 
 ---
 
-## Step 13 — Practice Conditional Transformation
+## 🔀 Step 13 — Practice Conditional Transformation
 
 ```sql
 SELECT

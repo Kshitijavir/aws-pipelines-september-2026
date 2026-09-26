@@ -6,8 +6,6 @@
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This explanation |
 
-This pipeline is **Snowflake only** — no AWS component. It follows on from [50) Snowflake — Basic CSV Batch Load Pipeline](../50%29%20Snowflake%20Basic%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), [51) Snowflake — Multi-File CSV Batch Load Pipeline](../51%29%20Snowflake%20Multi-File%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), [52) Snowflake — Table-to-Stage Export Pipeline](../52%29%20Snowflake%20Table-to-Stage%20Export%20Pipeline/00%29%20README.md), [53) Snowflake — Incremental File Load Pipeline](../53%29%20Snowflake%20Incremental%20File%20Load%20Pipeline/00%29%20README.md) and [54) Snowflake — SQL Transformation Pipeline](../54%29%20Snowflake%20SQL%20Transformation%20Pipeline/00%29%20README.md).
-
 ## 🎯 Goal
 
 Now we move to one of the **most important Snowflake ETL concepts: `MERGE`**.
@@ -52,7 +50,7 @@ EMPLOYEE_TARGET
 
 We'll deliberately create:
 
-### Existing employees
+### 👥 Existing employees
 
 ```text
 6001 Rahul
@@ -60,7 +58,7 @@ We'll deliberately create:
 6003 Amit
 ```
 
-### New incoming data
+### 🆕 New incoming data
 
 ```text
 6002 Priya → Salary changed       → UPDATE
@@ -81,7 +79,7 @@ So after the `MERGE`:
 
 ---
 
-## Step 1 — Create the Database
+## 🗄️ Step 1 — Create the Database
 
 ```sql
 CREATE DATABASE SNOWFLAKE_MERGE_PRACTICE;
@@ -91,7 +89,7 @@ USE DATABASE SNOWFLAKE_MERGE_PRACTICE;
 
 ---
 
-## Step 2 — Create the Schema
+## 📂 Step 2 — Create the Schema
 
 ```sql
 CREATE SCHEMA MERGE_SCHEMA;
@@ -101,7 +99,7 @@ USE SCHEMA MERGE_SCHEMA;
 
 ---
 
-## Step 3 — Create the Warehouse
+## ⚙️ Step 3 — Create the Warehouse
 
 ```sql
 CREATE WAREHOUSE MERGE_WH
@@ -114,7 +112,7 @@ USE WAREHOUSE MERGE_WH;
 
 ---
 
-## Step 4 — Create the Target Table
+## 🎯 Step 4 — Create the Target Table
 
 This is the table that already contains our existing data.
 
@@ -132,7 +130,7 @@ CREATE TABLE EMPLOYEE_TARGET (
 
 ---
 
-## Step 5 — Insert Existing Data
+## ✍️ Step 5 — Insert Existing Data
 
 ```sql
 INSERT INTO EMPLOYEE_TARGET VALUES
@@ -157,7 +155,7 @@ We currently have:
 
 ---
 
-## Step 6 — Create the Source Table
+## 📋 Step 6 — Create the Source Table
 
 This represents the **new incoming data**.
 
@@ -174,7 +172,7 @@ CREATE TABLE EMPLOYEE_SOURCE (
 
 ---
 
-## Step 7 — Insert New Incoming Data
+## ✍️ Step 7 — Insert New Incoming Data
 
 ```sql
 INSERT INTO EMPLOYEE_SOURCE VALUES
@@ -186,7 +184,7 @@ INSERT INTO EMPLOYEE_SOURCE VALUES
 
 Notice carefully:
 
-### `6002`
+### 🔸 `6002`
 
 Already exists but salary changed:
 
@@ -195,7 +193,7 @@ Old → 62000
 New → 70000
 ```
 
-### `6003`
+### 🔸 `6003`
 
 Already exists but department and salary changed:
 
@@ -204,7 +202,7 @@ Old → Finance / 95000
 New → IT / 105000
 ```
 
-### `6004` and `6005`
+### 🔸 `6004` and `6005`
 
 Don't exist in target.
 
@@ -219,7 +217,7 @@ Therefore:
 
 ---
 
-## Step 8 — Check the Source
+## 🔍 Step 8 — Check the Source
 
 ```sql
 SELECT * FROM EMPLOYEE_SOURCE ORDER BY EMPLOYEE_ID;
@@ -227,7 +225,7 @@ SELECT * FROM EMPLOYEE_SOURCE ORDER BY EMPLOYEE_ID;
 
 ---
 
-## Step 9 — Perform MERGE
+## 🔀 Step 9 — Perform MERGE
 
 Now the important part.
 
@@ -268,7 +266,7 @@ WHEN NOT MATCHED THEN
 
 ---
 
-## Step 10 — Check the Target
+## ✅ Step 10 — Check the Target
 
 ```sql
 SELECT * FROM EMPLOYEE_TARGET ORDER BY EMPLOYEE_ID;
@@ -313,9 +311,9 @@ That means:
 
 ---
 
-## Step 11 — The Two Most Important Clauses
+## 🧩 Step 11 — The Two Most Important Clauses
 
-### `WHEN MATCHED`
+### ✅ `WHEN MATCHED`
 
 ```sql
 WHEN MATCHED THEN
@@ -328,7 +326,7 @@ Means:
 
 ---
 
-### `WHEN NOT MATCHED`
+### ➕ `WHEN NOT MATCHED`
 
 ```sql
 WHEN NOT MATCHED THEN
@@ -342,7 +340,7 @@ Means:
 
 ---
 
-## Step 12 — Why MERGE Is Important
+## 💡 Step 12 — Why MERGE Is Important
 
 Imagine your company receives this every day:
 
@@ -393,7 +391,7 @@ That's why `MERGE` is extremely common in data engineering.
 
 ---
 
-## Step 13 — Test the MERGE Again
+## 🔁 Step 13 — Test the MERGE Again
 
 Let's prove that the process works.
 

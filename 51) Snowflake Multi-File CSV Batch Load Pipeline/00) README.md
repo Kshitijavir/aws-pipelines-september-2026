@@ -7,8 +7,6 @@
 | [00) README.md](00%29%20README.md) | This explanation |
 | [input file/](input%20file/) | Five CSVs — `employees_01.csv` … `employees_05.csv` |
 
-This pipeline is **Snowflake only** — no AWS component. It is the multi-file follow-up to [50) Snowflake — Basic CSV Batch Load Pipeline](../50%29%20Snowflake%20Basic%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md).
-
 ## 🎯 Goal
 
 Pipeline 50 loaded **one** CSV. Here the same stage holds **five** CSVs and a **single** `COPY INTO` loads all of them — 15 rows in one statement.
@@ -61,7 +59,7 @@ flowchart TB
 
 ---
 
-## Step 1 — Create the Database
+## 🗄️ Step 1 — Create the Database
 
 ```sql
 CREATE DATABASE SNOWFLAKE_MULTI_FILE_PRACTICE;
@@ -71,7 +69,7 @@ USE DATABASE SNOWFLAKE_MULTI_FILE_PRACTICE;
 
 ---
 
-## Step 2 — Create the Schema
+## 📂 Step 2 — Create the Schema
 
 ```sql
 CREATE SCHEMA MULTI_FILE_SCHEMA;
@@ -88,7 +86,7 @@ SNOWFLAKE_MULTI_FILE_PRACTICE
 
 ---
 
-## Step 3 — Create the Warehouse
+## ⚙️ Step 3 — Create the Warehouse
 
 ```sql
 CREATE WAREHOUSE MULTI_FILE_WH
@@ -103,7 +101,7 @@ USE WAREHOUSE MULTI_FILE_WH;
 
 ---
 
-## Step 4 — Create the Table
+## 📋 Step 4 — Create the Table
 
 Note the extra `DEPARTMENT` column compared with Pipeline 50:
 
@@ -137,7 +135,7 @@ DESC TABLE EMPLOYEE_MULTI;
 
 ---
 
-## Step 5 — Create the File Format
+## 📄 Step 5 — Create the File Format
 
 One file format serves all five files, because they all share the same layout and header:
 
@@ -160,7 +158,7 @@ DESC FILE FORMAT EMPLOYEE_MULTI_CSV_FORMAT;
 
 ---
 
-## Step 6 — Create the Internal Stage
+## 📥 Step 6 — Create the Internal Stage
 
 ```sql
 CREATE STAGE EMPLOYEE_MULTI_STAGE
@@ -187,7 +185,7 @@ MULTI_FILE_WH                   ← account-level compute
 
 ---
 
-## Step 7 — Upload All 5 CSV Files
+## ⬆️ Step 7 — Upload All 5 CSV Files
 
 Source folder: [input file/](input%20file/)
 
@@ -203,7 +201,7 @@ Upload **all five** files: `employees_01.csv` … `employees_05.csv`.
 
 ---
 
-## Step 8 — Verify All 5 Files
+## 🔍 Step 8 — Verify All 5 Files
 
 ```sql
 LIST @EMPLOYEE_MULTI_STAGE;
@@ -235,7 +233,7 @@ Pipeline 50                       Pipeline 51
 
 ---
 
-## Step 9 — Load All 5 Files
+## 🚚 Step 9 — Load All 5 Files
 
 Now run:
 
@@ -251,7 +249,7 @@ Snowflake will find the CSV files in the stage and load them into the table.
 
 ---
 
-## Step 10 — Verify the Data
+## ✅ Step 10 — Verify the Data
 
 ```sql
 SELECT * FROM EMPLOYEE_MULTI ORDER BY EMPLOYEE_ID;
@@ -295,7 +293,7 @@ Expected:
 
 ---
 
-## Step 11 — Which File Did Each Row Come From?
+## 🏷️ Step 11 — Which File Did Each Row Come From?
 
 Every loaded row keeps the metadata of the file it came from. This is the most useful trick when debugging a multi-file load:
 
@@ -341,7 +339,7 @@ FROM @EMPLOYEE_MULTI_STAGE;
 
 ---
 
-## Step 12 — Check the COPY History
+## 🕘 Step 12 — Check the COPY History
 
 ```sql
 SELECT

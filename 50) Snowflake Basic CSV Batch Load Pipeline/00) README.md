@@ -39,7 +39,7 @@ Build order: **Database → Schema → Warehouse → Table → File Format → S
 
 ---
 
-## Step 1 — Create the Database
+## 🗄️ Step 1 — Create the Database
 
 ```sql
 CREATE DATABASE SNOWFLAKE_PRACTICE;
@@ -49,7 +49,7 @@ USE DATABASE SNOWFLAKE_PRACTICE;
 
 ---
 
-## Step 2 — Create the Schema
+## 📂 Step 2 — Create the Schema
 
 ```sql
 CREATE SCHEMA EMPLOYEE_SCHEMA;
@@ -66,7 +66,7 @@ SNOWFLAKE_PRACTICE
 
 ---
 
-## Step 3 — Create the Warehouse
+## ⚙️ Step 3 — Create the Warehouse
 
 The warehouse is the compute layer — without it nothing can execute. Skip this step if you already have one.
 
@@ -89,7 +89,7 @@ USE WAREHOUSE PRACTICE_WH;
 
 ---
 
-## Step 4 — Create the Table
+## 📋 Step 4 — Create the Table
 
 The table has to match the CSV columns:
 
@@ -132,7 +132,7 @@ SALARY
 
 ---
 
-## Step 5 — Create the File Format
+## 📄 Step 5 — Create the File Format
 
 The file format tells Snowflake how to parse the CSV, so the rules do not have to be repeated in every `COPY INTO`.
 
@@ -161,7 +161,7 @@ DESC FILE FORMAT EMPLOYEE_CSV_FORMAT;
 
 ---
 
-## Step 6 — Create the Internal Stage
+## 📥 Step 6 — Create the Internal Stage
 
 A stage is the landing area for files **inside** Snowflake. An internal stage keeps the data in Snowflake-managed storage, so nothing leaves the account.
 
@@ -192,7 +192,7 @@ PRACTICE_WH               ← account-level compute, outside the schema
 
 ---
 
-## Step 7 — Upload the CSV to the Stage
+## ⬆️ Step 7 — Upload the CSV to the Stage
 
 Source file: [input file/snowflake_pipeline_1_employees.csv](input%20file/snowflake_pipeline_1_employees.csv)
 
@@ -212,7 +212,7 @@ You should see the file listed with its compressed size and hash. The `_staged` 
 
 ---
 
-## Step 8 — Load the CSV into the Table
+## 🚚 Step 8 — Load the CSV into the Table
 
 This is the command the whole pipeline exists for:
 
@@ -257,7 +257,7 @@ PURGE = TRUE;
 
 ---
 
-## Step 9 — Verify the Load
+## ✅ Step 9 — Verify the Load
 
 ```sql
 SELECT * FROM EMPLOYEE;
@@ -294,7 +294,7 @@ Expected:
 
 ---
 
-## Step 10 — The Stage Still Holds the File
+## 📦 Step 10 — The Stage Still Holds the File
 
 ```sql
 LIST @EMPLOYEE_STAGE;
@@ -308,7 +308,7 @@ That is what makes a stage a safe replay buffer — if the table is ever dropped
 
 ---
 
-## Step 11 — Check the Load History
+## 🕘 Step 11 — Check the Load History
 
 Every `COPY INTO` is recorded, so you can prove what was loaded and when:
 

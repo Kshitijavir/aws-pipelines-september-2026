@@ -6,7 +6,7 @@
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This explanation |
 
-This pipeline is **Snowflake only** — no AWS component. It follows on from [50) Snowflake — Basic CSV Batch Load Pipeline](../50%29%20Snowflake%20Basic%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), [51) Snowflake — Multi-File CSV Batch Load Pipeline](../51%29%20Snowflake%20Multi-File%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), [52) Snowflake — Table-to-Stage Export Pipeline](../52%29%20Snowflake%20Table-to-Stage%20Export%20Pipeline/00%29%20README.md) and [53) Incremental File Load Pipeline](../53%29%20Incremental%20File%20Load%20Pipeline/00%29%20README.md).
+This pipeline is **Snowflake only** — no AWS component. It follows on from [50) Snowflake — Basic CSV Batch Load Pipeline](../50%29%20Snowflake%20Basic%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), [51) Snowflake — Multi-File CSV Batch Load Pipeline](../51%29%20Snowflake%20Multi-File%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), [52) Snowflake — Table-to-Stage Export Pipeline](../52%29%20Snowflake%20Table-to-Stage%20Export%20Pipeline/00%29%20README.md) and [53) Snowflake — Incremental File Load Pipeline](../53%29%20Snowflake%20Incremental%20File%20Load%20Pipeline/00%29%20README.md).
 
 ## 🎯 Goal
 

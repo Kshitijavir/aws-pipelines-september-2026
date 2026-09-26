@@ -1,0 +1,9 @@
+employee_id,employee_name,email,country,joining_date,salary
+1001,Rahul Sharma,rahul.sharma@example.com,India,2026-09-01,75000
+1002,Priya Patil,priya.patil@example.com,India,2026-09-03,62000
+1003,Amit Verma,amit.verma@example.com,India,2026-09-05,58000
+1004,Sneha Joshi,sneha.joshi@example.com,India,2026-09-07,91000
+1005,Vikas Kumar,vikas.kumar@example.com,India,2026-09-10,67000
+1006,Neha Singh,neha.singh@example.com,India,2026-09-12,83000
+1007,Arjun Mehta,arjun.mehta@example.com,India,2026-09-15,54000
+1008,Pooja Desai,pooja.desai@example.com,India,2026-09-18,72000

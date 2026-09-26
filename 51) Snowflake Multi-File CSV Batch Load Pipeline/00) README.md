@@ -237,68 +237,17 @@ Pipeline 50                       Pipeline 51
 
 ## Step 9 — Load All 5 Files
 
-```sql
-COPY INTO EMPLOYEE_MULTI
-FROM @EMPLOYEE_MULTI_STAGE
-FILE_FORMAT = (FORMAT_NAME = 'EMPLOYEE_MULTI_CSV_FORMAT');
-```
-
-One statement, five files. Snowflake walks the stage, parses every file with the file format and inserts the rows:
-
-```text
-employees_01.csv ┐
-employees_02.csv │
-employees_03.csv ├─→  COPY INTO  →  EMPLOYEE_MULTI
-employees_04.csv │
-employees_05.csv ┘
-```
-
-The output has **one row per file**, so you can confirm all five were read:
-
-| Column | Meaning |
-| ------ | ------- |
-| `file` | Which staged file was read — expect five rows here |
-| `status` | `LOADED` on success |
-| `rows_parsed` | Rows read — expect `3` per file |
-| `rows_loaded` | Rows inserted — expect `3` per file |
-| `errors_seen` | Non-zero means some rows were rejected |
-
-> ⚠️ Re-running the exact same `COPY INTO` loads **0 rows**. Snowflake remembers every file it has already loaded (for about 64 days), so a second run skips them instead of duplicating your data. To force a reload, add `FORCE = TRUE` or upload the files under new names.
-
-### Loading only some of the files
-
-Add `PATTERN` — a regular expression matched against the file names — to load a subset:
+Now run:
 
 ```sql
--- only employees_01, 02 and 03
 COPY INTO EMPLOYEE_MULTI
 FROM @EMPLOYEE_MULTI_STAGE
-FILE_FORMAT = (FORMAT_NAME = 'EMPLOYEE_MULTI_CSV_FORMAT')
-PATTERN = '.*employees_0[1-3]\\.csv';
+FILE_FORMAT = (
+    FORMAT_NAME = 'EMPLOYEE_MULTI_CSV_FORMAT'
+);
 ```
 
-### Other useful options
-
-```sql
--- report parsing errors without inserting anything
-COPY INTO EMPLOYEE_MULTI
-FROM @EMPLOYEE_MULTI_STAGE
-VALIDATION_MODE = RETURN_ERRORS;
-
--- skip bad rows instead of aborting the whole load
-COPY INTO EMPLOYEE_MULTI
-FROM @EMPLOYEE_MULTI_STAGE
-FILE_FORMAT = (FORMAT_NAME = 'EMPLOYEE_MULTI_CSV_FORMAT')
-ON_ERROR = 'CONTINUE';
-
--- load, then delete the staged files in the same step
-COPY INTO EMPLOYEE_MULTI
-FROM @EMPLOYEE_MULTI_STAGE
-FILE_FORMAT = (FORMAT_NAME = 'EMPLOYEE_MULTI_CSV_FORMAT')
-PURGE = TRUE;
-```
-
-> ⚠️ `ON_ERROR = 'CONTINUE'` lets the load finish with bad rows silently dropped. Always follow it with a `COUNT(*)` check, otherwise missing data goes unnoticed.
+Snowflake will find the CSV files in the stage and load them into the table.
 
 ---
 
@@ -458,7 +407,6 @@ DROP DATABASE IF EXISTS SNOWFLAKE_MULTI_FILE_PRACTICE;
 | **One `COPY INTO`, many files** | No loop needed; Snowflake fans out over the stage for you |
 | **One file format for all** | Safe only because the files share the same layout and header |
 | **`SKIP_HEADER = 1`** | Applies per file, which is why the count stays at 15 |
-| **`PATTERN`** | Loads only a subset of files, matched by regular expression |
 | **Load metadata** | Snowflake remembers loaded files, so re-runs skip them instead of duplicating data |
 | **`METADATA$FILENAME`** | Tells you exactly which file every row came from |
 | **`COPY_HISTORY`** | Audits what was loaded, when, and whether any rows failed |

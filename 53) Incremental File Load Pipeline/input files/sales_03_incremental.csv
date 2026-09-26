@@ -1,0 +1,4 @@
+order_id,order_date,city,product,quantity,amount
+4007,2026-09-24,Mumbai,Tablet,2,50000
+4008,2026-09-24,Pune,Headphones,4,12000
+4009,2026-09-25,Delhi,Laptop,1,72000

@@ -1,0 +1,4 @@
+order_id,order_date,city,product,quantity,amount
+4004,2026-09-22,Bengaluru,Laptop,1,70000
+4005,2026-09-22,Hyderabad,Mouse,5,5000
+4006,2026-09-23,Chennai,Monitor,1,16000

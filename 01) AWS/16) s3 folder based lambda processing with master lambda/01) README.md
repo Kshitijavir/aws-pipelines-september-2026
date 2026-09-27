@@ -1,4 +1,4 @@
-# 20) S3 Folder Based Lambda Processing with Master Lambda, Sub Lambdas and SES Notification
+# 16) S3 Folder Based Lambda Processing with Master Lambda, Sub Lambdas and SES Notification
 
 ## 📁 Files in This Folder
 

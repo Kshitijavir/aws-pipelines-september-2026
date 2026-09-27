@@ -161,6 +161,42 @@ Python List
 
 ---
 
+### 1. First one = List + Tuple ✅
+
+```text
+data = [
+    (1, "Kshitij", "Data Engineer"),
+    (2, "Rahul", "AWS Engineer"),
+    (3, "Amit", "Data Analyst")
+]
+```
+
+Here:
+
+- `[...]` → **List**
+- `(...)` → **Tuple**
+
+So:
+
+```text
+List
+ ├── Tuple
+ ├── Tuple
+ └── Tuple
+```
+
+Each row is a tuple.
+
+For your PySpark learning, this distinction is important:
+
+```text
+Python List + Tuple
+        ↓
+spark.createDataFrame(data, columns)
+```
+
+---
+
 ### 4️⃣ Define Column Names
 
 ```python

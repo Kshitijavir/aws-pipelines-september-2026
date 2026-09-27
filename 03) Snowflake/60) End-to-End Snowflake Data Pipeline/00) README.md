@@ -6,6 +6,7 @@
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This explanation |
 | [input files/](input%20files/) | `customer.csv` — the 5 rows we load into the raw table |
+| [snowflake.sql](snowflake.sql) | Every SQL statement for this pipeline in one file, ready to paste into a Snowflake worksheet |
 
 Now we join the main Snowflake ideas you have learned into **one simple pipeline**.
 

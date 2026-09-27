@@ -5,6 +5,7 @@
 | File | What It Is |
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This explanation |
+| [snowflake.sql](snowflake.sql) | Every SQL statement for this pipeline in one file, ready to paste into a Snowflake worksheet |
 | [input files/](input%20files/) | `first.csv` (3 rows) and `second.csv` (2 rows) |
 
 ---

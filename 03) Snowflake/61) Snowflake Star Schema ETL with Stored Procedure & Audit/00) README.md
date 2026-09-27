@@ -5,6 +5,7 @@
 | File | What It Is |
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This file explains the pipeline |
+| [snowflake.sql](snowflake.sql) | Every SQL statement for this pipeline in one file, ready to paste into a Snowflake worksheet |
 | [input files/](input%20files/) | `customer_sales.csv` — the raw data that goes into the holding table |
 
 ## 🎯 Goal

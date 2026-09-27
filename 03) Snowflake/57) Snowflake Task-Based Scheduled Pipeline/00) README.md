@@ -5,6 +5,7 @@
 | File | What It Is |
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This guide |
+| [snowflake.sql](snowflake.sql) | Every SQL statement for this pipeline in one file, ready to paste into a Snowflake worksheet |
 
 Now we move on to **Snowflake Tasks**. You already know the basic idea: a task is used for scheduling. A task is a job that Snowflake runs for you on a schedule. Now we will build a pipeline where Snowflake runs SQL by itself on a schedule.
 

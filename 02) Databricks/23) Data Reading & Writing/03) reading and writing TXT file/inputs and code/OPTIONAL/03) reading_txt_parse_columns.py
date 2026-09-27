@@ -4,7 +4,7 @@ from pyspark.sql.functions import col, split, trim
 # Create Spark Session
 spark = SparkSession.builder.appName("TXT Parse Columns Read Practice").getOrCreate()
 
-raw = spark.read.text("/Volumes/workspace/default/txt_volume/input/employees_pipe.txt")
+raw = spark.read.text("/Volumes/workspace/default/txt_volume/input/parse_columns_employees.txt")
 
 parts = split(col("value"), "\\|")
 

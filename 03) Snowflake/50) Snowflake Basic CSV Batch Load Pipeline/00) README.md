@@ -7,11 +7,11 @@
 | [00) README.md](00%29%20README.md) | This explanation |
 | [input file/snowflake_pipeline_1_employees.csv](input%20file/snowflake_pipeline_1_employees.csv) | The 8-row source CSV loaded into Snowflake |
 
-This pipeline is **Snowflake only** — no AWS component, no Lambda, no IAM role.
+This pipeline uses **only Snowflake**. There is no AWS, no Lambda and no IAM role here.
 
 ## 🎯 Goal
 
-Take one CSV from your laptop and land it in a real Snowflake table, using the standard internal-stage path:
+You have one CSV file on your computer. This pipeline puts that file into a real Snowflake table. This is the normal way to do it:
 
 ```mermaid
 flowchart TB
@@ -26,16 +26,16 @@ flowchart TB
 
 ## 🧱 The Objects We Create
 
-| Object | Name | Why It Exists |
+| Object | Name | What it is for |
 | ------ | ---- | ------------- |
-| Database | `SNOWFLAKE_PRACTICE` | Top-level container for everything below |
-| Schema | `EMPLOYEE_SCHEMA` | Groups this project's tables, stages and formats |
-| Warehouse | `PRACTICE_WH` | The compute that actually runs the SQL and the load |
-| Table | `EMPLOYEE` | Where the structured rows finally live |
+| Database | `SNOWFLAKE_PRACTICE` | The big box that holds everything below |
+| Schema | `EMPLOYEE_SCHEMA` | A folder that keeps this project's objects together |
+| Warehouse | `PRACTICE_WH` | The machine that runs the SQL and does the loading |
+| Table | `EMPLOYEE` | Where the rows end up |
 | File Format | `EMPLOYEE_CSV_FORMAT` | Tells Snowflake how to read the CSV |
-| Stage | `EMPLOYEE_STAGE` | Landing area for the file *inside* Snowflake |
+| Stage | `EMPLOYEE_STAGE` | A landing spot for the file *inside* Snowflake |
 
-Build order: **Database → Schema → Warehouse → Table → File Format → Stage → Upload → COPY INTO → Verify**
+Do it in this order: **Database → Schema → Warehouse → Table → File Format → Stage → Upload → COPY INTO → Verify**
 
 ---
 
@@ -68,7 +68,7 @@ SNOWFLAKE_PRACTICE
 
 ## ⚙️ Step 3 — Create the Warehouse
 
-The warehouse is the compute layer — without it nothing can execute. Skip this step if you already have one.
+The warehouse is the machine that runs your SQL. Without it, nothing runs. If you already have one, you can skip this step.
 
 ```sql
 CREATE WAREHOUSE PRACTICE_WH
@@ -79,19 +79,19 @@ CREATE WAREHOUSE PRACTICE_WH
 USE WAREHOUSE PRACTICE_WH;
 ```
 
-| Property | Effect |
+| Setting | What it does |
 | -------- | ------ |
-| `WAREHOUSE_SIZE = XSMALL` | Cheapest size — plenty for this exercise |
-| `AUTO_SUSPEND = 60` | Sleeps after 60 seconds idle, so credits stop burning |
-| `AUTO_RESUME = TRUE` | Wakes up automatically on the next query |
+| `WAREHOUSE_SIZE = XSMALL` | The smallest and cheapest size. It is enough for practice |
+| `AUTO_SUSPEND = 60` | It goes to sleep after 60 seconds of no use, so you stop paying |
+| `AUTO_RESUME = TRUE` | It wakes up by itself the next time you run a query |
 
-> 📌 The warehouse is **not** inside the database. It is a separate account-level object that runs queries against your data.
+> 📌 The warehouse is **not** inside the database. It sits at the account level, and its job is to run queries on your data.
 
 ---
 
 ## 📋 Step 4 — Create the Table
 
-The table has to match the CSV columns:
+The table columns must match the CSV columns:
 
 | CSV column | Table column | Data Type |
 | ---------- | ------------ | --------- |
@@ -119,7 +119,7 @@ Check it:
 DESC TABLE EMPLOYEE;
 ```
 
-Expected output — six rows, one per column:
+You should see six rows, one for each column:
 
 ```text
 EMPLOYEE_ID
@@ -134,7 +134,7 @@ SALARY
 
 ## 📄 Step 5 — Create the File Format
 
-The file format tells Snowflake how to parse the CSV, so the rules do not have to be repeated in every `COPY INTO`.
+The file format tells Snowflake how to read the CSV. You write the rules once here, instead of repeating them in every `COPY INTO`.
 
 ```sql
 CREATE FILE FORMAT EMPLOYEE_CSV_FORMAT
@@ -145,12 +145,12 @@ CREATE FILE FORMAT EMPLOYEE_CSV_FORMAT
     DATE_FORMAT = 'YYYY-MM-DD';
 ```
 
-| Option | What It Means |
+| Option | What it means |
 | ------ | ------------- |
-| `TYPE = CSV` | The file is delimited text |
-| `FIELD_DELIMITER = ','` | Columns are separated by commas |
-| `SKIP_HEADER = 1` | Ignore the first line — `employee_id,employee_name,…` is a header, not data |
-| `FIELD_OPTIONALLY_ENCLOSED_BY = '"'` | A field may be wrapped in double quotes, which matters when a value contains a comma |
+| `TYPE = CSV` | The file is plain text with separators |
+| `FIELD_DELIMITER = ','` | Commas separate the columns |
+| `SKIP_HEADER = 1` | Skip the first line. `employee_id,employee_name,…` is only a title line, not real data |
+| `FIELD_OPTIONALLY_ENCLOSED_BY = '"'` | A value may be wrapped in double quotes. This matters when the value itself contains a comma |
 | `DATE_FORMAT = 'YYYY-MM-DD'` | Read `2026-09-01` as a date |
 
 Check it:
@@ -163,7 +163,7 @@ DESC FILE FORMAT EMPLOYEE_CSV_FORMAT;
 
 ## 📥 Step 6 — Create the Internal Stage
 
-A stage is the landing area for files **inside** Snowflake. An internal stage keeps the data in Snowflake-managed storage, so nothing leaves the account.
+A stage is a landing spot for files **inside** Snowflake. This stage is an *internal* stage, so the file stays in Snowflake's own storage and never leaves your account.
 
 ```sql
 CREATE STAGE EMPLOYEE_STAGE
@@ -188,7 +188,7 @@ EMPLOYEE_SCHEMA
 PRACTICE_WH               ← account-level compute, outside the schema
 ```
 
-> 📌 Setting `FILE_FORMAT` on the stage is only a default. `LIST @EMPLOYEE_STAGE` and `COPY INTO` will pick it up automatically, so you do not have to repeat it every time.
+> 📌 The `FILE_FORMAT` on the stage is only a default. `LIST @EMPLOYEE_STAGE` and `COPY INTO` use it by themselves, so you do not have to type it again every time.
 
 ---
 
@@ -202,19 +202,19 @@ In Snowsight:
 Data → Databases → SNOWFLAKE_PRACTICE → EMPLOYEE_SCHEMA → Stages → EMPLOYEE_STAGE → Upload
 ```
 
-Upload `snowflake_pipeline_1_employees.csv`, then confirm it arrived:
+Upload `snowflake_pipeline_1_employees.csv`. Then check that it arrived:
 
 ```sql
 LIST @EMPLOYEE_STAGE;
 ```
 
-You should see the file listed with its compressed size and hash. The `_staged` path shown alongside it is where the file physically sits on the Snowflake side.
+You should see the file in the list, with its size and a hash value. The `_staged` path next to it is the real place where the file is kept inside Snowflake.
 
 ---
 
 ## 🚚 Step 8 — Load the CSV into the Table
 
-This is the command the whole pipeline exists for:
+This is the main command of the whole pipeline:
 
 ```sql
 COPY INTO EMPLOYEE
@@ -222,33 +222,33 @@ FROM @EMPLOYEE_STAGE
 FILE_FORMAT = (FORMAT_NAME = 'EMPLOYEE_CSV_FORMAT');
 ```
 
-Snowflake reads every file in the stage root and inserts the rows:
+Snowflake reads every file in the stage and adds the rows:
 
 ```text
 @EMPLOYEE_STAGE (CSV)  →  COPY INTO  →  EMPLOYEE table
 ```
 
-The command output tells you exactly what happened:
+The output tells you exactly what happened:
 
-| Column | Meaning |
+| Column | What it tells you |
 | ------ | ------- |
-| `file` | Which staged file was read |
-| `status` | `LOADED` on success |
-| `rows_parsed` | Rows read from the file |
-| `rows_loaded` | Rows actually inserted |
-| `errors_seen` | Non-zero means some rows were rejected |
+| `file` | Which file from the stage was read |
+| `status` | `LOADED` means it worked |
+| `rows_parsed` | How many rows Snowflake read from the file |
+| `rows_loaded` | How many rows were really saved into the table |
+| `errors_seen` | If this is not `0`, some rows were rejected |
 
-> ⚠️ `COPY INTO` is **not** a plain re-runnable insert. Snowflake remembers the files it already loaded for about 64 days, so running the exact same command again loads **0 rows**. To force a reload, add `FORCE = TRUE`, or load a file with a different name.
+> ⚠️ `COPY INTO` is **not** a normal insert that you can run again and again. Snowflake remembers the files it has already loaded, for about 64 days. So if you run the same command again, it loads **0 rows**. To load the same file again, add `FORCE = TRUE`, or upload the file with a new name.
 
-Useful variants:
+Other useful versions:
 
 ```sql
--- parse the file and report errors without inserting anything
+-- read the file and show errors, but save no rows
 COPY INTO EMPLOYEE
 FROM @EMPLOYEE_STAGE
 VALIDATION_MODE = RETURN_ERRORS;
 
--- load, then delete the staged file in the same step
+-- load the rows, and delete the file from the stage at the same time
 COPY INTO EMPLOYEE
 FROM @EMPLOYEE_STAGE
 FILE_FORMAT = (FORMAT_NAME = 'EMPLOYEE_CSV_FORMAT')
@@ -263,7 +263,7 @@ PURGE = TRUE;
 SELECT * FROM EMPLOYEE;
 ```
 
-You should get all 8 rows:
+You should see all 8 rows:
 
 ```text
 EMPLOYEE_ID | EMPLOYEE_NAME | EMAIL                    | COUNTRY | JOINING_DATE | SALARY
@@ -290,7 +290,7 @@ Expected:
 8
 ```
 
-> 📌 If `COUNT(*)` returns `0`, the usual cause is that `COPY INTO` matched no files. Run `LIST @EMPLOYEE_STAGE` to check the file is really there.
+> 📌 If `COUNT(*)` returns `0`, it usually means `COPY INTO` found no files. Run `LIST @EMPLOYEE_STAGE` to check the file is really there.
 
 ---
 
@@ -300,17 +300,17 @@ Expected:
 LIST @EMPLOYEE_STAGE;
 ```
 
-The file is still there after a successful load. This is the behaviour worth remembering:
+The file is still in the stage after a successful load. Remember this:
 
 > **`COPY INTO` copies data from the stage into the table. It never deletes the staged file.**
 
-That is what makes a stage a safe replay buffer — if the table is ever dropped, the source file is still available to load again. Add `PURGE = TRUE` to `COPY INTO` when you *do* want the file removed after loading.
+That is why a stage is safe to keep: if you ever drop the table, the file is still there and you can load it again. Add `PURGE = TRUE` to `COPY INTO` when you *do* want the file deleted after loading.
 
 ---
 
 ## 🕘 Step 11 — Check the Load History
 
-Every `COPY INTO` is recorded, so you can prove what was loaded and when:
+Snowflake records every `COPY INTO`. So you can always check what was loaded, and when:
 
 ```sql
 SELECT *
@@ -324,22 +324,22 @@ FROM TABLE(
 
 The most useful columns are `FILE_NAME`, `STATUS`, `ROW_COUNT`, `ROW_PARSED` and `FIRST_ERROR_MESSAGE`.
 
-> 📌 `COPY_HISTORY` only returns rows inside the time window you pass, so widen `START_TIME` (to `-7` or `-30` days) when the load was not today.
+> 📌 `COPY_HISTORY` shows only the time range you give it. If you did the load on an earlier day, make the range bigger — for example `-7` or `-30` days.
 
 ---
 
 ## ⚠️ Common Errors
 
-| Error | Cause | Fix |
+| Error | Why it happens | How to fix it |
 | ----- | ----- | --- |
-| `Object does not exist` on `COPY INTO` | Session context is not set to the right database/schema | Re-run the `USE DATABASE` / `USE SCHEMA` lines |
-| `No files were found` | Nothing uploaded, or the file went into a sub-folder of the stage | `LIST @EMPLOYEE_STAGE` to see the real path |
-| `Number of columns in file does not match the table` | Table and CSV disagree | Compare against the table in Step 4 |
-| Date parsing error | The CSV does not match the file format | Check `DATE_FORMAT = 'YYYY-MM-DD'` in Step 5 |
-| `rows_loaded = 0` on a second run | Snowflake already loaded that file | Use `FORCE = TRUE`, or a new file name |
-| `Insufficient privileges` | The role cannot act on the database/schema | Use a role with `USAGE`/`CREATE` rights, for example `ACCOUNTADMIN` |
+| `Object does not exist` on `COPY INTO` | Snowflake is not pointed at the right database or schema | Run the `USE DATABASE` / `USE SCHEMA` lines again |
+| `No files were found` | No file was uploaded, or the file went into a sub-folder of the stage | Run `LIST @EMPLOYEE_STAGE` to see the real path |
+| `Number of columns in file does not match the table` | The table and the CSV do not have the same columns | Compare them with the table in Step 4 |
+| Date parsing error | The dates in the CSV do not match the file format | Check `DATE_FORMAT = 'YYYY-MM-DD'` in Step 5 |
+| `rows_loaded = 0` on a second run | Snowflake already loaded that file before | Use `FORCE = TRUE`, or a new file name |
+| `Insufficient privileges` | Your role is not allowed to work on this database or schema | Use a role with `USAGE`/`CREATE` rights, for example `ACCOUNTADMIN` |
 
-When something looks wrong, this is the fastest way to find out why — it parses the file and reports errors **without** inserting anything:
+When something looks wrong, this is the fastest way to find out why. It reads the file and shows the errors, but **saves no rows**:
 
 ```sql
 COPY INTO EMPLOYEE
@@ -351,25 +351,25 @@ VALIDATION_MODE = RETURN_ERRORS;
 
 ## ⭐ What to Take Away
 
-| Object | Role |
+| Object | What it does |
 | ------ | ---- |
-| **Database** | Container for your Snowflake objects |
-| **Schema** | Organises tables, stages and formats inside a database |
-| **Warehouse** | Compute that runs the SQL — the only part you pay for |
-| **Table** | Where the structured data finally lives |
-| **File Format** | Reusable parsing rules for the CSV |
-| **Stage** | Landing area for files inside Snowflake |
-| **COPY INTO** | Moves staged file data into the table |
+| **Database** | The big box that holds all your objects |
+| **Schema** | A folder inside the database, for tables, stages and formats |
+| **Warehouse** | The machine that runs the SQL. It is the only part you pay for |
+| **Table** | Where the rows finally live |
+| **File Format** | The reading rules for the CSV, written once |
+| **Stage** | A landing spot for files inside Snowflake |
+| **COPY INTO** | Moves the file's data from the stage into the table |
 
 The mental model to keep:
 
 ```text
-Warehouse  = compute
-Database   = container
-Schema     = folder
-Stage      = inbox
-Table      = destination
-COPY INTO  = the loader that connects the last two
+Warehouse  = the machine that runs SQL
+Database   = the big box
+Schema     = a folder
+Stage      = an inbox
+Table      = the final place for the data
+COPY INTO  = the loader that moves data from the stage into the table
 ```
 
-The follow-up is [51) Snowflake — Multi-File CSV Batch Load Pipeline](../51%29%20Snowflake%20Multi-File%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md), which loads five CSVs through this exact same setup.
+The next pipeline is [51) Snowflake — Multi-File CSV Batch Load Pipeline](../51%29%20Snowflake%20Multi-File%20CSV%20Batch%20Load%20Pipeline/00%29%20README.md). It loads five CSV files using this exact same setup.

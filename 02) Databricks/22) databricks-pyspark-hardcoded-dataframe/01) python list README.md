@@ -18,9 +18,7 @@ Display DataFrame
 from pyspark.sql import SparkSession
 
 # Create Spark Session
-spark = SparkSession.builder \
-    .appName("Hardcoded DataFrame Practice") \
-    .getOrCreate()
+spark = SparkSession.builder.appName("Hardcoded DataFrame Practice").getOrCreate()
 
 # Hardcoded data
 data = [
@@ -74,9 +72,7 @@ Spark operations
 ### 2️⃣ Create Spark Session
 
 ```python
-spark = SparkSession.builder \
-    .appName("Hardcoded DataFrame Practice") \
-    .getOrCreate()
+spark = SparkSession.builder.appName("Hardcoded DataFrame Practice").getOrCreate()
 ```
 
 This creates or gets a Spark session.

@@ -5,6 +5,7 @@
 | File | What It Is |
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This explanation |
+| [snowflake.sql](snowflake.sql) | Every SQL statement for this pipeline in one file, ready to paste into a Snowflake worksheet |
 
 ## 🎯 Goal
 

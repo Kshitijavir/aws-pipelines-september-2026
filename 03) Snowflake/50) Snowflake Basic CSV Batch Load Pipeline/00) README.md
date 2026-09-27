@@ -6,6 +6,7 @@
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This explanation |
 | [input file/snowflake_pipeline_1_employees.csv](input%20file/snowflake_pipeline_1_employees.csv) | The 8-row source CSV loaded into Snowflake |
+| [snowflake.sql](snowflake.sql) | Every SQL statement for this pipeline in one file, ready to paste into a Snowflake worksheet |
 
 This pipeline uses **only Snowflake**. There is no AWS, no Lambda and no IAM role here.
 

@@ -8,7 +8,7 @@
 
 ## 🎯 Goal
 
-This one is important because now we practise **transforming data inside Snowflake using SQL**.
+This one matters a lot. Here we practise **transforming data inside Snowflake using SQL**.
 
 ```text
 Raw Employee Data
@@ -20,19 +20,19 @@ SQL Transformations
 TRANSFORMED_EMPLOYEE
 ```
 
-We'll practice:
+We will practise:
 
-* `SELECT`
-* `WHERE`
-* `CASE`
-* Calculated columns
-* String functions
-* Date functions
-* Aggregations
-* `GROUP BY`
-* Creating a transformed table using `CREATE TABLE AS SELECT` (CTAS)
+* `SELECT` — picks the columns you want
+* `WHERE` — keeps only the rows you want
+* `CASE` — picks a value based on a rule
+* Calculated columns — new columns you work out in the query
+* String functions — they change text
+* Date functions — they work with dates
+* Aggregations — totals, counts and averages
+* `GROUP BY` — groups rows so you can total them
+* Making a transformed table using `CREATE TABLE AS SELECT` (CTAS)
 
-And we'll keep it **pure Snowflake** — no AWS.
+And we will keep it **pure Snowflake**. No AWS.
 
 ---
 
@@ -71,7 +71,7 @@ USE WAREHOUSE TRANSFORMATION_WH;
 
 ## 📋 Step 4 — Create the Raw Employee Table
 
-This is the **source / raw table**.
+This is the **source table**. Another word for it is the **raw table**. It holds the data just as it came in.
 
 ```sql
 CREATE TABLE RAW_EMPLOYEE (
@@ -111,14 +111,14 @@ SELECT * FROM RAW_EMPLOYEE;
 
 ## 🔄 Step 6 — Basic Transformation
 
-First let's create a transformed table.
+First let us make a table with the changed data.
 
 We will:
 
-* Convert employee name to uppercase
-* Convert email to lowercase
-* Increase salary by 10%
-* Create a salary category
+* Make the employee name uppercase (capital letters)
+* Make the email lowercase (small letters)
+* Add 10% to the salary
+* Put each salary into a category
 
 ```sql
 CREATE TABLE TRANSFORMED_EMPLOYEE AS
@@ -147,7 +147,7 @@ FROM RAW_EMPLOYEE;
 SELECT * FROM TRANSFORMED_EMPLOYEE;
 ```
 
-The result has these columns:
+The table has these columns:
 
 ```text
 EMPLOYEE_ID
@@ -161,7 +161,7 @@ SALARY_AFTER_10_PERCENT
 SALARY_CATEGORY
 ```
 
-For example, the first row:
+For example, here is the first row:
 
 ```text
 5001 | RAHUL SHARMA | rahul.sharma@example.com | IT | Mumbai | 2023-01-15 | 85000 | 93500 | MEDIUM
@@ -171,7 +171,7 @@ For example, the first row:
 
 ## 🎯 Step 8 — Practice `WHERE`
 
-Now let's create another transformed table containing only IT employees.
+Now let us make another table. This one holds only the IT employees.
 
 ```sql
 CREATE TABLE IT_EMPLOYEES AS
@@ -195,7 +195,7 @@ SELECT * FROM IT_EMPLOYEES;
 
 ## 📊 Step 9 — Practice Aggregation
 
-Now let's calculate department-level statistics.
+Now let us work out numbers for each department.
 
 ```sql
 SELECT
@@ -210,7 +210,7 @@ GROUP BY DEPARTMENT
 ORDER BY DEPARTMENT;
 ```
 
-This produces something like:
+The result looks like this:
 
 ```text
 DEPARTMENT | EMPLOYEE_COUNT | TOTAL_SALARY | AVERAGE_SALARY | MIN_SALARY | MAX_SALARY
@@ -225,7 +225,7 @@ Sales      | 2              | ...          | ...            | ...        | ...
 
 ## 💾 Step 10 — Create the Department Summary Table
 
-Now let's actually persist that transformation.
+Now let us save that result in a table.
 
 ```sql
 CREATE TABLE DEPARTMENT_SUMMARY AS
@@ -250,7 +250,7 @@ SELECT * FROM DEPARTMENT_SUMMARY;
 
 ## 📅 Step 11 — Practice Date Transformation
 
-Let's calculate how many years an employee has been working.
+Let us work out how many years each employee has worked here.
 
 ```sql
 SELECT
@@ -296,7 +296,7 @@ FROM RAW_EMPLOYEE;
 
 ## 🧠 What You Should Understand
 
-The main idea of Pipeline 54 is:
+The main idea of Pipeline 54 is this:
 
 ```text
               RAW TABLE
@@ -331,16 +331,16 @@ RAW_EMPLOYEE
 
 ### 🔥 The important Snowflake concept here
 
-We're using:
+We use this:
 
 ```sql
 CREATE TABLE ... AS
 SELECT ...
 ```
 
-This is called **CTAS — Create Table As Select**.
+This is called **CTAS**. CTAS is short for Create Table As Select.
 
 It means:
 
-> Execute the query and create a new table containing the query result.
+> Run the query. Then make a new table that holds the result of the query.
 

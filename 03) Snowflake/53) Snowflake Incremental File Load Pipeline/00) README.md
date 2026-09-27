@@ -9,9 +9,9 @@
 
 ## 🎯 Goal
 
-Now we move to a **very important Snowflake concept: Incremental Loading**.
+Now we look at a **very important Snowflake idea: Incremental Loading**.
 
-The idea is:
+Here is the idea:
 
 ```text
 Day 1
@@ -30,7 +30,7 @@ CSV 3 → Stage → Table
          only new 3 rows
 ```
 
-Instead of loading everything from scratch every time, we keep adding **new files / new data**.
+Instead of loading all the data again every time, we keep adding **new files / new data**.
 
 ---
 
@@ -44,9 +44,9 @@ sales_02_incremental.csv
 sales_03_incremental.csv
 ```
 
-Each contains 3 records.
+Each file has 3 records.
 
-So total:
+So the total is:
 
 ```text
 3 + 3 + 3 = 9 records
@@ -136,7 +136,7 @@ CREATE TABLE SALES (
 );
 ```
 
-Check it:
+Check the table:
 
 ```sql
 DESC TABLE SALES;
@@ -164,7 +164,7 @@ CREATE STAGE SALES_STAGE
     FILE_FORMAT = SALES_CSV_FORMAT;
 ```
 
-Check it:
+Check the stage:
 
 ```sql
 SHOW STAGES;
@@ -174,13 +174,13 @@ SHOW STAGES;
 
 ## ⬆️ Step 7 — Upload Only the First File
 
-From [input files/](input%20files/), take:
+From [input files/](input%20files/), take this file:
 
 ```text
 sales_01_initial.csv
 ```
 
-Upload it into the stage `SALES_STAGE`, then confirm it arrived:
+Upload it to the stage `SALES_STAGE`. Then check that it arrived:
 
 ```sql
 LIST @SALES_STAGE;
@@ -207,7 +207,7 @@ Check the rows:
 SELECT * FROM SALES ORDER BY ORDER_ID;
 ```
 
-And the count:
+Then check the count:
 
 ```sql
 SELECT COUNT(*) FROM SALES;
@@ -225,13 +225,13 @@ Expected:
 
 Do **not** remove the first file.
 
-Upload:
+Upload this file:
 
 ```text
 sales_02_incremental.csv
 ```
 
-Now the stage contains:
+Now the stage holds:
 
 ```text
 SALES_STAGE
@@ -240,7 +240,7 @@ SALES_STAGE
 └── sales_02_incremental.csv
 ```
 
-Run:
+Run this:
 
 ```sql
 LIST @SALES_STAGE;
@@ -250,7 +250,7 @@ LIST @SALES_STAGE;
 
 ## 🔁 Step 10 — Run COPY INTO Again
 
-This is the important part.
+This is the part that matters most.
 
 ```sql
 COPY INTO SALES
@@ -261,7 +261,7 @@ You might think:
 
 > "Won't Snowflake load `sales_01_initial.csv` again?"
 
-**No.** Snowflake keeps track of the files it has already loaded, and skips a previously loaded file when it encounters the same staged file again.
+**No.** Snowflake remembers the files it has already loaded. If it sees the same staged file again, it skips it.
 
 ```text
 sales_01_initial.csv            sales_02_incremental.csv
@@ -271,7 +271,7 @@ sales_01_initial.csv            sales_02_incremental.csv
        SKIP                                LOAD
 ```
 
-Now check:
+Now check the count:
 
 ```sql
 SELECT COUNT(*) FROM SALES;
@@ -291,7 +291,7 @@ Expected:
 SELECT * FROM SALES ORDER BY ORDER_ID;
 ```
 
-You should have:
+You should see these order IDs:
 
 ```text
 4001
@@ -306,7 +306,7 @@ You should have:
 
 ## ➕ Step 12 — Add the Third File
 
-Now upload:
+Now upload this file:
 
 ```text
 sales_03_incremental.csv
@@ -322,14 +322,14 @@ SALES_STAGE
 └── sales_03_incremental.csv ← NEW
 ```
 
-Run:
+Run this:
 
 ```sql
 COPY INTO SALES
 FROM @SALES_STAGE;
 ```
 
-Then:
+Then check the count:
 
 ```sql
 SELECT COUNT(*) FROM SALES;
@@ -345,7 +345,7 @@ Expected:
 
 ## 🕘 Step 13 — See Which Files Were Loaded
 
-Run:
+Run this query:
 
 ```sql
 SELECT
@@ -362,9 +362,9 @@ FROM TABLE(
 ORDER BY LAST_LOAD_TIME;
 ```
 
-You should see the three files and their load information.
+You should see the three files and their load details.
 
-This is very useful for understanding **which files Snowflake actually loaded**.
+This helps you see **which files Snowflake really loaded**.
 
 ---
 
@@ -372,9 +372,9 @@ This is very useful for understanding **which files Snowflake actually loaded**.
 
 The important thing here is **not** just `COPY INTO`.
 
-It's understanding Snowflake's **load metadata / file tracking**.
+It is about how Snowflake **keeps a record of which files it loaded**. This record is called load metadata.
 
-Conceptually:
+Picture it like this:
 
 ```text
               Stage
@@ -392,20 +392,22 @@ Conceptually:
                         Table
 ```
 
-When you execute:
+When you run:
 
 ```sql
 COPY INTO SALES
 FROM @SALES_STAGE;
 ```
 
-Snowflake checks the staged files and avoids loading files it recognizes as already loaded.
+Snowflake looks at the files in the stage. It does not load a file it has already loaded before.
 
 ---
 
 ## ⚠️ Important Real-World Point
 
-Incremental loading based on **file tracking** is different from true CDC.
+Incremental loading based on **file tracking** is not the same as true CDC.
+
+CDC means tracking changes row by row.
 
 For example:
 
@@ -414,27 +416,27 @@ File 1
 1001 Rahul 5000
 ```
 
-Later someone changes the record:
+Later, someone changes that record:
 
 ```text
 1001 Rahul 7000
 ```
 
-and puts another file containing:
+Then they put in another file that holds:
 
 ```text
 1001 Rahul 7000
 ```
 
-That doesn't automatically mean Snowflake will update the existing row.
+That does not mean Snowflake will update the row that is already there.
 
-You need a different mechanism for that:
+You need a different way to do that:
 
 * `MERGE`
 * `Streams`
 * `CDC`
 
-We'll cover those later.
+We will cover those later.
 
 ---
 
@@ -442,11 +444,11 @@ We'll cover those later.
 
 You now understand:
 
-* Incremental file loading
-* Multiple files arriving over time
-* Stage retaining previous files
+* Loading files one at a time (incremental loading)
+* Many files arriving over time
+* The stage keeps the older files
 * `COPY INTO`
-* Snowflake's loaded-file tracking
+* Snowflake remembers which files it loaded
 * `COPY_HISTORY`
-* Difference between **new file loading** and **record-level updates**
+* The difference between **loading a new file** and **updating one row**
 

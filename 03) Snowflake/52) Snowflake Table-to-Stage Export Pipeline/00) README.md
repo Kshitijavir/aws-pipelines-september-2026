@@ -8,7 +8,7 @@
 
 ## 🎯 Goal
 
-Snowflake's equivalent of Redshift `UNLOAD` is `COPY INTO <location>` — the same statement used for loading, only the direction changes:
+In Redshift you use `UNLOAD` to send data out of the database. In Snowflake, the command that does the same job as `UNLOAD` is `COPY INTO <location>`. It is the same command used for loading. Only the direction changes:
 
 ```text
 Snowflake Table
@@ -20,7 +20,7 @@ CSV File
 Download to Computer
 ```
 
-| Pipeline | Direction |
+| Pipeline | Which Way the Data Goes |
 | -------- | --------- |
 | 50 / 51 | CSV → Stage → Table |
 | 52 | Table → Stage → CSV |
@@ -62,7 +62,7 @@ USE WAREHOUSE EXPORT_WH;
 
 ## 📋 Step 4 — Create the Source Table
 
-This table is the **source** for the export.
+This table holds the data we want to send out. It is the **source** for the export.
 
 ```sql
 CREATE TABLE CUSTOMER_EXPORT (
@@ -105,7 +105,7 @@ Expected:
 
 ## 📄 Step 6 — Create the Export File Format
 
-Here we are exporting **Snowflake → CSV**.
+Here the data moves from **Snowflake into a CSV file**.
 
 ```sql
 CREATE FILE FORMAT CUSTOMER_EXPORT_CSV_FORMAT
@@ -117,9 +117,9 @@ FIELD_OPTIONALLY_ENCLOSED_BY = '"';
 
 ### 💡 Why `COMPRESSION = 'NONE'`?
 
-Because we want to download a normal `.csv` file that can be opened directly in Excel.
+We want to download a normal `.csv` file. A normal file opens straight away in Excel, with no extra step.
 
-Without this, Snowflake can use compression depending on the configuration.
+Without this line, Snowflake may squeeze the file. That depends on your settings, not on this file.
 
 ---
 
@@ -146,14 +146,14 @@ CUSTOMER_EXPORT_STAGE
 
 ## 🚚 Step 8 — Main Export Command
 
-This is the most important part of Pipeline 52.
+This is the key step of Pipeline 52.
 
 ```sql
 COPY INTO @CUSTOMER_EXPORT_STAGE
 FROM CUSTOMER_EXPORT;
 ```
 
-The direction is:
+The direction is this:
 
 ```text
 CUSTOMER_EXPORT
@@ -163,7 +163,7 @@ CUSTOMER_EXPORT
 CUSTOMER_EXPORT_STAGE
 ```
 
-This is Snowflake's **unload/export** operation.
+This is Snowflake's **unload/export** step. It sends the data out of Snowflake.
 
 ---
 
@@ -173,42 +173,42 @@ This is Snowflake's **unload/export** operation.
 LIST @CUSTOMER_EXPORT_STAGE;
 ```
 
-You should see something similar to:
+You should see something like this:
 
 ```text
 customer_export_stage/data_0_0_0.csv
 ```
 
-The exact filename can vary.
+The exact file name can be different each time.
 
 ---
 
 ## ⬇️ Step 10 — Download the File
 
-In Snowsight, navigate to:
+In Snowsight, go to:
 
 ```text
 Data → Databases → SNOWFLAKE_UNLOAD_PRACTICE → EXPORT_SCHEMA → Stages → CUSTOMER_EXPORT_STAGE
 ```
 
-You should find the exported CSV.
+You should see the exported CSV file.
 
-Download it and open it in Excel.
+Download it. Then open it in Excel.
 
 ---
 
 ## 🏷️ Step 11 — Export With Column Headers
 
-By default, Snowflake exports the **data rows**, but not the column names.
+By default, Snowflake sends out the **data rows**. It does not send the column names.
 
-So this:
+So this command:
 
 ```sql
 COPY INTO @CUSTOMER_EXPORT_STAGE
 FROM CUSTOMER_EXPORT;
 ```
 
-produces:
+gives this:
 
 ```text
 3001,Rahul Sharma,rahul@example.com,Mumbai,India,75000
@@ -216,7 +216,7 @@ produces:
 ...
 ```
 
-If you want the column headers:
+If you want the column names at the top:
 
 ```text
 CUSTOMER_ID,CUSTOMER_NAME,EMAIL,CITY,COUNTRY,TOTAL_PURCHASE
@@ -235,15 +235,15 @@ HEADER = TRUE;
 
 ### ⚠️ If the stage already contains the old file
 
-You may get:
+You may see this error message:
 
 ```text
 Files already existing at the unload destination
 ```
 
-because `data_0_0_0.csv` already exists.
+This happens because `data_0_0_0.csv` is already in the stage.
 
-For practice, simply clear the stage:
+For practice, just empty the stage:
 
 ```sql
 REMOVE @CUSTOMER_EXPORT_STAGE;
@@ -269,7 +269,7 @@ Then download the new file.
 
 ## 🎯 Step 12 — Export Only Selected Columns
 
-You don't have to export the entire table.
+You do not have to export the whole table.
 
 For example:
 
@@ -286,7 +286,7 @@ FROM (
 HEADER = TRUE;
 ```
 
-Now the output contains only:
+Now the file holds only these columns:
 
 ```text
 CUSTOMER_ID
@@ -299,7 +299,7 @@ TOTAL_PURCHASE
 
 ## 🔎 Step 13 — Export Filtered Data
 
-You can also export only specific records.
+You can also export only some of the rows.
 
 ```sql
 COPY INTO @CUSTOMER_EXPORT_STAGE
@@ -315,9 +315,9 @@ FROM (
 HEADER = TRUE;
 ```
 
-Now only customers whose purchases are greater than `65000` are exported.
+Now only customers who bought more than `65000` are exported.
 
-The flow becomes:
+The flow is now:
 
 ```text
 CUSTOMER_EXPORT
@@ -335,13 +335,13 @@ COPY INTO @STAGE
 
 ## 📦 Step 14 — Multiple Export Files
 
-For small data you may get a single file:
+For a small amount of data you may get one file:
 
 ```text
 data_0_0_0.csv
 ```
 
-For a large dataset, Snowflake can create several files:
+For a big dataset, Snowflake can make many files:
 
 ```text
 CUSTOMER_EXPORT_STAGE/
@@ -363,9 +363,9 @@ That is normal.
 | Table → S3 | Table → Stage |
 | Query result → S3 | Query result → Stage |
 | Export files | Export files |
-| Commonly uses external S3 | Can use internal or external stage |
+| Often uses an S3 bucket outside Snowflake | Can use a stage inside or outside Snowflake |
 
-Mental model — the same idea, a different destination:
+A simple way to think about it — the same idea, but the data lands somewhere else:
 
 **Redshift**
 

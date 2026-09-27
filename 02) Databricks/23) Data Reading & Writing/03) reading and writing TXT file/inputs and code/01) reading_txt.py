@@ -6,5 +6,5 @@ spark = SparkSession.builder.appName("TXT Read Practice").getOrCreate()
 
 df = spark.read.text("/Volumes/workspace/default/txt_volume/input/employees.txt")
 
-display(df)
+df.display()
 df.printSchema()

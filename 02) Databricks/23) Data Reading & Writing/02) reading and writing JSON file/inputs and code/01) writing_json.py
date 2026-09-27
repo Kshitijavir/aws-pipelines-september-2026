@@ -6,7 +6,7 @@ spark = SparkSession.builder.appName("JSON Write Practice").getOrCreate()
 
 df = spark.read.json("/Volumes/workspace/default/json_volume/input/employees.json")
 
-display(df)
+df.display()
 df.printSchema()
 
 df.write.mode("overwrite").parquet(

@@ -9,7 +9,7 @@ df = spark.read.json(
     multiLine=True
 )
 
-display(df)
+df.display()
 df.printSchema()
 
 df.write.mode("overwrite").parquet(

@@ -16,7 +16,7 @@ df = raw.select(
     trim(col("value").substr(22, 5)).cast("integer").alias("salary")
 )
 
-display(df)
+df.display()
 df.printSchema()
 
 df.write.mode("overwrite").parquet(

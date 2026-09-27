@@ -9,5 +9,5 @@ df = spark.read.text(
     wholetext=True
 )
 
-display(df)
+df.display()
 df.printSchema()

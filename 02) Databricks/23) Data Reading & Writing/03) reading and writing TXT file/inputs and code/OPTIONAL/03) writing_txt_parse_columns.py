@@ -12,7 +12,7 @@ df = raw.select(
     regexp_extract("value", r"Employee (\w+)", 1).alias("employee")
 )
 
-display(df)
+df.display()
 df.printSchema()
 
 df.write.mode("overwrite").parquet(

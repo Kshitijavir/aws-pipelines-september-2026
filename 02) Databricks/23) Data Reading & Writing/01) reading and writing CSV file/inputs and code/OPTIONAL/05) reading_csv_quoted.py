@@ -13,5 +13,5 @@ df = spark.read.csv(
     inferSchema=True
 )
 
-display(df)
+df.display()
 df.printSchema()

@@ -15,5 +15,5 @@ df = raw.select(
     trim(parts[3]).cast("integer").alias("salary")
 )
 
-display(df)
+df.display()
 df.printSchema()

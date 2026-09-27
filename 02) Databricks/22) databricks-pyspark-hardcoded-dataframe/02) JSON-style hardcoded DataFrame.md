@@ -1,3 +1,19 @@
+# 22) Databricks — PySpark JSON-style Hardcoded DataFrame
+
+> 📌 Same exercise as before, just a different Python shape: the data is a **list of dictionaries** instead of a list of tuples. No files, no volumes, no readers — just **data → DataFrame → table**.
+
+## 🔄 Pipeline
+
+```text
+Hardcoded JSON-Style Data
+      ↓
+Create Spark DataFrame
+      ↓
+Display DataFrame
+```
+
+## 💻 Complete Databricks Notebook Code
+
 ```python
 from pyspark.sql import SparkSession
 

@@ -1,40 +1,40 @@
 -- ============================================================
 -- 56) Snowflake — Stream-Based Incremental Pipeline
--- Every SQL statement for this pipeline, in README order.
+-- All the SQL for this pipeline, in README order.
 -- Paste this whole file into a Snowflake worksheet and run it
--- top to bottom.
+-- from top to bottom.
 --
 -- A stream is a change tracker. It holds only the rows that
--- changed in a table, so you do not have to read the whole table
--- again. This pipeline copies those changed rows into a target table.
+-- changed in a table. So you do not read the whole table again.
+-- This pipeline copies those changed rows into a target table.
 -- ============================================================
 
 
 -- ============================================================
 -- 1. CREATE DATABASE   (README Step 1)
--- Creates the big box that holds everything below
+-- Makes the big box that holds everything below.
 -- ============================================================
 
 CREATE DATABASE SNOWFLAKE_STREAM_PRACTICE;
 
--- Selects the database for the remaining operations
+-- Picks the database for the rest of the file.
 USE DATABASE SNOWFLAKE_STREAM_PRACTICE;
 
 
 -- ============================================================
 -- 2. CREATE SCHEMA   (README Step 2)
--- Creates a folder inside the database to keep the objects together
+-- Makes a folder inside the database to keep the objects together.
 -- ============================================================
 
 CREATE SCHEMA STREAM_SCHEMA;
 
--- Selects the schema for the remaining operations
+-- Picks the schema for the rest of the file.
 USE SCHEMA STREAM_SCHEMA;
 
 
 -- ============================================================
 -- 3. CREATE WAREHOUSE   (README Step 3)
--- Creates the machine that runs the SQL
+-- Makes the machine that runs the SQL.
 -- ============================================================
 
 CREATE WAREHOUSE STREAM_WH
@@ -42,13 +42,13 @@ CREATE WAREHOUSE STREAM_WH
     AUTO_SUSPEND = 60
     AUTO_RESUME = TRUE;
 
--- Selects the warehouse used to run the queries
+-- Picks the warehouse used to run the queries.
 USE WAREHOUSE STREAM_WH;
 
 
 -- ============================================================
 -- 4. CREATE THE SOURCE TABLE   (README Step 4)
--- Creates the table that the stream will watch
+-- Makes the table that the stream will watch.
 -- ============================================================
 
 CREATE TABLE EMPLOYEE_SOURCE (
@@ -58,11 +58,13 @@ CREATE TABLE EMPLOYEE_SOURCE (
     SALARY        NUMBER
 );
 
+SELECT * FROM EMPLOYEE_SOURCE;
+
 
 -- ============================================================
 -- 5. INSERT INITIAL DATA   (README Step 5)
--- Adds 3 employees. The stream does not exist yet, so these rows
--- are not treated as changes
+-- Adds 3 employees. The stream is not made yet, so these rows
+-- are not seen as changes.
 -- ============================================================
 
 INSERT INTO EMPLOYEE_SOURCE VALUES
@@ -70,37 +72,37 @@ INSERT INTO EMPLOYEE_SOURCE VALUES
 (7002, 'Priya Patil', 'HR', 62000),
 (7003, 'Amit Verma', 'Finance', 95000);
 
--- Checks the 3 rows in the source table
+-- Shows the 3 rows in the source table.
 SELECT * FROM EMPLOYEE_SOURCE ORDER BY EMPLOYEE_ID;
 
 
 -- ============================================================
 -- 6. CREATE THE STREAM   (README Step 6)
--- Starts tracking changes on the source table from this moment on
+-- Starts watching the source table for changes from now on.
 -- ============================================================
 
 CREATE STREAM EMPLOYEE_STREAM
 ON TABLE EMPLOYEE_SOURCE;
 
--- Shows the streams
+-- Shows the streams.
 SHOW STREAMS;
 
 
 -- ============================================================
 -- 7. INSERT A NEW EMPLOYEE   (README Step 7)
--- Adds a 4th employee. The stream records this row as a change
+-- Adds a 4th employee. The stream notes this row as a change.
 -- ============================================================
 
 INSERT INTO EMPLOYEE_SOURCE VALUES
 (7004, 'Sneha Joshi', 'IT', 78000);
 
--- Checks the source table - it now holds 4 employees
+-- Shows the source table. It now has 4 employees.
 SELECT * FROM EMPLOYEE_SOURCE ORDER BY EMPLOYEE_ID;
 
 
 -- ============================================================
 -- 8. READ THE STREAM   (README Step 8)
--- Shows the changed row. A plain SELECT does not use up the stream
+-- Shows the changed row. A plain SELECT does not empty the stream.
 -- ============================================================
 
 SELECT * FROM EMPLOYEE_STREAM;
@@ -108,32 +110,32 @@ SELECT * FROM EMPLOYEE_STREAM;
 
 -- ============================================================
 -- 9. UPDATE AN EXISTING EMPLOYEE   (README Step 9)
--- Changes one salary. The stream records the change
+-- Changes one salary. The stream notes this change.
 -- ============================================================
 
 UPDATE EMPLOYEE_SOURCE
 SET SALARY = 90000
 WHERE EMPLOYEE_ID = 7001;
 
--- Reads the stream again - the update shows up as a change
+-- Reads the stream again. The update shows up here.
 SELECT * FROM EMPLOYEE_STREAM;
 
 
 -- ============================================================
 -- 10. DELETE AN EMPLOYEE   (README Step 10)
--- Removes one employee. The stream records the delete
+-- Removes one employee. The stream notes this delete.
 -- ============================================================
 
 DELETE FROM EMPLOYEE_SOURCE
 WHERE EMPLOYEE_ID = 7003;
 
--- Reads the stream again - the delete shows up as a change
+-- Reads the stream again. The delete shows up here.
 SELECT * FROM EMPLOYEE_STREAM;
 
 
 -- ============================================================
 -- 11. CREATE THE TARGET TABLE   (README Step 11)
--- Creates the table that will receive the changed rows
+-- Makes the table that will get the changed rows.
 -- ============================================================
 
 CREATE TABLE EMPLOYEE_TARGET (
@@ -143,12 +145,14 @@ CREATE TABLE EMPLOYEE_TARGET (
     SALARY        NUMBER
 );
 
+SELECT * FROM EMPLOYEE_TARGET;
+
 
 -- ============================================================
 -- 12. CONSUME THE STREAM   (README Step 12)
 -- Copies the changed rows out of the stream into the target table.
--- ⚠️ This INSERT uses up the stream. Run it only ONCE for this set
--- of changes - see the DO NOT RUN block at the end of this file
+-- ⚠️ This INSERT uses up the stream. Run it only ONCE for this
+-- set of changes. See the DO NOT RUN block at the end of this file.
 -- ============================================================
 
 INSERT INTO EMPLOYEE_TARGET
@@ -159,14 +163,14 @@ SELECT
     SALARY
 FROM EMPLOYEE_STREAM;
 
--- Checks the target table - the changed rows are now here
+-- Shows the target table. The changed rows are here now.
 SELECT * FROM EMPLOYEE_TARGET;
 
 
 -- ============================================================
 -- 13. CREATE A SECOND TARGET TABLE   (README Step 13)
--- Creates EMPLOYEE_FINAL, the table used for the better
--- Stream -> MERGE -> Target pattern
+-- Makes EMPLOYEE_FINAL. This table is used for the better
+-- Stream -> MERGE -> Target pattern.
 -- ============================================================
 
 CREATE TABLE EMPLOYEE_FINAL (
@@ -176,16 +180,18 @@ CREATE TABLE EMPLOYEE_FINAL (
     SALARY        NUMBER
 );
 
+SELECT * FROM EMPLOYEE_FINAL;
+
 
 -- ============================================================
--- 🚫 DO NOT RUN THE STATEMENT BELOW BY HAND / AGAIN
--- Who runs it : You - once, as Step 12 of this walkthrough.
---               Nothing else runs it (this practice pipeline has
---               no Lambda and no Snowflake task)
+-- 🚫 DO NOT RUN THE STATEMENT BELOW BY HAND OR AGAIN
+-- Who runs it : You - one time only, as Step 12 above.
+--               Nothing else runs it. This practice pipeline
+--               has no Lambda and no Snowflake task.
 -- Why         : Reading a stream inside a DML statement (INSERT,
 --               UPDATE, DELETE, MERGE) uses up the stream rows.
 --               Run this INSERT a second time and it copies 0 rows,
---               because the changes are already gone
+--               because the changes are already gone.
 -- ============================================================
 
 -- INSERT INTO EMPLOYEE_TARGET

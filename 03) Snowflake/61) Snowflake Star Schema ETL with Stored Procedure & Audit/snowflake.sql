@@ -1,11 +1,11 @@
 -- ============================================================
 -- 61) Snowflake - Star Schema ETL with Stored Procedure & Audit
--- Every SQL statement for this pipeline, in README order.
+-- All the SQL for this pipeline, in README order.
 -- Paste the whole file into a Snowflake worksheet and run it.
 --
--- A star schema is one big table in the middle (FACT_SALES) with
--- smaller tables around it (DIM_CUSTOMER). The audit table
--- (AUDIT_LOG) is the record of what the job did.
+-- A star schema is one big table in the middle (FACT_SALES).
+-- The smaller tables around it are the dimensions (DIM_CUSTOMER).
+-- The audit table (AUDIT_LOG) records what the job did.
 --
 -- SP2 is created first, but SP1 is run first. SP1 calls SP2 for you.
 -- ============================================================
@@ -13,7 +13,7 @@
 
 -- ============================================================
 -- STEP 1. CREATE DATABASE AND SCHEMA
--- Creates the big box (database) and the folder (schema) for this pipeline
+-- Makes the database and the schema for this pipeline
 -- ============================================================
 
 CREATE DATABASE SNOWFLAKE_STAR_SCHEMA_PRACTICE;
@@ -27,7 +27,7 @@ USE SCHEMA STAR_SCHEMA;
 
 -- ============================================================
 -- STEP 2. CREATE WAREHOUSE
--- Creates the machine that runs the SQL
+-- Makes the machine that runs the SQL
 -- ============================================================
 
 CREATE WAREHOUSE STAR_WH
@@ -38,7 +38,7 @@ USE WAREHOUSE STAR_WH;
 
 -- ============================================================
 -- STEP 3. CREATE THE CSV FILE FORMAT
--- Tells Snowflake how the CSV file looks, so it can read it
+-- Tells Snowflake what the CSV file looks like, so it can read it
 -- ============================================================
 
 CREATE FILE FORMAT CUSTOMER_CSV_FORMAT
@@ -50,19 +50,16 @@ CREATE FILE FORMAT CUSTOMER_CSV_FORMAT
 
 -- ============================================================
 -- STEP 4. CREATE THE STAGE
--- The stage is the landing spot (inbox) where the CSV file is uploaded
+-- A stage is the inbox where you put the CSV file
 -- ============================================================
 
 CREATE STAGE CUSTOMER_STAGE
     FILE_FORMAT = CUSTOMER_CSV_FORMAT;
 
--- Shows the files that are sitting in the stage
-LIST @CUSTOMER_STAGE;
-
 
 -- ============================================================
 -- STEP 5. CREATE THE HOLDING (STAGING) TABLE
--- Keeps the raw rows from the CSV before they are cleaned
+-- Holds the raw rows from the CSV before they are cleaned
 -- ============================================================
 
 CREATE TABLE CUSTOMER_STAGING (
@@ -77,10 +74,12 @@ CREATE TABLE CUSTOMER_STAGING (
     ORDER_DATE    DATE
 );
 
+SELECT * FROM CUSTOMER_STAGING;
+
 
 -- ============================================================
 -- STEP 6. CREATE THE CUSTOMER DIMENSION
--- The small table that describes who the customer is
+-- The small table that says who the customer is
 -- ============================================================
 
 CREATE TABLE DIM_CUSTOMER (
@@ -92,10 +91,12 @@ CREATE TABLE DIM_CUSTOMER (
     COUNTRY       VARCHAR(100)
 );
 
+SELECT * FROM DIM_CUSTOMER;
+
 
 -- ============================================================
 -- STEP 7. CREATE THE FACT TABLE
--- The big table in the middle that holds the numbers you add up
+-- The big middle table that holds the numbers you add up
 -- ============================================================
 
 CREATE TABLE FACT_SALES (
@@ -108,10 +109,12 @@ CREATE TABLE FACT_SALES (
     ORDER_DATE   DATE
 );
 
+SELECT * FROM FACT_SALES;
+
 
 -- ============================================================
 -- STEP 8. CREATE THE AUDIT TABLE
--- The record of what the job did: counts, times, status and errors
+-- The record of what the job did: counts, times, status, errors
 -- ============================================================
 
 CREATE TABLE AUDIT_LOG (
@@ -137,11 +140,13 @@ CREATE TABLE AUDIT_LOG (
     CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP()
 );
 
+SELECT * FROM AUDIT_LOG;
+
 
 -- ============================================================
 -- STEP 9. CHECK THE UPLOADED FILE
 -- Upload customer_sales.csv into CUSTOMER_STAGE by hand first
--- (Snowsight: the stage -> Upload). Then run this to confirm it landed
+-- (Snowsight: the stage -> Upload). Then run this to check it landed
 -- ============================================================
 
 LIST @CUSTOMER_STAGE;
@@ -149,19 +154,18 @@ LIST @CUSTOMER_STAGE;
 
 -- ============================================================
 -- STEP 10. WHY SP2 IS CREATED FIRST
--- Order to CREATE the procedures: SP2, then SP1. Order to RUN them:
--- SP1, then SP2, because SP1 calls SP2 for you.
+-- Create the procedures in this order: SP2, then SP1.
+-- Run them in this order: SP1, then SP2, because SP1 calls SP2.
 --
 -- Why? SP1 contains CALL SP_LOAD_STAR_SCHEMA(). So SP2 must already
--- exist before Snowflake can build SP1. There is no statement to
--- run in this step.
+-- exist before Snowflake can build SP1. There is nothing to run here.
 -- ============================================================
 
 
 -- ============================================================
 -- STEP 11. CREATE SP2 FIRST
--- SP2 loads the star schema: it fills DIM_CUSTOMER and FACT_SALES
--- from CUSTOMER_STAGING, checks the counts and writes to AUDIT_LOG
+-- SP2 fills DIM_CUSTOMER and FACT_SALES from CUSTOMER_STAGING,
+-- checks the counts and writes a row to AUDIT_LOG
 -- ============================================================
 
 CREATE OR REPLACE PROCEDURE SP_LOAD_STAR_SCHEMA()
@@ -185,7 +189,7 @@ BEGIN
     START_TIME := CURRENT_TIMESTAMP();
 
     ------------------------------------------------
-    -- STEP 1: Count staging records
+    -- STEP 1: Count the rows in staging
     ------------------------------------------------
 
     SELECT COUNT(*)
@@ -194,7 +198,7 @@ BEGIN
 
 
     ------------------------------------------------
-    -- STEP 2: Load Customer Dimension
+    -- STEP 2: Fill the customer table
     ------------------------------------------------
 
     INSERT INTO DIM_CUSTOMER
@@ -215,7 +219,7 @@ BEGIN
 
 
     ------------------------------------------------
-    -- STEP 3: Load Fact Table
+    -- STEP 3: Fill the sales table
     ------------------------------------------------
 
     INSERT INTO FACT_SALES
@@ -240,7 +244,7 @@ BEGIN
 
 
     ------------------------------------------------
-    -- STEP 4: Count Dimension
+    -- STEP 4: Count the customer rows
     ------------------------------------------------
 
     SELECT COUNT(*)
@@ -249,7 +253,7 @@ BEGIN
 
 
     ------------------------------------------------
-    -- STEP 5: Count Fact
+    -- STEP 5: Count the sales rows
     ------------------------------------------------
 
     SELECT COUNT(*)
@@ -258,7 +262,7 @@ BEGIN
 
 
     ------------------------------------------------
-    -- STEP 6: Reconciliation
+    -- STEP 6: Compare the two counts
     ------------------------------------------------
 
     IF (STAGING_COUNT = FACT_COUNT) THEN
@@ -269,14 +273,14 @@ BEGIN
 
 
     ------------------------------------------------
-    -- STEP 7: End Time
+    -- STEP 7: Note the end time
     ------------------------------------------------
 
     END_TIME := CURRENT_TIMESTAMP();
 
 
     ------------------------------------------------
-    -- STEP 8: Audit SP2
+    -- STEP 8: Write the audit row for SP2
     ------------------------------------------------
 
     INSERT INTO AUDIT_LOG
@@ -317,7 +321,7 @@ $$;
 
 -- ============================================================
 -- STEP 12. NOW CREATE SP1
--- SP1 is the main procedure: it clears the staging table, copies the
+-- SP1 is the main procedure. It empties the staging table, copies the
 -- file from the stage, writes its own audit row, then calls SP2
 -- ============================================================
 
@@ -339,14 +343,14 @@ BEGIN
 
 
     ------------------------------------------------
-    -- STEP 1: Clear previous staging data
+    -- STEP 1: Empty the staging table
     ------------------------------------------------
 
     TRUNCATE TABLE CUSTOMER_STAGING;
 
 
     ------------------------------------------------
-    -- STEP 2: Stage → Staging
+    -- STEP 2: Copy the file from the stage into staging
     ------------------------------------------------
 
     COPY INTO CUSTOMER_STAGING
@@ -357,7 +361,7 @@ BEGIN
 
 
     ------------------------------------------------
-    -- STEP 3: Count staging records
+    -- STEP 3: Count the rows in staging
     ------------------------------------------------
 
     SELECT COUNT(*)
@@ -366,14 +370,14 @@ BEGIN
 
 
     ------------------------------------------------
-    -- STEP 4: End time
+    -- STEP 4: Note the end time
     ------------------------------------------------
 
     END_TIME := CURRENT_TIMESTAMP();
 
 
     ------------------------------------------------
-    -- STEP 5: Audit SP1
+    -- STEP 5: Write the audit row for SP1
     ------------------------------------------------
 
     INSERT INTO AUDIT_LOG
@@ -407,7 +411,7 @@ BEGIN
 
 
     ------------------------------------------------
-    -- STEP 6: Call SP2
+    -- STEP 6: Run SP2
     ------------------------------------------------
 
     CALL SP_LOAD_STAR_SCHEMA();
@@ -418,13 +422,13 @@ BEGIN
 END;
 $$;
 
--- Shows both procedures you just created
+-- Shows the two procedures you just created
 SHOW PROCEDURES;
 
 
 -- ============================================================
 -- STEP 13. START THE PIPELINE
--- Run SP1 only. It does the whole job, and it calls SP2 for you
+-- Run SP1 only. It does the whole job and it calls SP2 for you
 -- ============================================================
 
 CALL SP_LOAD_STAGING();
@@ -432,10 +436,10 @@ CALL SP_LOAD_STAGING();
 
 -- ============================================================
 -- STEP 14. WHAT HAPPENS INSIDE
--- Running the CALL above makes SP1 empty the staging table, copy the file
--- from the stage, write its own audit row and then call SP2. SP2 fills
+-- The CALL above makes SP1 empty the staging table, copy the file from
+-- the stage, write its own audit row and then call SP2. SP2 fills
 -- DIM_CUSTOMER and FACT_SALES and writes the second audit row.
--- There is no statement to run in this step.
+-- There is nothing to run in this step.
 -- ============================================================
 
 
@@ -449,7 +453,7 @@ SELECT * FROM CUSTOMER_STAGING;
 
 -- ============================================================
 -- STEP 16. CHECK THE DIMENSION
--- Should show 4 customers, because Rahul is one customer
+-- Should show 4 customers, because Rahul is only one customer
 -- ============================================================
 
 SELECT * FROM DIM_CUSTOMER ORDER BY CUSTOMER_KEY;
@@ -465,8 +469,8 @@ SELECT * FROM FACT_SALES ORDER BY SALES_KEY;
 
 -- ============================================================
 -- STEP 18. CHECK THE AUDIT LOG
--- Shows one row from SP1 and one row from SP2, with the counts and the
--- reconciliation result (SP1 writes PENDING, SP2 writes MATCH)
+-- Shows one row from SP1 and one from SP2, with the counts and the
+-- match result (SP1 writes PENDING, SP2 writes MATCH)
 -- ============================================================
 
 SELECT * FROM AUDIT_LOG ORDER BY AUDIT_ID;

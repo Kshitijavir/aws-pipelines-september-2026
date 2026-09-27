@@ -1,40 +1,40 @@
 -- ============================================================
 -- 58) Snowflake - Snowpipe Auto-Ingestion Pipeline
--- Every SQL statement for this pipeline, in the same order as the README.
+-- All the SQL for this pipeline, in the same order as the README.
 -- Paste this whole file into a Snowflake worksheet and run it.
 --
--- The pipe does the loading here. Step 7 creates it, and the COPY INTO
+-- The pipe does the loading here. Step 7 makes it, and the COPY INTO
 -- inside it is the load rule Snowpipe runs by itself.
 -- ============================================================
 
 
 -- ============================================================
 -- 1. CREATE DATABASE
--- Creates the big box that holds everything below
+-- Makes the big box that holds everything below
 -- ============================================================
 
 CREATE DATABASE SNOWFLAKE_SNOWPIPE_PRACTICE;
 
 
--- Selects the database for the remaining operations
+-- Uses this database for all the steps below
 USE DATABASE SNOWFLAKE_SNOWPIPE_PRACTICE;
 
 
 -- ============================================================
 -- 2. CREATE SCHEMA
--- Creates a folder inside the database to keep the objects together
+-- Makes a folder inside the database to keep the objects together
 -- ============================================================
 
 CREATE SCHEMA SNOWPIPE_SCHEMA;
 
 
--- Selects the schema for the remaining operations
+-- Uses this schema for all the steps below
 USE SCHEMA SNOWPIPE_SCHEMA;
 
 
 -- ============================================================
 -- 3. CREATE WAREHOUSE
--- Creates the machine that runs the SQL for Snowpipe
+-- Makes the machine that runs the SQL for Snowpipe
 -- ============================================================
 
 CREATE WAREHOUSE SNOWPIPE_WH
@@ -43,13 +43,13 @@ CREATE WAREHOUSE SNOWPIPE_WH
     AUTO_RESUME = TRUE;
 
 
--- Selects the warehouse used to run the queries
+-- Uses this machine to run the queries
 USE WAREHOUSE SNOWPIPE_WH;
 
 
 -- ============================================================
 -- 4. CREATE TABLE
--- Creates the table that the pipe will load the CSV rows into
+-- Makes the table that the pipe loads the CSV rows into
 -- ============================================================
 
 CREATE TABLE EMPLOYEE (
@@ -62,7 +62,10 @@ CREATE TABLE EMPLOYEE (
 );
 
 
--- Displays the table structure and the column definitions
+SELECT * FROM EMPLOYEE;
+
+
+-- Shows the columns of the table
 DESC TABLE EMPLOYEE;
 
 
@@ -79,27 +82,27 @@ CREATE FILE FORMAT EMPLOYEE_CSV_FORMAT
     DATE_FORMAT = 'YYYY-MM-DD';
 
 
--- Displays the reading rules written in the file format
+-- Shows the reading rules written in the file format
 DESC FILE FORMAT EMPLOYEE_CSV_FORMAT;
 
 
 -- ============================================================
 -- 6. CREATE INTERNAL STAGE
--- Creates a landing spot inside Snowflake for the CSV files
+-- Makes a landing spot inside Snowflake for the CSV files
 -- ============================================================
 
 CREATE STAGE EMPLOYEE_STAGE
     FILE_FORMAT = EMPLOYEE_CSV_FORMAT;
 
 
--- Displays the available stages
+-- Shows the stages
 SHOW STAGES;
 
 
 -- ============================================================
 -- 7. CREATE THE SNOWPIPE
--- Creates the pipe that loads new files by itself
--- The COPY INTO inside the pipe is the load rule Snowpipe runs
+-- Makes the pipe that loads new files by itself
+-- The COPY INTO inside it is the load rule Snowpipe runs
 -- ============================================================
 
 CREATE PIPE EMPLOYEE_PIPE
@@ -111,14 +114,14 @@ FILE_FORMAT = (
 );
 
 
--- The important part is the load rule kept inside the pipe:
+-- The load rule kept inside the pipe is:
 -- COPY INTO EMPLOYEE
 -- FROM @EMPLOYEE_STAGE
 
 
 -- ============================================================
 -- 8. CHECK THE PIPE
--- Shows the pipe, and the COPY INTO stored inside it
+-- Shows the pipe and the COPY INTO kept inside it
 -- ============================================================
 
 SHOW PIPES;
@@ -152,7 +155,7 @@ SELECT SYSTEM$PIPE_STATUS('EMPLOYEE_PIPE');
 
 -- ============================================================
 -- 12. VERIFY THE STAGE
--- Shows the file that is now sitting in the stage
+-- Shows the file sitting in the stage now
 -- ============================================================
 
 LIST @EMPLOYEE_STAGE;
@@ -160,7 +163,7 @@ LIST @EMPLOYEE_STAGE;
 
 -- ============================================================
 -- 13. TRIGGER A SNOWPIPE REFRESH
--- Tells the pipe to look in the stage and load the files it has not loaded yet
+-- Tells the pipe to load the new files sitting in the stage
 -- ============================================================
 
 ALTER PIPE EMPLOYEE_PIPE REFRESH;
@@ -213,10 +216,8 @@ SELECT COUNT(*) FROM EMPLOYEE;
 
 -- ============================================================
 -- 19. CHECK THE SNOWPIPE STATUS
--- Use this when you want to check if the pipe is working well
+-- Same check as step 9, so nothing new to run here.
 -- ============================================================
-
-SELECT SYSTEM$PIPE_STATUS('EMPLOYEE_PIPE');
 
 
 -- ============================================================
@@ -263,9 +264,9 @@ REMOVE @EMPLOYEE_STAGE;
 -- ============================================================
 -- 🚫 DO NOT RUN THE STATEMENT BELOW BY HAND
 -- Who runs it : the Snowpipe pipe EMPLOYEE_PIPE
--- Why         : the pipe runs this COPY INTO by itself for every new file
---               in the stage. Running it by hand as well loads the same
---               files a second time, so EMPLOYEE gets duplicate rows.
+-- Why         : the pipe does this COPY INTO for you every time a new file
+--               lands in the stage. If you run it by hand too, the same
+--               files load a second time and EMPLOYEE gets duplicate rows.
 -- ============================================================
 
 -- COPY INTO EMPLOYEE

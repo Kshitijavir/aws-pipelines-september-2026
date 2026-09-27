@@ -1,46 +1,46 @@
 -- ============================================================
 -- 1. CREATE DATABASE
--- Creates a separate database for this Lambda + Snowflake project
+-- Makes a database for this Lambda and Snowflake project
 -- ============================================================
 
 CREATE DATABASE LAMBDA_SP_EXPORT_PRACTICE;
 
 
--- Selects the database for the remaining operations
+-- Uses this database for all the steps below
 USE DATABASE LAMBDA_SP_EXPORT_PRACTICE;
 
 
 -- ============================================================
 -- 2. CREATE SCHEMA
--- Creates a schema to organize all project objects
+-- Makes a schema to hold all the objects of this project
 -- ============================================================
 
 CREATE SCHEMA LAMBDA_EXPORT_SCHEMA;
 
 
--- Selects the schema for the remaining operations
+-- Uses this schema for all the steps below
 USE SCHEMA LAMBDA_EXPORT_SCHEMA;
 
 
 -- ============================================================
 -- 3. CREATE WAREHOUSE
--- Creates an XSMALL compute warehouse for this practice project
+-- Makes an XSMALL warehouse to run the queries
 -- ============================================================
 
 CREATE WAREHOUSE LAMBDA_EXPORT_WH
 WITH
     WAREHOUSE_SIZE = 'XSMALL'
-    AUTO_SUSPEND = 60       -- Suspends after 60 seconds of inactivity
-    AUTO_RESUME = TRUE;     -- Automatically resumes when a query runs
+    AUTO_SUSPEND = 60       -- Stops the warehouse after 60 seconds of no use
+    AUTO_RESUME = TRUE;     -- Starts it again when a query runs
 
 
--- Selects the warehouse used to execute queries
+-- Uses this warehouse to run the queries
 USE WAREHOUSE LAMBDA_EXPORT_WH;
 
 
 -- ============================================================
 -- 4. CREATE SOURCE TABLE
--- Creates the table containing the employee data to be exported
+-- Makes the table that holds the employee data
 -- ============================================================
 
 CREATE TABLE EMPLOYEE_DATA (
@@ -52,13 +52,17 @@ CREATE TABLE EMPLOYEE_DATA (
 );
 
 
--- Displays the table structure and column definitions
+-- Shows the columns of the table
+SELECT * FROM EMPLOYEE_DATA;
+
+
+-- Shows the structure of the table (column names and types)
 DESC TABLE EMPLOYEE_DATA;
 
 
 -- ============================================================
 -- 5. INSERT SAMPLE DATA
--- Inserts sample employee records into the source table
+-- Adds the sample employee rows to the table
 -- ============================================================
 
 INSERT INTO EMPLOYEE_DATA
@@ -71,48 +75,48 @@ VALUES
     (105, 'Priya', 'Cloud Engineering', 'Hyderabad', 1050000);
 
 
--- Verifies the employee data inserted into the table
+-- Shows the rows that were added (now 5 rows)
 SELECT *
 FROM EMPLOYEE_DATA;
 
 
 -- ============================================================
 -- 6. CREATE CSV FILE FORMAT
--- Defines how Snowflake should format the exported CSV files
+-- Tells Snowflake how the exported CSV file should look
 -- ============================================================
 
 CREATE FILE FORMAT EMPLOYEE_CSV_FORMAT
-    TYPE = 'CSV'                       -- Export data in CSV format
-    FIELD_OPTIONALLY_ENCLOSED_BY = '"' -- Encloses fields with double quotes when needed
-    SKIP_HEADER = 1                    -- Skips the header when reading the file
-    COMPRESSION = 'NONE';              -- Does not compress the CSV file
+    TYPE = 'CSV'                       -- Makes the file a CSV file
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"' -- Puts double quotes around a value when needed
+    SKIP_HEADER = 1                    -- Skips the header line when the file is read
+    COMPRESSION = 'NONE';              -- Keeps the file uncompressed
 
 
--- Displays the available file formats
+-- Shows all the file formats
 SHOW FILE FORMATS;
 
 
 -- ============================================================
 -- 7. CREATE INTERNAL STAGE
--- Creates a Snowflake internal stage to store exported CSV files
+-- Makes a stage to keep the exported CSV files
 -- ============================================================
 
 CREATE STAGE EMPLOYEE_EXPORT_STAGE
     FILE_FORMAT = EMPLOYEE_CSV_FORMAT;
 
 
--- Displays the available stages
+-- Shows all the stages
 SHOW STAGES;
 
 
--- Displays the configuration/details of the created stage
+-- Shows the details of this stage
 DESC STAGE EMPLOYEE_EXPORT_STAGE;
 
 
 -- ============================================================
 -- 8. CREATE STORED PROCEDURE
--- Creates the procedure that will export employee data to the stage
--- AWS Lambda will call this procedure
+-- Makes the procedure that writes the employee data into the stage
+-- AWS Lambda calls this procedure
 -- ============================================================
 
 CREATE OR REPLACE PROCEDURE EXPORT_EMPLOYEE_DATA()
@@ -122,13 +126,13 @@ AS
 $$
 BEGIN
 
-    -- Exports EMPLOYEE_DATA into the Snowflake internal stage as CSV
+    -- This writes the data into the stage as CSV
     COPY INTO @EMPLOYEE_EXPORT_STAGE
     FROM EMPLOYEE_DATA
     FILE_FORMAT = (FORMAT_NAME = 'EMPLOYEE_CSV_FORMAT')
     OVERWRITE = TRUE;
 
-    -- Returns a success message to Lambda
+    -- Sends a success message back to Lambda
     RETURN 'Employee data successfully exported to Snowflake stage';
 
 END;
@@ -140,9 +144,8 @@ $$;
 -- Who runs it : AWS Lambda
 -- Why         : Lambda is the only thing that should start this
 --               export. If you run the CALL yourself, the export
---               happens outside the pipeline, and when you press
---               Test in Lambda later you can no longer tell
---               whether Lambda really did the work.
+--               runs outside the pipeline, and later you cannot
+--               tell whether Lambda really did the work.
 -- ============================================================
 
 -- CALL EXPORT_EMPLOYEE_DATA();      <-- left commented out on purpose

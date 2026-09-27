@@ -1,38 +1,38 @@
 -- ============================================================
 -- 57) Snowflake -- Task-Based Scheduled Pipeline
--- Every SQL statement from the README, in the same order.
+-- All the SQL from the README, in the same order.
 -- Paste this whole file into a Snowflake worksheet and run it.
 --
--- Tasks run SQL on their own schedule. Notes on starting and
--- stopping them are written as comments next to the statements.
+-- A task runs SQL for you on a timer. Notes about starting and
+-- stopping tasks are written as comments next to the statements.
 -- ============================================================
 
 
 -- ============================================================
 -- 1. CREATE DATABASE
--- Creates a separate database for the task practice
+-- Makes one database for this practice
 -- ============================================================
 
 CREATE DATABASE SNOWFLAKE_TASK_PRACTICE;
 
--- Selects the database for the remaining operations
+-- Use this database from now on
 USE DATABASE SNOWFLAKE_TASK_PRACTICE;
 
 
 -- ============================================================
 -- 2. CREATE SCHEMA
--- Creates a schema to organize all project objects
+-- Makes a schema to hold all the objects
 -- ============================================================
 
 CREATE SCHEMA TASK_SCHEMA;
 
--- Selects the schema for the remaining operations
+-- Use this schema from now on
 USE SCHEMA TASK_SCHEMA;
 
 
 -- ============================================================
 -- 3. CREATE WAREHOUSE
--- Creates an XSMALL compute warehouse for this practice
+-- Makes a small warehouse to run the SQL
 -- ============================================================
 
 CREATE WAREHOUSE TASK_WH
@@ -40,13 +40,13 @@ CREATE WAREHOUSE TASK_WH
     AUTO_SUSPEND = 60
     AUTO_RESUME = TRUE;
 
--- Selects the warehouse used to run the tasks and queries
+-- Use this warehouse to run the tasks
 USE WAREHOUSE TASK_WH;
 
 
 -- ============================================================
 -- 4. CREATE SOURCE TABLE
--- Creates the table that holds the original employee data
+-- Makes the table that holds the employee data
 -- ============================================================
 
 CREATE TABLE EMPLOYEE_SOURCE (
@@ -56,10 +56,12 @@ CREATE TABLE EMPLOYEE_SOURCE (
     SALARY        NUMBER
 );
 
+SELECT * FROM EMPLOYEE_SOURCE;
+
 
 -- ============================================================
 -- 5. INSERT SAMPLE DATA
--- Inserts the starting employee rows into the source table
+-- Adds the first employee rows
 -- ============================================================
 
 INSERT INTO EMPLOYEE_SOURCE VALUES
@@ -69,13 +71,13 @@ INSERT INTO EMPLOYEE_SOURCE VALUES
 (8004, 'Sneha Joshi', 'IT', 78000),
 (8005, 'Vikas Kumar', 'Sales', 58000);
 
--- Verifies the employee data inserted into the table
+-- Checks the rows you just added
 SELECT * FROM EMPLOYEE_SOURCE;
 
 
 -- ============================================================
 -- 6. CREATE TARGET TABLE
--- Creates the table that will hold the changed data
+-- Makes the table that will hold the new rows
 -- ============================================================
 
 CREATE TABLE EMPLOYEE_TARGET (
@@ -87,10 +89,12 @@ CREATE TABLE EMPLOYEE_TARGET (
     LOAD_TIME       TIMESTAMP
 );
 
+SELECT * FROM EMPLOYEE_TARGET;
+
 
 -- ============================================================
 -- 7. CREATE THE FIRST TASK
--- The task runs this INSERT by itself every 1 minute
+-- The task does this INSERT for you, every 1 minute
 -- ============================================================
 
 CREATE TASK EMPLOYEE_LOAD_TASK
@@ -114,7 +118,7 @@ FROM EMPLOYEE_SOURCE;
 
 -- ============================================================
 -- 8. SHOW TASKS
--- Displays the task that was created
+-- Shows the task you made
 -- ============================================================
 
 SHOW TASKS;
@@ -122,8 +126,8 @@ SHOW TASKS;
 
 -- ============================================================
 -- 9. RESUME THE TASK
--- A new task starts suspended, so start it to let the
--- scheduler run it
+-- A new task starts stopped. Start it, so the timer
+-- can run it
 -- ============================================================
 
 ALTER TASK EMPLOYEE_LOAD_TASK RESUME;
@@ -131,7 +135,7 @@ ALTER TASK EMPLOYEE_LOAD_TASK RESUME;
 
 -- ============================================================
 -- 10. CHECK THE TARGET TABLE
--- Wait 1 to 2 minutes, then check the rows the task added
+-- Wait 1 or 2 minutes, then look at the new rows
 -- ============================================================
 
 SELECT * FROM EMPLOYEE_TARGET;
@@ -139,7 +143,7 @@ SELECT * FROM EMPLOYEE_TARGET;
 
 -- ============================================================
 -- 11. CHECK TASK HISTORY
--- Shows when the task ran and whether it finished fine
+-- Shows when the task ran and if it went fine
 -- ============================================================
 
 SELECT *
@@ -154,7 +158,7 @@ ORDER BY SCHEDULED_TIME DESC;
 
 -- ============================================================
 -- 12. SUSPEND THE TASK
--- Stops the task from starting new runs
+-- Stops the task, so it does not run again
 -- ============================================================
 
 ALTER TASK EMPLOYEE_LOAD_TASK SUSPEND;
@@ -162,7 +166,7 @@ ALTER TASK EMPLOYEE_LOAD_TASK SUSPEND;
 
 -- ============================================================
 -- 13. CREATE THE SUMMARY TABLE
--- Creates the table that will hold the department summary
+-- Makes the table for the department summary
 -- ============================================================
 
 CREATE TABLE DEPARTMENT_SUMMARY (
@@ -173,10 +177,12 @@ CREATE TABLE DEPARTMENT_SUMMARY (
     LOAD_TIME       TIMESTAMP
 );
 
+SELECT * FROM DEPARTMENT_SUMMARY;
+
 
 -- ============================================================
 -- 14. CREATE THE ROOT (PARENT) TASK
--- The parent task runs this INSERT by itself every 5 minutes
+-- The parent task does this INSERT for you, every 5 minutes
 -- ============================================================
 
 CREATE TASK EMPLOYEE_ROOT_TASK
@@ -200,8 +206,8 @@ FROM EMPLOYEE_SOURCE;
 
 -- ============================================================
 -- 15. CREATE THE CHILD TASK
--- AFTER EMPLOYEE_ROOT_TASK means: don't run this task on its
--- own. It runs after the parent task works.
+-- AFTER EMPLOYEE_ROOT_TASK means: this task does not run on
+-- its own. It runs after the parent task.
 -- ============================================================
 
 CREATE TASK DEPARTMENT_SUMMARY_TASK
@@ -221,15 +227,15 @@ GROUP BY DEPARTMENT;
 
 -- ============================================================
 -- 16. SUSPEND BOTH, THEN RESUME THE CHILD FIRST
--- In a chain of tasks you start the child task first and then
--- the parent task, because the parent controls the schedule
+-- In a chain, start the child task first, then the parent.
+-- The parent task holds the timer.
 -- ============================================================
 
--- Stops both tasks before starting the chain again
+-- Stop both tasks first
 ALTER TASK DEPARTMENT_SUMMARY_TASK SUSPEND;
 ALTER TASK EMPLOYEE_ROOT_TASK SUSPEND;
 
--- Start the child task first
+-- Start this one first
 ALTER TASK DEPARTMENT_SUMMARY_TASK RESUME;
 
 -- Then start the parent task
@@ -238,7 +244,7 @@ ALTER TASK EMPLOYEE_ROOT_TASK RESUME;
 
 -- ============================================================
 -- 17. SHOW TASKS
--- Shows the task graph (parent task and child task)
+-- Shows the parent task and the child task
 -- ============================================================
 
 SHOW TASKS;
@@ -246,7 +252,7 @@ SHOW TASKS;
 
 -- ============================================================
 -- 18. CHECK TASK HISTORY FOR ALL TASKS
--- Shows when each task ran and whether it finished fine
+-- Shows when each task ran and if it went fine
 -- ============================================================
 
 SELECT
@@ -266,7 +272,7 @@ ORDER BY SCHEDULED_TIME DESC;
 
 -- ============================================================
 -- 19. SUSPEND EVERYTHING
--- Stops both tasks from running again and again
+-- Stops both tasks, so they do not run again
 -- ============================================================
 
 ALTER TASK DEPARTMENT_SUMMARY_TASK SUSPEND;
@@ -276,10 +282,9 @@ ALTER TASK EMPLOYEE_ROOT_TASK SUSPEND;
 -- ============================================================
 -- 🚫 DO NOT RUN THE STATEMENT BELOW BY HAND
 -- Who runs it : the Snowflake task scheduler
--- Why         : The tasks above run this INSERT on their own
---               schedule. Running it by hand adds extra rows
---               to EMPLOYEE_TARGET that did not come from the
---               task.
+-- Why         : The tasks above run this INSERT for you, on a
+--               timer. If you run it by hand, you add rows to
+--               EMPLOYEE_TARGET that the timer did not add.
 -- ============================================================
 
 -- INSERT INTO EMPLOYEE_TARGET

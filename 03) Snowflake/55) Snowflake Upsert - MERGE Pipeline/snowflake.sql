@@ -1,38 +1,37 @@
 -- ============================================================
 -- 55) Snowflake — Upsert (MERGE) Pipeline
--- Every SQL statement from 00) README.md, in README order.
--- Paste this whole file into a Snowflake worksheet and run it
--- top to bottom.
--- MERGE means: if the row is already there, update it.
---              if the row is new, add it.
+-- All the SQL from 00) README.md, in README order.
+-- Paste the whole file into a Snowflake worksheet.
+-- Run it from top to bottom.
+-- MERGE means: old row, change it. New row, add it.
 -- ============================================================
 
 
 -- ============================================================
 -- 1. CREATE DATABASE   (README Step 1)
--- Creates a separate database for this MERGE practice project
+-- Makes a new database for this MERGE practice.
 -- ============================================================
 
 CREATE DATABASE SNOWFLAKE_MERGE_PRACTICE;
 
--- Selects the database for the remaining operations
+-- Use this database from now on.
 USE DATABASE SNOWFLAKE_MERGE_PRACTICE;
 
 
 -- ============================================================
 -- 2. CREATE SCHEMA   (README Step 2)
--- Creates a schema to organize all project objects
+-- Makes a schema to hold our tables.
 -- ============================================================
 
 CREATE SCHEMA MERGE_SCHEMA;
 
--- Selects the schema for the remaining operations
+-- Use this schema from now on.
 USE SCHEMA MERGE_SCHEMA;
 
 
 -- ============================================================
 -- 3. CREATE WAREHOUSE   (README Step 3)
--- Creates an XSMALL compute warehouse for this practice project
+-- Makes a small warehouse. It runs the SQL.
 -- ============================================================
 
 CREATE WAREHOUSE MERGE_WH
@@ -40,13 +39,13 @@ CREATE WAREHOUSE MERGE_WH
     AUTO_SUSPEND = 60
     AUTO_RESUME = TRUE;
 
--- Selects the warehouse used to execute queries
+-- Use this warehouse to run the SQL.
 USE WAREHOUSE MERGE_WH;
 
 
 -- ============================================================
 -- 4. CREATE TARGET TABLE   (README Step 4)
--- The table that already holds the data we have
+-- The table that already has our old rows.
 -- ============================================================
 
 CREATE TABLE EMPLOYEE_TARGET (
@@ -59,10 +58,12 @@ CREATE TABLE EMPLOYEE_TARGET (
     UPDATED_DATE  DATE
 );
 
+SELECT * FROM EMPLOYEE_TARGET;
+
 
 -- ============================================================
 -- 5. INSERT EXISTING DATA   (README Step 5)
--- Adds the three employees we already have
+-- Add the three employees we already have.
 -- ============================================================
 
 INSERT INTO EMPLOYEE_TARGET VALUES
@@ -70,13 +71,13 @@ INSERT INTO EMPLOYEE_TARGET VALUES
 (6002, 'Priya Patil', 'priya@example.com', 'HR', 'Pune', 62000, '2026-09-01'),
 (6003, 'Amit Verma', 'amit@example.com', 'Finance', 'Delhi', 95000, '2026-09-01');
 
--- Shows what the target table holds right now
+-- Show the rows in the target table now.
 SELECT * FROM EMPLOYEE_TARGET ORDER BY EMPLOYEE_ID;
 
 
 -- ============================================================
 -- 6. CREATE SOURCE TABLE   (README Step 6)
--- The table that holds the new data coming in
+-- The table that holds the new rows coming in.
 -- ============================================================
 
 CREATE TABLE EMPLOYEE_SOURCE (
@@ -88,11 +89,13 @@ CREATE TABLE EMPLOYEE_SOURCE (
     SALARY        NUMBER
 );
 
+SELECT * FROM EMPLOYEE_SOURCE;
+
 
 -- ============================================================
 -- 7. INSERT NEW INCOMING DATA   (README Step 7)
--- 6002 and 6003 already exist, so they will be updated.
--- 6004 and 6005 are new, so they will be added.
+-- 6002 and 6003 are already there. They get changed.
+-- 6004 and 6005 are new. They get added.
 -- ============================================================
 
 INSERT INTO EMPLOYEE_SOURCE VALUES
@@ -104,7 +107,7 @@ INSERT INTO EMPLOYEE_SOURCE VALUES
 
 -- ============================================================
 -- 8. CHECK THE SOURCE   (README Step 8)
--- Shows the new incoming data before the MERGE runs
+-- Show the new rows before the MERGE runs.
 -- ============================================================
 
 SELECT * FROM EMPLOYEE_SOURCE ORDER BY EMPLOYEE_ID;
@@ -113,8 +116,8 @@ SELECT * FROM EMPLOYEE_SOURCE ORDER BY EMPLOYEE_ID;
 -- ============================================================
 -- 9. RUN THE MERGE   (README Step 9)
 -- This is the main step.
--- EMPLOYEE_ID is the matching key.
--- If the row is already there, update it. If it is new, add it.
+-- EMPLOYEE_ID is the key we match on.
+-- Old row: change it. New row: add it.
 -- ============================================================
 
 MERGE INTO EMPLOYEE_TARGET AS TARGET
@@ -153,7 +156,7 @@ WHEN NOT MATCHED THEN
 
 -- ============================================================
 -- 10. CHECK THE TARGET   (README Step 10)
--- 6002 and 6003 should now be updated, and 6004 and 6005 added
+-- 6002 and 6003 are changed. 6004 and 6005 are added.
 -- ============================================================
 
 SELECT * FROM EMPLOYEE_TARGET ORDER BY EMPLOYEE_ID;
@@ -161,14 +164,10 @@ SELECT * FROM EMPLOYEE_TARGET ORDER BY EMPLOYEE_ID;
 
 -- ============================================================
 -- 11. TEST THE MERGE AGAIN   (README Step 13)
--- Adds one more employee to the source, runs the MERGE again,
--- and checks the target. The MERGE is the same statement as in
--- section 9 above, so run it once more from there.
+-- Add one more employee to the source table.
 -- ============================================================
 
 INSERT INTO EMPLOYEE_SOURCE VALUES
 (6006, 'Neha Singh', 'neha@example.com', 'IT', 'Mumbai', 88000);
 
--- Now run the same MERGE statement from section 9 again.
-
-SELECT * FROM EMPLOYEE_TARGET ORDER BY EMPLOYEE_ID;
+-- Run the MERGE again to see the same result

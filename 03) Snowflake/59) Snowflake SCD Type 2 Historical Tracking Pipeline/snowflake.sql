@@ -1,13 +1,13 @@
 -- ============================================================
 -- 59) Snowflake — SCD Type 2 Historical Tracking Pipeline
--- Every SQL statement from the README in one file.
--- Paste the whole file into a Snowflake worksheet and run it top to bottom.
+-- All the SQL from the README in one file.
+-- Paste this whole file into a Snowflake worksheet and run it from top to bottom.
 -- ============================================================
 
 
 -- ============================================================
 -- 1. CREATE DATABASE, SCHEMA AND WAREHOUSE
--- Creates the database, a schema to hold the tables, and the compute machine
+-- Makes the database, a schema to hold the tables, and the machine that runs the SQL
 -- ============================================================
 
 CREATE DATABASE SNOWFLAKE_SCD2_PRACTICE;
@@ -18,7 +18,7 @@ CREATE SCHEMA SCD2_SCHEMA;
 
 USE SCHEMA SCD2_SCHEMA;
 
--- Creates the warehouse and makes it active
+-- Makes the warehouse and turns it on
 CREATE WAREHOUSE SCD2_WH
     WAREHOUSE_SIZE = XSMALL;
 
@@ -27,7 +27,7 @@ USE WAREHOUSE SCD2_WH;
 
 -- ============================================================
 -- 2. CREATE THE SOURCE TABLE
--- Holds the current customer data. This is the input.
+-- Holds the customer data you have now. This is the input.
 -- ============================================================
 
 CREATE TABLE CUSTOMER_SOURCE (
@@ -37,19 +37,18 @@ CREATE TABLE CUSTOMER_SOURCE (
     SALARY        NUMBER
 );
 
+SELECT * FROM CUSTOMER_SOURCE;
+
 -- Adds the first three customers
 INSERT INTO CUSTOMER_SOURCE VALUES
 (1001, 'Rahul Sharma', 'Mumbai', 75000),
 (1002, 'Priya Patil', 'Pune', 62000),
 (1003, 'Amit Verma', 'Delhi', 58000);
 
--- Checks the rows in the source table
-SELECT * FROM CUSTOMER_SOURCE;
-
 
 -- ============================================================
 -- 3. CREATE THE SCD TYPE 2 TARGET TABLE
--- Keeps the history — every old version of a row is kept
+-- Keeps the history. Every old row is kept.
 -- ============================================================
 
 CREATE TABLE CUSTOMER_HISTORY (
@@ -62,10 +61,12 @@ CREATE TABLE CUSTOMER_HISTORY (
     IS_CURRENT    BOOLEAN
 );
 
+SELECT * FROM CUSTOMER_HISTORY;
+
 
 -- ============================================================
 -- 4. INITIAL LOAD
--- Loads the first version of every customer into the history table
+-- Loads the first version of each customer into the history table
 -- ============================================================
 
 INSERT INTO CUSTOMER_HISTORY
@@ -99,7 +100,7 @@ SELECT * FROM CUSTOMER_SOURCE WHERE CUSTOMER_ID = 1001;
 
 -- ============================================================
 -- 6. EXPIRE THE OLD RECORD
--- Close the old row by giving it an end date and turning IS_CURRENT off
+-- Close the old row. Give it an end date. Turn IS_CURRENT off.
 -- ============================================================
 
 UPDATE CUSTOMER_HISTORY

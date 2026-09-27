@@ -1,37 +1,37 @@
 -- ============================================================
 -- 54) Snowflake — SQL Transformation Pipeline
--- Every SQL statement from the README, in the same order.
+-- All the SQL from the README, in the same order.
 -- Paste this whole file into a Snowflake worksheet and run it.
 -- ============================================================
 
 
 -- ============================================================
 -- 1. CREATE DATABASE
--- Creates a separate database for the SQL transformation practice
+-- Makes a new database for this practice
 -- ============================================================
 
 CREATE DATABASE SNOWFLAKE_TRANSFORMATION_PRACTICE;
 
 
--- Selects the database for the remaining operations
+-- Picks the database for the next steps
 USE DATABASE SNOWFLAKE_TRANSFORMATION_PRACTICE;
 
 
 -- ============================================================
 -- 2. CREATE SCHEMA
--- Creates a schema to organize all project objects
+-- Makes a schema to keep the tables together
 -- ============================================================
 
 CREATE SCHEMA TRANSFORMATION_SCHEMA;
 
 
--- Selects the schema for the remaining operations
+-- Picks the schema for the next steps
 USE SCHEMA TRANSFORMATION_SCHEMA;
 
 
 -- ============================================================
 -- 3. CREATE WAREHOUSE
--- Creates an XSMALL compute warehouse for this practice project
+-- Makes a small warehouse to run the queries
 -- ============================================================
 
 CREATE WAREHOUSE TRANSFORMATION_WH
@@ -40,13 +40,13 @@ CREATE WAREHOUSE TRANSFORMATION_WH
     AUTO_RESUME = TRUE;
 
 
--- Selects the warehouse used to run the queries
+-- Picks the warehouse that runs the queries
 USE WAREHOUSE TRANSFORMATION_WH;
 
 
 -- ============================================================
 -- 4. CREATE RAW EMPLOYEE TABLE
--- Creates the source table that holds the data as it came in
+-- Makes the source table. It holds the data as it came in
 -- ============================================================
 
 CREATE TABLE RAW_EMPLOYEE (
@@ -59,10 +59,12 @@ CREATE TABLE RAW_EMPLOYEE (
     SALARY        NUMBER
 );
 
+SELECT * FROM RAW_EMPLOYEE;
+
 
 -- ============================================================
 -- 5. INSERT SAMPLE DATA
--- Inserts the sample employee rows into the raw table
+-- Puts the sample rows into the raw table
 -- ============================================================
 
 INSERT INTO RAW_EMPLOYEE VALUES
@@ -82,12 +84,12 @@ SELECT * FROM RAW_EMPLOYEE;
 
 -- ============================================================
 -- 6. BASIC TRANSFORMATION
--- Makes a new table with the data changed:
--- name in capitals, email in small letters, salary + 10%
--- and a salary category
+-- Makes a new table with changed data:
+-- names in capital letters, emails in small letters,
+-- salary plus 10%, and a salary group name
 -- ============================================================
 
--- The table TRANSFORMED_EMPLOYEE must not already exist, or this fails
+-- This fails if the table is already there
 CREATE TABLE TRANSFORMED_EMPLOYEE AS
 SELECT
     EMPLOYEE_ID,
@@ -115,11 +117,11 @@ SELECT * FROM TRANSFORMED_EMPLOYEE;
 
 
 -- ============================================================
--- 8. PRACTICE WHERE
--- Makes a new table that holds only the IT employees
+-- 8. CREATE IT EMPLOYEES TABLE
+-- Makes a new table with only the IT employees
 -- ============================================================
 
--- The table IT_EMPLOYEES must not already exist, or this fails
+-- This fails if the table is already there
 CREATE TABLE IT_EMPLOYEES AS
 SELECT
     EMPLOYEE_ID,
@@ -136,28 +138,11 @@ SELECT * FROM IT_EMPLOYEES;
 
 
 -- ============================================================
--- 9. PRACTICE AGGREGATION
--- Works out the totals and averages for each department
--- ============================================================
-
-SELECT
-    DEPARTMENT,
-    COUNT(*)     AS EMPLOYEE_COUNT,
-    SUM(SALARY)  AS TOTAL_SALARY,
-    AVG(SALARY)  AS AVERAGE_SALARY,
-    MIN(SALARY)  AS MIN_SALARY,
-    MAX(SALARY)  AS MAX_SALARY
-FROM RAW_EMPLOYEE
-GROUP BY DEPARTMENT
-ORDER BY DEPARTMENT;
-
-
--- ============================================================
 -- 10. CREATE DEPARTMENT SUMMARY TABLE
 -- Saves the department totals in a table
 -- ============================================================
 
--- The table DEPARTMENT_SUMMARY must not already exist, or this fails
+-- This fails if the table is already there
 CREATE TABLE DEPARTMENT_SUMMARY AS
 SELECT
     DEPARTMENT,
@@ -172,47 +157,3 @@ GROUP BY DEPARTMENT;
 
 -- Shows the rows in the summary table
 SELECT * FROM DEPARTMENT_SUMMARY;
-
-
--- ============================================================
--- 11. PRACTICE DATE TRANSFORMATION
--- Works out how many years each employee has worked here
--- ============================================================
-
-SELECT
-    EMPLOYEE_ID,
-    EMPLOYEE_NAME,
-    JOINING_DATE,
-    DATEDIFF(YEAR, JOINING_DATE, CURRENT_DATE()) AS YEARS_WITH_COMPANY
-FROM RAW_EMPLOYEE;
-
-
--- ============================================================
--- 12. PRACTICE STRING TRANSFORMATION
--- Shows the name in capitals, in small letters, and its length
--- ============================================================
-
-SELECT
-    EMPLOYEE_NAME,
-    UPPER(EMPLOYEE_NAME) AS UPPER_NAME,
-    LOWER(EMPLOYEE_NAME) AS LOWER_NAME,
-    LENGTH(EMPLOYEE_NAME) AS NAME_LENGTH
-FROM RAW_EMPLOYEE;
-
-
--- ============================================================
--- 13. PRACTICE CONDITIONAL TRANSFORMATION
--- Gives each employee a salary grade from A to D
--- ============================================================
-
-SELECT
-    EMPLOYEE_ID,
-    EMPLOYEE_NAME,
-    SALARY,
-    CASE
-        WHEN SALARY >= 100000 THEN 'A'
-        WHEN SALARY >= 70000  THEN 'B'
-        WHEN SALARY >= 50000  THEN 'C'
-        ELSE 'D'
-    END AS SALARY_GRADE
-FROM RAW_EMPLOYEE;

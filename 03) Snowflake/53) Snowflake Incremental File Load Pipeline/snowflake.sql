@@ -1,10 +1,10 @@
 -- ============================================================
 -- SNOWFLAKE INCREMENTAL FILE LOAD PIPELINE
--- Every SQL statement for this pipeline, in README order.
+-- All the SQL for this pipeline, in README order.
 --
--- How it works: upload one CSV file to the stage, run COPY INTO,
--- then do the same with the next file. Snowflake remembers the
--- files it has already loaded, so it only picks up the new ones.
+-- How it works: upload one CSV file to the stage, then run COPY INTO.
+-- Then do the same with the next file. Snowflake remembers the files
+-- it already loaded, so it only loads the new ones.
 --
 -- Run the statements from top to bottom in a Snowflake worksheet.
 -- ============================================================
@@ -12,23 +12,23 @@
 
 -- ============================================================
 -- 1. CREATE THE DATABASE
--- Makes a separate database for this practice project
+-- Makes a database for this practice project
 -- ============================================================
 
 CREATE DATABASE SNOWFLAKE_INCREMENTAL_PRACTICE;
 
--- Selects the database for the rest of the work
+-- Tells Snowflake which database to use
 USE DATABASE SNOWFLAKE_INCREMENTAL_PRACTICE;
 
 
 -- ============================================================
 -- 2. CREATE THE SCHEMA
--- Makes a folder inside the database to keep the objects tidy
+-- Makes a folder inside the database to keep things tidy
 -- ============================================================
 
 CREATE SCHEMA INCREMENTAL_SCHEMA;
 
--- Selects the schema for the rest of the work
+-- Tells Snowflake which schema to use
 USE SCHEMA INCREMENTAL_SCHEMA;
 
 
@@ -42,13 +42,13 @@ CREATE WAREHOUSE INCREMENTAL_WH
     AUTO_SUSPEND = 60
     AUTO_RESUME = TRUE;
 
--- Selects the machine used to run the queries
+-- Tells Snowflake which machine to use
 USE WAREHOUSE INCREMENTAL_WH;
 
 
 -- ============================================================
 -- 4. CREATE THE TABLE
--- Makes the table that will collect the sales rows
+-- Makes the table that will hold the sales rows
 -- ============================================================
 
 CREATE TABLE SALES (
@@ -60,7 +60,9 @@ CREATE TABLE SALES (
     AMOUNT     NUMBER
 );
 
--- Shows the table columns
+SELECT * FROM SALES;
+
+-- Shows the columns of the table
 DESC TABLE SALES;
 
 
@@ -79,7 +81,7 @@ CREATE FILE FORMAT SALES_CSV_FORMAT
 
 -- ============================================================
 -- 6. CREATE THE STAGE
--- Makes the landing spot where the CSV files are uploaded
+-- Makes the place where the CSV files are uploaded
 -- ============================================================
 
 CREATE STAGE SALES_STAGE
@@ -91,7 +93,7 @@ SHOW STAGES;
 
 -- ============================================================
 -- 7. CHECK THE STAGE AFTER UPLOADING THE FIRST FILE
--- Upload sales_01_initial.csv to SALES_STAGE first, then run this
+-- Upload sales_01_initial.csv to SALES_STAGE first. Then run this
 -- ============================================================
 
 LIST @SALES_STAGE;
@@ -99,7 +101,7 @@ LIST @SALES_STAGE;
 
 -- ============================================================
 -- 8. LOAD THE FIRST FILE
--- Loads sales_01_initial.csv, so the table now holds 3 rows
+-- This loads sales_01_initial.csv. The table now has 3 rows
 -- ============================================================
 
 COPY INTO SALES
@@ -114,8 +116,8 @@ SELECT COUNT(*) FROM SALES;
 
 -- ============================================================
 -- 9. CHECK THE STAGE AFTER UPLOADING THE SECOND FILE
--- Do NOT delete the first file. Upload sales_02_incremental.csv
--- next to it, then run this
+-- Do not delete the first file. Upload sales_02_incremental.csv
+-- next to it. Then run this
 -- ============================================================
 
 LIST @SALES_STAGE;
@@ -127,15 +129,15 @@ LIST @SALES_STAGE;
 -- ============================================================
 
 -- Same command as Step 8.
--- Snowflake remembers the files it has already loaded, so
--- sales_01_initial.csv is skipped and only the new file is loaded.
--- Run this same COPY INTO a second time and it loads 0 new rows.
--- (To load a file you have already loaded on purpose, you would need
---  FORCE = TRUE. This pipeline does not use it.)
+-- Snowflake remembers the files it already loaded, so it skips
+-- sales_01_initial.csv and loads only the new file.
+-- Run this same COPY INTO again and it loads 0 new rows.
+-- (To load the same file again on purpose you would need FORCE = TRUE.
+--  This pipeline does not use it.)
 COPY INTO SALES
 FROM @SALES_STAGE;
 
--- Counts the rows. You should get 6, not 3 and not 9
+-- Counts the rows. You should get 6. Not 3 and not 9
 SELECT COUNT(*) FROM SALES;
 
 
@@ -149,7 +151,7 @@ SELECT * FROM SALES ORDER BY ORDER_ID;
 
 -- ============================================================
 -- 12. LOAD THE THIRD FILE
--- Upload sales_03_incremental.csv to the stage, then run the
+-- Upload sales_03_incremental.csv to the stage. Then run the
 -- same COPY INTO once more. Only the new file is loaded
 -- ============================================================
 
@@ -163,7 +165,7 @@ SELECT COUNT(*) FROM SALES;
 -- ============================================================
 -- 13. SEE WHICH FILES WERE LOADED
 -- Shows the name, status and row count of every file Snowflake
--- has loaded into this table in the last day
+-- loaded into this table in the last day
 -- ============================================================
 
 SELECT
@@ -182,9 +184,9 @@ ORDER BY LAST_LOAD_TIME;
 
 -- ============================================================
 -- 14. THE KEY CONCEPT
--- The README shows the same command one more time to make the
--- point clear: Snowflake skips a file it has already loaded,
--- so this run adds nothing new
+-- The README runs the same command one more time to prove the point:
+-- Snowflake skips a file it already loaded, so this run adds
+-- nothing new
 -- ============================================================
 
 COPY INTO SALES

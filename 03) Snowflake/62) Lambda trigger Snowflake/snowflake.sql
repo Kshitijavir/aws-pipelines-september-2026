@@ -136,11 +136,14 @@ $$;
 
 
 -- ============================================================
--- IMPORTANT
--- DO NOT RUN CALL EXPORT_EMPLOYEE_DATA() HERE.
---
--- AWS Lambda will execute the Stored Procedure.
---
--- Lambda code:
--- cursor.execute("CALL EXPORT_EMPLOYEE_DATA()")
+-- 🚫 DO NOT RUN THE STATEMENT BELOW BY HAND
+-- Who runs it : AWS Lambda
+-- Why         : Lambda is the only thing that should start this
+--               export. If you run the CALL yourself, the export
+--               happens outside the pipeline, and when you press
+--               Test in Lambda later you can no longer tell
+--               whether Lambda really did the work.
 -- ============================================================
+
+-- CALL EXPORT_EMPLOYEE_DATA();      <-- left commented out on purpose
+-- Lambda runs it with: cursor.execute("CALL EXPORT_EMPLOYEE_DATA()")

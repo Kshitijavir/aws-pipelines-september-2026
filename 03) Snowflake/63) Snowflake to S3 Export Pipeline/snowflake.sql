@@ -188,11 +188,14 @@ $$;
 
 
 -- ============================================================
--- IMPORTANT
--- DO NOT RUN CALL EXPORT_STAFF_TO_S3() HERE.
---
--- AWS Lambda will execute the Stored Procedure.
---
--- Lambda code:
--- cursor.execute("CALL EXPORT_STAFF_TO_S3()")
+-- 🚫 DO NOT RUN THE STATEMENT BELOW BY HAND
+-- Who runs it : AWS Lambda — function snowflake-s3-export-lambda
+-- Why         : Lambda is the thing that is supposed to start the export.
+--               This procedure writes staff_data.csv to S3, so running the
+--               CALL yourself will export the file outside the pipeline.
+--               Later, when you press Test in Lambda, you can no longer tell
+--               whether Lambda really did the work.
 -- ============================================================
+
+-- CALL EXPORT_STAFF_TO_S3();      <-- left commented out on purpose
+-- Lambda runs it with: cursor.execute("CALL EXPORT_STAFF_TO_S3()")

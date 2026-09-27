@@ -13,7 +13,7 @@ df = spark.read.csv(
     inferSchema=True
 )
 
-df.show(truncate=False)
+display(df)
 df.printSchema()
 
 df.write.mode("overwrite").parquet(

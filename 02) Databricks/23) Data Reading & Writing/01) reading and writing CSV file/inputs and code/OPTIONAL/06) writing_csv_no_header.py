@@ -12,7 +12,7 @@ df = spark.read.csv(
 
 df = df.toDF("employee_id", "name", "department", "salary")
 
-df.show()
+display(df)
 df.printSchema()
 
 df.write.mode("overwrite").parquet(

@@ -8,7 +8,7 @@ df = spark.read.json(
     "/Volumes/workspace/default/json_volume/input/employees_single_line_array.json"
 )
 
-df.show()
+display(df)
 df.printSchema()
 
 df.write.mode("overwrite").parquet(

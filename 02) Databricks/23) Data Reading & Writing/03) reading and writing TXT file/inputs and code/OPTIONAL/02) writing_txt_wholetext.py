@@ -6,7 +6,7 @@ spark = SparkSession.builder.appName("TXT Whole Text Write Practice").getOrCreat
 
 df = spark.read.text("/Volumes/workspace/default/txt_volume/input/employees.txt")
 
-df.show(truncate=False)
+display(df)
 df.printSchema()
 
 df.write.mode("overwrite").parquet(

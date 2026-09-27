@@ -6,7 +6,7 @@ spark = SparkSession.builder.appName("PARQUET Folder Write Practice").getOrCreat
 
 df = spark.read.parquet("/Volumes/workspace/default/parquet_volume/input/table.parquet")
 
-df.show()
+display(df)
 df.printSchema()
 
 df.write.mode("overwrite").parquet(

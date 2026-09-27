@@ -4,19 +4,19 @@
 
 | File | What It Is |
 | ---- | ---------- |
-| [lambda_function.py](lambda_function.py) | AWS Lambda handler — connects to Snowflake, calls the stored procedure, checks the stage, logs to CloudWatch |
-| [snowflake.sql](snowflake.sql) | All Snowflake objects — database, schema, warehouse, table, file format, internal stage and stored procedure |
-| [trust_policy.json](trust_policy.json) | IAM trust policy — lets `lambda.amazonaws.com` assume the role |
+| [lambda_function.py](lambda_function.py) | The function AWS calls first. It connects to Snowflake, runs the saved procedure, checks the landing spot, and writes logs to CloudWatch |
+| [snowflake.sql](snowflake.sql) | All the Snowflake objects — database, schema, warehouse, table, file format, landing spot and saved procedure |
+| [trust_policy.json](trust_policy.json) | IAM trust policy — a role is a set of permissions that AWS gives to something that needs to do work. This file lets `lambda.amazonaws.com` use the role |
 
 ## 🎯 Goal
 
-> 📌 **Use AWS Lambda as an external trigger/orchestrator to call a Snowflake Stored Procedure, and let the Stored Procedure export data from a Snowflake table into a Snowflake internal stage as CSV files. Lambda then verifies the operation and writes a clear execution log to CloudWatch.**
+> 📌 **Use AWS Lambda to start the job. Lambda calls a saved list of SQL steps inside Snowflake. This is called a stored procedure. You run it with one command. The procedure exports data from a Snowflake table into a landing spot for files inside Snowflake. The files are CSV. Lambda then checks the job and writes a clear log to CloudWatch. CloudWatch is where AWS keeps the log of what your code printed.**
 
 ---
 
 ## 🧭 1. The Complete Picture
 
-Our pipeline is:
+Our pipeline is this:
 
 ```text
                     AWS
@@ -60,7 +60,7 @@ Our pipeline is:
 
 ## 💡 2. First Understand the Business Idea
 
-Imagine you have a company data warehouse.
+Imagine your company has a data warehouse.
 
 Snowflake contains:
 
@@ -88,16 +88,16 @@ For example:
 105 | Priya   | Cloud Engineering| Hyderabad  | 1050000
 ```
 
-Now imagine another downstream process needs this data as a **CSV file**.
+Now imagine another process needs this data as a **CSV file**.
 
-Instead of manually going into Snowflake and running:
+Instead of going into Snowflake by hand and running:
 
 ```sql
 COPY INTO @EMPLOYEE_EXPORT_STAGE
 FROM EMPLOYEE_DATA;
 ```
 
-we want AWS Lambda to trigger that process.
+we want AWS Lambda to start that job.
 
 So:
 
@@ -107,17 +107,17 @@ Lambda
 "Snowflake, please export this data."
 ```
 
-Snowflake does the actual export.
+Snowflake does the real export.
 
 ---
 
 ## ⚡ 3. Why Do We Use Lambda?
 
-Lambda is acting as the **external orchestrator/trigger**.
+Lambda is the thing outside Snowflake that starts the job.
 
-Lambda itself doesn't need to know how to export the data.
+Lambda does not need to know how to export the data.
 
-It simply says:
+It only says:
 
 ```sql
 CALL EXPORT_EMPLOYEE_DATA();
@@ -137,13 +137,13 @@ Think of Lambda as a person pressing a button:
              Data Export
 ```
 
-This is an important Data Engineering concept.
+This is an important idea in data engineering.
 
 ### 🧩 The Three Roles
 
-- **Lambda** = orchestration / trigger
-- **Snowflake SP** = database-side processing
-- **Snowflake Stage** = destination for the exported file
+- **Lambda** = the thing that starts the job
+- **Snowflake SP** = the work done inside the database
+- **Snowflake Stage** = where the exported file lands
 
 ---
 
@@ -157,7 +157,7 @@ FROM EMPLOYEE_DATA
 ...
 ```
 
-we put the logic inside Snowflake.
+we keep the steps inside Snowflake.
 
 Our procedure is:
 
@@ -165,7 +165,7 @@ Our procedure is:
 CREATE OR REPLACE PROCEDURE EXPORT_EMPLOYEE_DATA()
 ```
 
-and internally:
+and inside it:
 
 ```sql
 COPY INTO @EMPLOYEE_EXPORT_STAGE
@@ -174,13 +174,13 @@ FILE_FORMAT = (FORMAT_NAME = 'EMPLOYEE_CSV_FORMAT')
 OVERWRITE = TRUE;
 ```
 
-So Lambda only knows:
+So Lambda only knows one line:
 
 ```sql
 CALL EXPORT_EMPLOYEE_DATA();
 ```
 
-This gives us separation of responsibilities.
+This keeps the two jobs apart.
 
 ```text
 Lambda
@@ -207,7 +207,7 @@ Our source is:
 EMPLOYEE_DATA
 ```
 
-This is where the data currently lives.
+This is where the data lives now.
 
 Think:
 
@@ -248,13 +248,13 @@ EMPLOYEE_ID,EMPLOYEE_NAME,DEPARTMENT,CITY,SALARY
 103,Amit,Data Analytics,Bangalore,900000
 ```
 
-The file format controls **how the data is represented in the file**.
+The file format controls **how the data looks inside the file**.
 
 ---
 
 ## 🪣 7. What Is the Snowflake Stage?
 
-This is extremely important.
+This part is very important.
 
 We created:
 
@@ -263,9 +263,9 @@ CREATE STAGE EMPLOYEE_EXPORT_STAGE
     FILE_FORMAT = EMPLOYEE_CSV_FORMAT;
 ```
 
-The stage is a **Snowflake-managed storage location**.
+The stage is a storage place that Snowflake manages.
 
-We're using an **internal stage**.
+We use an **internal stage**. This is a landing spot for files inside Snowflake.
 
 So conceptually:
 
@@ -283,13 +283,13 @@ Snowflake
           └── CSV
 ```
 
-The stage is where the exported file is placed.
+The stage is where the exported file goes.
 
 ---
 
 ## 📤 8. What Does `COPY INTO` Actually Do?
 
-This is the heart of the pipeline.
+This is the main step of the pipeline.
 
 We have:
 
@@ -316,13 +316,13 @@ means:
 
 means:
 
-> Export/copy that data into a file.
+> Copy that data into a file.
 
 ### 🔹 `@EMPLOYEE_EXPORT_STAGE`
 
 means:
 
-> Put the generated file into this Snowflake stage.
+> Put the new file into this Snowflake stage.
 
 ### 🔹 `FILE_FORMAT`
 
@@ -347,11 +347,11 @@ employee_data_....csv
 
 ## 🐍 9. What Exactly Is Lambda Doing?
 
-Lambda performs several steps.
+Lambda does a few steps.
 
 ### 🔌 Step 1 — Connect
 
-Lambda establishes a connection to Snowflake using:
+Lambda opens a connection to Snowflake using:
 
 ```python
 snowflake.connector.connect(...)
@@ -392,7 +392,7 @@ Source Row Count : 5
 
 Why?
 
-Because we want basic validation.
+Because we want a simple check.
 
 We know:
 
@@ -412,7 +412,7 @@ cursor.execute(
 )
 ```
 
-This is the key integration.
+This is the key link.
 
 The call travels:
 
@@ -431,7 +431,7 @@ EXPORT_EMPLOYEE_DATA()
 
 ## ⚙️ 10. What Happens Inside the SP?
 
-The SP runs:
+The saved procedure runs:
 
 ```sql
 COPY INTO @EMPLOYEE_EXPORT_STAGE
@@ -439,7 +439,7 @@ FROM EMPLOYEE_DATA
 ...
 ```
 
-Therefore:
+So:
 
 ```text
 EMPLOYEE_DATA
@@ -457,9 +457,9 @@ CSV file
 
 The important point:
 
-> **Lambda does not move the employee data itself. Snowflake performs the data export.**
+> **Lambda does not move the employee data. Snowflake does the export.**
 
-This is why we're practicing the Stored Procedure concept.
+A stored procedure is a saved list of SQL steps inside Snowflake. You run it with one command. That is the idea we practice here.
 
 ---
 
@@ -467,7 +467,7 @@ This is why we're practicing the Stored Procedure concept.
 
 This is a good interview question.
 
-Suppose tomorrow the export logic becomes:
+Suppose the export steps grow tomorrow:
 
 ```text
 1. Validate data
@@ -479,7 +479,7 @@ Suppose tomorrow the export logic becomes:
 7. Return status
 ```
 
-You don't want all that SQL/business logic inside Python Lambda.
+You do not want all that SQL inside the Python Lambda.
 
 Instead:
 
@@ -497,7 +497,7 @@ Stored Procedure
    └── Status
 ```
 
-Lambda remains simple.
+Lambda stays simple.
 
 ---
 
@@ -517,7 +517,7 @@ LIST @EMPLOYEE_EXPORT_STAGE;
 
 This asks Snowflake:
 
-> "Show me the files currently present in this stage."
+> "Show me the files in this stage right now."
 
 For example:
 
@@ -534,7 +534,7 @@ File Name      : employee_data_0_0_0.csv
 File Size      : 342 bytes
 ```
 
-So we're doing a basic verification:
+So we do a simple check:
 
 ```text
 SP SUCCESS
@@ -553,7 +553,7 @@ Pipeline SUCCESS
 
 ## 🎓 13. Why Is This a Useful Data Engineering Practice?
 
-Because it combines several real-world concepts:
+Because it uses many ideas from real work:
 
 ### ☁️ AWS
 
@@ -594,7 +594,7 @@ Execution time
 Stage verification
 ```
 
-That's actually a very useful combination for your AWS Data Engineer practice.
+That is a useful mix of skills for AWS data engineering practice.
 
 ---
 
@@ -606,9 +606,9 @@ If an interviewer asks:
 
 You can say:
 
-> "I created a Snowflake-based export pipeline where AWS Lambda acts as the external orchestrator. Lambda connects to Snowflake using the Snowflake Python Connector and calls a Snowflake Stored Procedure. The Stored Procedure executes a `COPY INTO` command to export data from the `EMPLOYEE_DATA` table into a Snowflake internal stage in CSV format. After the procedure completes, Lambda verifies the stage using `LIST`, captures information such as the exported file and execution status, and writes structured logs to CloudWatch. Error handling is implemented in Lambda so connection, procedure, or export failures are logged and returned as a failed execution."
+> "I built an export pipeline in Snowflake. AWS Lambda starts the job. Lambda connects to Snowflake with the Snowflake Python Connector. Then it calls a saved procedure inside Snowflake. The procedure runs a `COPY INTO` command. It exports data from the `EMPLOYEE_DATA` table into a landing spot inside Snowflake. The file is CSV. After the procedure ends, Lambda checks the landing spot with `LIST`. It reads the file name and the status. Then it writes the log to CloudWatch. Lambda also handles errors. If the connection, the procedure, or the export fails, Lambda logs the error and returns a failed run."
 
-That's a strong explanation.
+That is a strong answer.
 
 ---
 
@@ -699,16 +699,16 @@ Snowflake SP successfully exported data to the stage.
 ======================================================================
 ```
 
-So the **core purpose** is simply:
+So the **main job** is simple:
 
-> **Lambda triggers Snowflake → Snowflake performs the export → Stage stores the CSV → Lambda verifies it → CloudWatch records the result.**
+> **Lambda starts Snowflake → Snowflake does the export → the stage holds the CSV → Lambda checks it → CloudWatch keeps the result.**
 
-And the most important architectural separation to remember is:
+And here is the most important split to remember:
 
 | Piece | Role |
 | ----- | ---- |
-| **Lambda** | trigger / orchestration |
-| **Stored Procedure** | Snowflake-side logic |
-| **COPY INTO** | export operation |
-| **Internal Stage** | exported-file destination |
-| **CloudWatch** | monitoring / logging |
+| **Lambda** | starts the job |
+| **Stored Procedure** | the work inside Snowflake |
+| **COPY INTO** | the export step |
+| **Internal Stage** | where the exported file lands |
+| **CloudWatch** | the record of what happened |

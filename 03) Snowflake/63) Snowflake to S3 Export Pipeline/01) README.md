@@ -6,15 +6,15 @@
 
 | File | What It Is |
 | ---- | ---------- |
-| [01) README.md](01%29%20README.md) | This explanation |
-| [snowflake.sql](snowflake.sql) | All Snowflake objects — database, schema, warehouse, table, file format, storage integration, external stage and stored procedure |
-| [lambda_function.py](lambda_function.py) | AWS Lambda handler — connects to Snowflake, calls the stored procedure, verifies the file in S3 and logs to CloudWatch |
-| [trust_policy_lambda_role.json](trust_policy_lambda_role.json) | Trust policy for `SnowflakeS3ExportPracticeRole` — lets `lambda.amazonaws.com` assume the role |
-| [trust_policy_snowflake_role.json](trust_policy_snowflake_role.json) | Trust policy for `SnowflakeS3ExportSnowflakeRole` — lets Snowflake's IAM identity assume the role |
+| [01) README.md](01%29%20README.md) | This guide |
+| [snowflake.sql](snowflake.sql) | All the Snowflake objects — database, schema, warehouse (the machine that runs SQL), table, file format, storage integration, external stage and stored procedure |
+| [lambda_function.py](lambda_function.py) | The function AWS calls first — it connects to Snowflake, runs the stored procedure, checks the file in S3 and writes logs to CloudWatch |
+| [trust_policy_lambda_role.json](trust_policy_lambda_role.json) | The rule that says who can use `SnowflakeS3ExportPracticeRole` — it lets `lambda.amazonaws.com` use the role |
+| [trust_policy_snowflake_role.json](trust_policy_snowflake_role.json) | The rule that says who can use `SnowflakeS3ExportSnowflakeRole` — it lets Snowflake's IAM identity use the role |
 
 ## 🎯 Goal
 
-> 📌 **AWS Lambda triggers a Snowflake Stored Procedure. The procedure unloads `STAFF_DATA` with `COPY INTO` through a storage integration and an external stage, landing the data in Amazon S3 as a single named CSV file — `staff_data.csv`. Lambda then verifies the file with `LIST` and writes a structured execution log to CloudWatch.**
+> 📌 **AWS Lambda starts a stored procedure in Snowflake. The procedure unloads `STAFF_DATA` with `COPY INTO`. It writes through a storage integration and an external stage. The data lands in Amazon S3 as one named CSV file — `staff_data.csv`. Lambda then checks the file with `LIST` and writes a clear log to CloudWatch.**
 
 | Item | Value |
 | ---- | ----- |
@@ -59,9 +59,9 @@ STAFF_ID | STAFF_NAME | DEPARTMENT       | CITY      | SALARY
 205      | Priya      | Cloud Engineering| Hyderabad | 1050000
 ```
 
-A downstream process needs this data as a **CSV file in Amazon S3**.
+Another process needs this data as a **CSV file in Amazon S3**.
 
-Instead of a person logging into Snowflake and running `COPY INTO` by hand, we let **AWS Lambda** trigger the export:
+Nobody logs in by hand to run `COPY INTO`. Instead, we let **AWS Lambda** start the export:
 
 ```text
 Lambda
@@ -71,10 +71,10 @@ Lambda
 Snowflake does the export
 ```
 
-This is the same idea as pipeline **62**, with one important upgrade: the file does not stop inside Snowflake — it lands in **Amazon S3**.
+This is the same idea as pipeline **62**. But there is one big change. The file does not stop inside Snowflake. It lands in **Amazon S3**.
 
-| Pipeline | Destination of the exported file |
-| -------- | -------------------------------- |
+| Pipeline | Where the exported file goes |
+| -------- | ---------------------------- |
 | 52 | Table → **Internal Stage** → CSV |
 | 62 | Lambda → SP → **Internal Stage** → CSV |
 | **63** | Lambda → SP → **External Stage → S3** → CSV |
@@ -83,7 +83,7 @@ This is the same idea as pipeline **62**, with one important upgrade: the file d
 
 ## ⚡ 3. Why Do We Use Lambda?
 
-Lambda is only the **external trigger / orchestrator**. It does not move the data itself.
+Lambda is only the **outside trigger — the thing that starts the job**. It does not move the data itself.
 
 ```text
 Lambda
@@ -97,18 +97,18 @@ Data export
 
 ### 🧩 The Four Roles
 
-| Component | Responsibility |
-| --------- | -------------- |
-| **Lambda** | Orchestration / trigger / verification / logging |
-| **Stored Procedure** | Database-side export logic |
-| **External Stage** | Named S3 location that Snowflake writes to |
-| **Storage Integration** | Trust between Snowflake and the IAM role — no access keys |
+| Component | What it does |
+| --------- | ------------ |
+| **Lambda** | Starts the job / checks the file / writes logs |
+| **Stored Procedure** | Runs the export inside Snowflake |
+| **External Stage** | A named S3 folder that Snowflake writes to |
+| **Storage Integration** | The trust between Snowflake and the AWS role — no access keys |
 
 ---
 
 ## 📦 4. Why Use a Stored Procedure?
 
-Instead of embedding SQL inside Python, the export logic lives in Snowflake:
+The export logic lives in Snowflake, not inside Python:
 
 ```sql
 CREATE OR REPLACE PROCEDURE EXPORT_STAFF_TO_S3()
@@ -125,7 +125,7 @@ SINGLE = TRUE
 OVERWRITE = TRUE;
 ```
 
-So Lambda only ever needs to know:
+So Lambda only needs to know one line:
 
 ```sql
 CALL EXPORT_STAFF_TO_S3();
@@ -142,13 +142,13 @@ Lambda                Stored Procedure
 
 ## 🔐 5. Why Do We Need TWO IAM Roles?
 
-**This is the most important concept in the pipeline.**
+**This is the most important idea in the pipeline.**
 
-There are two different AWS identities that need to assume a role, and their **trust relationships are different** — so they cannot be the same role.
+Two different AWS identities need to use a role. Their **trust rules are different**. So they cannot be the same role.
 
 ### Role 1 — `SnowflakeS3ExportPracticeRole`
 
-The **Lambda execution role**.
+This is **the role Lambda runs as**.
 
 ```text
 AWS Lambda
@@ -157,7 +157,7 @@ AWS Lambda
 SnowflakeS3ExportPracticeRole
 ```
 
-Its trust policy says:
+Its trust rule says:
 
 ```json
 "Principal": { "Service": "lambda.amazonaws.com" }
@@ -165,18 +165,18 @@ Its trust policy says:
 
 Meaning:
 
-> **The Lambda service is allowed to assume this role.**
+> **The Lambda service is allowed to use this role.**
 
-Attached policies:
+Policies attached to it:
 
-| Policy | Needed? | Why |
-| ------ | ------- | --- |
-| `AWSLambdaBasicExecutionRole` | ✅ Yes | Lets Lambda write `print()` output to CloudWatch Logs |
-| `AmazonS3FullAccess` | ⚠️ Not by this code | Lambda never touches S3 directly — it only calls Snowflake. Kept here because this is a practice setup |
+| Policy | Do we need it? | Why |
+| ------ | -------------- | --- |
+| `AWSLambdaBasicExecutionRole` | ✅ Yes | Lets Lambda send log text to CloudWatch Logs |
+| `AmazonS3FullAccess` | ⚠️ Not by this code | Lambda never touches S3 directly — it only calls Snowflake. We keep it here because this is a practice setup |
 
 ### Role 2 — `SnowflakeS3ExportSnowflakeRole`
 
-The **Snowflake → S3 role**. This one is **never attached to Lambda**.
+This is **the role Snowflake uses to reach S3**. It is **never attached to Lambda**.
 
 ```text
 Snowflake
@@ -188,7 +188,7 @@ SnowflakeS3ExportSnowflakeRole
 Amazon S3
 ```
 
-Its trust policy says:
+Its trust rule says:
 
 ```json
 "Principal": { "AWS": "arn:aws:iam::715831355129:user/une52000-s" }
@@ -196,9 +196,9 @@ Its trust policy says:
 
 Meaning:
 
-> **Snowflake's IAM identity is allowed to assume this role** — but only when the request carries the matching external ID.
+> **Snowflake is allowed to use this role** — but only when the request carries the matching secret code (external ID).
 
-Attached policy:
+Policy attached to it:
 
 ```text
 SnowflakeS3ExportSnowflakeRole
@@ -210,31 +210,31 @@ SnowflakeS3ExportSnowflakeRole
 | ---- | ------ | ------ |
 | Used by | Lambda | Snowflake |
 | Attached to Lambda? | ✅ Yes | ❌ No |
-| Trust principal | `lambda.amazonaws.com` | Snowflake IAM user |
+| Who can use it | `lambda.amazonaws.com` | The Snowflake IAM user |
 | `AWSLambdaBasicExecutionRole` | ✅ Yes | ❌ No |
 | `AmazonS3FullAccess` | ✅ Attached | ✅ Attached |
 | Used by the storage integration? | ❌ No | ✅ Yes |
 
 > 🔑 **Remember it like this**
-> Role 1 = *Lambda's identity*.
-> Role 2 = *Snowflake's identity for reaching S3*.
+> Role 1 = *the identity Lambda uses*.
+> Role 2 = *the identity Snowflake uses to reach S3*.
 
 ### Why can't we use one role?
 
-Because IAM trust policies decide **who may assume the role**, and these two callers are different:
+Because a trust rule decides **who may use the role**. These two callers are different:
 
 ```text
 Role 1 trusts:  lambda.amazonaws.com        → Lambda
 Role 2 trusts:  arn:aws:iam::715831355129:user/une52000-s → Snowflake
 ```
 
-A role cannot sensibly trust "Lambda" *and* be assumed by Snowflake for S3 access without breaking least privilege. Two identities → two roles.
+One role cannot be trusted by Lambda *and* used by Snowflake for S3. That would break the rule to give only the permissions that are really needed. Two identities means two roles.
 
 ---
 
 ## 🏗️ 6. Correct Creation Order
 
-There is a hard dependency: **the storage integration needs the AWS role ARN**, and the **AWS role needs the values that `DESC INTEGRATION` returns**. So the order below matters.
+The steps depend on each other. **The storage integration needs the AWS role ARN.** The **AWS role needs the values that `DESC INTEGRATION` returns**. So the order below matters.
 
 ```text
  1. Create the S3 bucket + employee-export/ prefix
@@ -275,7 +275,7 @@ S3
         Region      : same region as your Snowflake account, if possible
 ```
 
-Then create the prefix (folder):
+Then create the folder (prefix):
 
 ```text
 snowflake-s3-export-practice-2026
@@ -285,7 +285,7 @@ snowflake-s3-export-practice-2026
         └── staff_data.csv        ← created later by Snowflake
 ```
 
-> 📌 You do **not** need to make the bucket public. Only the IAM role gets access, and only through the storage integration.
+> 📌 You do **not** need to make the bucket public. Only the AWS role gets access. And it gets access only through the storage integration.
 
 ---
 
@@ -321,11 +321,11 @@ WITH
 USE WAREHOUSE S3_EXPORT_WH;
 ```
 
-| Parameter | Meaning |
-| --------- | ------- |
-| `WAREHOUSE_SIZE = 'XSMALL'` | Cheapest compute size — fine for practice |
-| `AUTO_SUSPEND = 60` | Suspends after 60 seconds of inactivity, so you are not billed while idle |
-| `AUTO_RESUME = TRUE` | Starts automatically again when a query needs it |
+| Setting | What it means |
+| ------- | ------------- |
+| `WAREHOUSE_SIZE = 'XSMALL'` | The cheapest machine size — fine for practice |
+| `AUTO_SUSPEND = 60` | It shuts down after 60 seconds of no use. So you are not billed while it sits idle |
+| `AUTO_RESUME = TRUE` | It starts again by itself when a query needs it |
 
 ---
 
@@ -398,7 +398,7 @@ STAFF_ID,STAFF_NAME,DEPARTMENT,CITY,SALARY
 ...
 ```
 
-> 📌 `SKIP_HEADER = 1` applies when **reading** a file back with this format. The header for the **unloaded** file is controlled by `HEADER = TRUE` in the `COPY INTO` statement.
+> 📌 `SKIP_HEADER = 1` matters when you **read** a file back with this format. The header in the **exported** file comes from `HEADER = TRUE` in the `COPY INTO` statement.
 
 ---
 
@@ -411,7 +411,7 @@ Trusted entity type : AWS account
 Role name           : SnowflakeS3ExportSnowflakeRole
 ```
 
-Use a temporary trust policy — it will be replaced in Step 12:
+Start with a temporary trust rule. You will replace it in Step 12:
 
 ```json
 {
@@ -429,7 +429,7 @@ Use a temporary trust policy — it will be replaced in Step 12:
 }
 ```
 
-Attach `AmazonS3FullAccess` to this role so Snowflake can read and write the bucket.
+Attach `AmazonS3FullAccess` to this role. Then Snowflake can read and write the bucket.
 
 Copy the **role ARN**:
 
@@ -450,7 +450,7 @@ Attached policies   : AWSLambdaBasicExecutionRole
                       AmazonS3FullAccess   (not required by this code)
 ```
 
-Trust policy — see [trust_policy_lambda_role.json](trust_policy_lambda_role.json):
+The trust rule — see [trust_policy_lambda_role.json](trust_policy_lambda_role.json):
 
 ```json
 {
@@ -465,7 +465,7 @@ Trust policy — see [trust_policy_lambda_role.json](trust_policy_lambda_role.js
 }
 ```
 
-> ⚠️ `AmazonS3FullAccess` is **not used by this Lambda code**. Lambda calls Snowflake, and Snowflake writes to S3. Keep it only because this is a managed-policy practice setup; in production, remove it.
+> ⚠️ This Lambda code does **not use `AmazonS3FullAccess`**. Lambda calls Snowflake. Snowflake writes to S3. Keep it only because this is a practice setup. In a real job, remove it.
 
 ---
 
@@ -485,16 +485,16 @@ CREATE OR REPLACE STORAGE INTEGRATION S3_EXPORT_INTEGRATION
 
 This tells Snowflake:
 
-> "You may use this AWS IAM role, but only for this S3 location."
+> "You may use this AWS role, but only for this S3 folder."
 
-| Parameter | Meaning |
-| --------- | ------- |
-| `TYPE = EXTERNAL_STAGE` | The integration is used by external stages |
-| `STORAGE_PROVIDER = S3` | The cloud storage is Amazon S3 |
-| `STORAGE_AWS_ROLE_ARN` | The role Snowflake will assume |
-| `STORAGE_ALLOWED_LOCATIONS` | The only path Snowflake is allowed to touch |
+| Setting | What it means |
+| ------- | ------------- |
+| `TYPE = EXTERNAL_STAGE` | The integration is used by stages that point at S3 |
+| `STORAGE_PROVIDER = S3` | The storage is Amazon S3 |
+| `STORAGE_AWS_ROLE_ARN` | The role Snowflake will use |
+| `STORAGE_ALLOWED_LOCATIONS` | The only folder Snowflake may touch |
 
-> 📌 No AWS access keys are stored anywhere. That is the whole point of a storage integration.
+> 📌 No AWS keys are stored anywhere. That is the whole point of a storage integration.
 
 ---
 
@@ -528,7 +528,7 @@ IAM user ARN + External ID
 AWS trust policy
 ```
 
-> ⚠️ The IAM **user** ARN lives in Snowflake's AWS account — a *different* account (`715831355129`) from your role (`772346609795`). That is expected: Snowflake's identity assumes a role **inside your account**.
+> ⚠️ The IAM **user** ARN lives in Snowflake's AWS account. That is a *different* account (`715831355129`) from your role (`772346609795`). This is normal. Snowflake's identity uses a role **inside your account**.
 
 ---
 
@@ -559,7 +559,7 @@ Paste — see [trust_policy_snowflake_role.json](trust_policy_snowflake_role.jso
 
 Click **Update policy**.
 
-> 📌 The `sts:ExternalId` condition is what stops another AWS account from tricking Snowflake into handing over data — Snowflake generates it, you copy it, and only requests carrying it can assume the role.
+> 📌 The `sts:ExternalId` condition stops another AWS account from tricking Snowflake into giving away data. Snowflake makes this secret code. You copy it. Only requests that carry it can use the role.
 
 ---
 
@@ -603,15 +603,15 @@ First run:
 +------+------+-----+---------------+
 ```
 
-Interpretation:
+How to read the result:
 
-| Result | Meaning |
-| ------ | ------- |
-| **0 rows** | ✅ Normal — nothing has been exported yet |
-| **Access Denied** | ❌ The trust policy, role ARN or S3 permissions are wrong |
+| Result | What it means |
+| ------ | ------------- |
+| **0 rows** | ✅ Normal — no file has been exported yet |
+| **Access Denied** | ❌ The trust rule, the role ARN or the S3 permissions are wrong |
 | **A file listed** | ✅ The export already ran |
 
-> 📌 The goal of this step is simply: **no "Access Denied"**. That proves Snowflake → AWS authentication works.
+> 📌 The goal of this step is simple: **no "Access Denied"**. That proves Snowflake can log in to AWS.
 
 ---
 
@@ -640,11 +640,11 @@ END;
 $$;
 ```
 
-The important parts:
+These are the important parts:
 
-| Clause | Meaning |
-| ------ | ------- |
-| `@STAFF_S3_EXPORT_STAGE/staff_data.csv` | Write the output **with this exact filename** |
+| Part | What it means |
+| ---- | ------------- |
+| `@STAFF_S3_EXPORT_STAGE/staff_data.csv` | Write the output **with this exact file name** |
 | `HEADER = TRUE` | Write the column names as the first row |
 | `SINGLE = TRUE` | Create **one** file instead of many part files |
 | `OVERWRITE = TRUE` | Replace the file if it already exists |
@@ -659,7 +659,7 @@ Because the target path ends with a name, not just a folder:
                        exact file name
 ```
 
-That gives you a predictable name and extension instead of a generated part-file name.
+So you always know the file name and type. You do not get a random part-file name.
 
 ### 🚨 Do NOT run `CALL` here
 
@@ -667,7 +667,7 @@ That gives you a predictable name and extension instead of a generated part-file
 -- CALL EXPORT_STAFF_TO_S3();
 ```
 
-Lambda executes the procedure:
+Lambda runs the procedure:
 
 ```python
 cursor.execute("CALL EXPORT_STAFF_TO_S3()")
@@ -681,18 +681,18 @@ cursor.execute("CALL EXPORT_STAFF_TO_S3()")
 | ------- | ----- |
 | Function name | `snowflake-s3-export-lambda` |
 | Runtime | Python 3.12 |
-| Handler | `lambda_function.lambda_handler` |
+| Handler (the function AWS calls first) | `lambda_function.lambda_handler` |
 | Execution role | `SnowflakeS3ExportPracticeRole` |
 
 Code: [lambda_function.py](lambda_function.py)
 
-> ⚠️ **The handler matters.** The file must be called `lambda_function.py` and contain `def lambda_handler(event, context):` — otherwise Lambda cannot find your function.
+> ⚠️ **The function AWS calls first matters.** The file must be called `lambda_function.py`. It must also contain `def lambda_handler(event, context):`. If not, Lambda cannot find your function.
 
 > ✅ Do **not** select `SnowflakeS3ExportSnowflakeRole` here. That role belongs to Snowflake, not Lambda.
 
 ### 📦 Snowflake connector layer
 
-The standard Python runtime does **not** include the Snowflake connector. Attach a layer that provides it, because the code imports:
+The normal Python setup does **not** include the Snowflake connector. Attach a layer that adds it. The code needs it:
 
 ```python
 import snowflake.connector
@@ -714,7 +714,7 @@ Lambda
 password="<YOUR_SNOWFLAKE_PASSWORD>"
 ```
 
-> ⚠️ The placeholder is deliberate — **never commit a real Snowflake password**. For anything beyond practice, store it in AWS Secrets Manager and read it at runtime.
+> ⚠️ This placeholder is on purpose. **Never save a real Snowflake password in the code.** For real work, keep it in AWS Secrets Manager and read it when the code runs.
 
 ---
 
@@ -798,12 +798,12 @@ snowflake-s3-export-practice-2026
 | ---- | ------------------------------- | -------------------------------- |
 | Used by | Lambda | Snowflake |
 | Attached to Lambda? | ✅ YES | ❌ NO |
-| Purpose | Lambda execution | Snowflake → S3 access |
+| What it is for | Runs the Lambda function | Snowflake → S3 access |
 | `AWSLambdaBasicExecutionRole` | ✅ Yes | ❌ No |
 | `AmazonS3FullAccess` | ✅ Currently attached | ✅ Yes |
 | Trust principal | `lambda.amazonaws.com` | Snowflake IAM user |
 | Used for CloudWatch logs | ✅ | ❌ |
-| Used for S3 by the current Lambda code | ❌ Not actually required | ✅ Yes |
+| Used for S3 by the current Lambda code | ❌ Not really needed | ✅ Yes |
 | Used by the storage integration | ❌ | ✅ Yes |
 
 ---
@@ -854,18 +854,18 @@ AWS
 
 ## 🚨 Common Errors
 
-| Error | Cause | Fix |
-| ----- | ----- | --- |
-| `Access Denied` on `LIST @stage` | Trust policy does not match the integration | Re-run `DESC INTEGRATION` and paste both values into the role trust policy |
-| `Access Denied` even with the right trust policy | Role cannot write to the bucket | Attach `AmazonS3FullAccess` to the role |
-| `Insufficient privileges to operate on integration` | The role creating the stage has no rights on the integration | `GRANT USAGE ON INTEGRATION S3_EXPORT_INTEGRATION TO ROLE <your_role>;` |
+| Error | Why it happens | How to fix it |
+| ----- | -------------- | ------------- |
+| `Access Denied` on `LIST @stage` | The trust rule does not match the integration | Run `DESC INTEGRATION` again. Paste both values into the role trust rule |
+| `Access Denied` even with the right trust policy | The role cannot write to the bucket | Attach `AmazonS3FullAccess` to the role |
+| `Insufficient privileges to operate on integration` | The role that creates the stage has no rights on the integration | `GRANT USAGE ON INTEGRATION S3_EXPORT_INTEGRATION TO ROLE <your_role>;` |
 | `Storage integration ... is not enabled` | `ENABLED = TRUE` was missed or set to false | `ALTER STORAGE INTEGRATION S3_EXPORT_INTEGRATION SET ENABLED = TRUE;` |
-| `Failure using stage area. Cause: Access Denied` during `COPY INTO` | The allowed location does not include the path being written | Add the path to `STORAGE_ALLOWED_LOCATIONS` |
-| Lambda: `Unable to import module 'lambda_function'` | Wrong handler or file name | File must be `lambda_function.py`, handler `lambda_function.lambda_handler` |
-| Lambda: `No module named 'snowflake'` | Connector layer not attached | Attach the Snowflake connector layer |
-| Lambda: `250001: Could not connect to Snowflake backend` | Wrong account identifier or no network access to Snowflake | Verify `account="XLTGLZP-IZC37171"` and the account is not blocked |
-| Extra part files in S3 instead of one file | `SINGLE = TRUE` missing | Recreate the procedure with `SINGLE = TRUE` |
-| File has no header row | `HEADER = TRUE` missing in `COPY INTO` | Add `HEADER = TRUE` |
+| `Failure using stage area. Cause: Access Denied` during `COPY INTO` | The allowed location does not include the path we write to | Add the path to `STORAGE_ALLOWED_LOCATIONS` |
+| Lambda: `Unable to import module 'lambda_function'` | The file name or the first function name is wrong | File must be `lambda_function.py`, the first function must be `lambda_function.lambda_handler` |
+| Lambda: `No module named 'snowflake'` | The connector layer is not attached | Attach the Snowflake connector layer |
+| Lambda: `250001: Could not connect to Snowflake backend` | The account identifier is wrong, or there is no network access to Snowflake | Check `account="XLTGLZP-IZC37171"` and make sure the account is not blocked |
+| Extra part files in S3 instead of one file | `SINGLE = TRUE` is missing | Recreate the procedure with `SINGLE = TRUE` |
+| File has no header row | `HEADER = TRUE` is missing in `COPY INTO` | Add `HEADER = TRUE` |
 
 ---
 
@@ -918,4 +918,4 @@ Amazon S3
 
 ## 🗣️ Interview Explanation
 
-> "I built a Snowflake-to-S3 export pipeline where AWS Lambda acts as the external orchestrator. Lambda connects to Snowflake using the Snowflake Python Connector and calls a stored procedure. The procedure runs `COPY INTO` against an external stage, which is secured by a Snowflake **storage integration** — so no AWS keys are stored in Snowflake; instead Snowflake assumes an IAM role with an external ID condition. The data is unloaded to Amazon S3 as a single CSV file using `HEADER = TRUE`, `SINGLE = TRUE` and an explicit target filename. After the procedure returns, Lambda verifies the file with `LIST`, logs file name, size and MD5 to CloudWatch, and returns a structured success or failure response. The design uses **two IAM roles** because the two callers are different AWS identities: one role is assumed by the Lambda service, and the other is assumed by Snowflake's IAM user for S3 access."
+> "I built a pipeline that moves data from Snowflake to S3. AWS Lambda is the outside trigger — the thing that starts the job. Lambda connects to Snowflake with the Snowflake Python Connector. Then it calls a stored procedure. The procedure runs `COPY INTO` against an external stage. That stage is secured by a Snowflake **storage integration**. So no AWS keys are stored in Snowflake. Instead, Snowflake uses an AWS role for a short time, and the request carries a secret code (external ID). The data goes to Amazon S3 as one CSV file. It uses `HEADER = TRUE`, `SINGLE = TRUE` and an exact target file name. After the procedure returns, Lambda checks the file with `LIST`. It logs the file name, size and MD5 to CloudWatch. Then it returns a clear success or failure response. The design uses **two AWS roles** because the two callers are different AWS identities. Lambda uses one role for a short time. Snowflake's IAM user uses the other role for S3 access."

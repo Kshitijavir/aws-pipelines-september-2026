@@ -4,12 +4,14 @@
 
 | File | What It Is |
 | ---- | ---------- |
-| [00) README.md](00%29%20README.md) | This explanation |
-| [input files/](input%20files/) | `customer_sales.csv` — the source data loaded into the staging table |
+| [00) README.md](00%29%20README.md) | This file explains the pipeline |
+| [input files/](input%20files/) | `customer_sales.csv` — the raw data that goes into the holding table |
 
 ## 🎯 Goal
 
-This pipeline follows the same architecture, with the **audit design** fixed. We will track:
+This pipeline uses the same design as before. The **audit part** is now fixed. An audit is a record of what the job did. The design is called a **star schema**. A star schema is one main table in the middle, called the fact table. Around it are smaller tables, called dimensions. A dimension is a table that describes the data (who, where, what). The fact table holds the numbers you add up, like sales amounts.
+
+The audit table tracks:
 
 * Staging records
 * Dimension records
@@ -25,7 +27,7 @@ And one important point:
 
 > **SP2 is created first, but SP1 is executed first.**
 
-The reason is that **SP1 contains `CALL SP_LOAD_STAR_SCHEMA()`**, so SP2 must already exist when Snowflake compiles SP1. This is only **creation order**, not execution order.
+The reason is that **SP1 contains `CALL SP_LOAD_STAR_SCHEMA()`**. So SP2 must exist before Snowflake builds SP1. This is only the **creation order**. It is not the run order.
 
 ---
 
@@ -117,7 +119,7 @@ CREATE STAGE CUSTOMER_STAGE
 
 Source file: [input files/customer_sales.csv](input%20files/customer_sales.csv)
 
-Upload it manually from Snowsight as `customer_sales.csv`, then:
+Upload it by hand from Snowsight. Name the file `customer_sales.csv`. Then run this:
 
 ```sql
 LIST @CUSTOMER_STAGE;
@@ -133,7 +135,7 @@ customer_stage/customer_sales.csv
 
 ## 📋 Step 5 — Create the Staging Table
 
-This receives the raw CSV data.
+This is a holding table. It keeps the raw rows from the CSV before they are cleaned.
 
 ```sql
 CREATE TABLE CUSTOMER_STAGING (
@@ -174,7 +176,7 @@ CUSTOMER_KEY | CUSTOMER_ID
 3            | 1003
 ```
 
-`CUSTOMER_KEY` is the **surrogate key**.
+`CUSTOMER_KEY` is the **surrogate key**. That is a new number that Snowflake makes up. It is not the real customer ID.
 
 ---
 
@@ -206,7 +208,7 @@ FACT_SALES
 
 ## 📋 Step 8 — Create the Audit Table
 
-This time we'll make the audit table according to your actual requirement.
+This time we build the audit table. It is a record of what the job did. It uses the columns you asked for.
 
 ```sql
 CREATE TABLE AUDIT_LOG (
@@ -263,7 +265,7 @@ Status
 
 Source file: [input files/customer_sales.csv](input%20files/customer_sales.csv)
 
-Upload it to `CUSTOMER_STAGE`, then:
+Upload it to `CUSTOMER_STAGE`. Then run this:
 
 ```sql
 LIST @CUSTOMER_STAGE;
@@ -273,7 +275,7 @@ LIST @CUSTOMER_STAGE;
 
 ## ⚠️ Step 10 — Important: Create SP2 First
 
-This is where you were getting the error.
+This is the step that gave you the error.
 
 ### 💡 Why SP2 First?
 
@@ -283,7 +285,7 @@ SP1 contains:
 CALL SP_LOAD_STAR_SCHEMA();
 ```
 
-Therefore, when Snowflake compiles SP1, `SP_LOAD_STAR_SCHEMA` needs to already exist.
+So when Snowflake builds SP1, `SP_LOAD_STAR_SCHEMA` must already exist.
 
 So:
 
@@ -295,7 +297,7 @@ SP2
 SP1
 ```
 
-But execution is:
+But the run order is:
 
 ```text
 EXECUTION ORDER
@@ -313,13 +315,13 @@ You only run:
 CALL SP_LOAD_STAGING();
 ```
 
-Then SP1 automatically calls SP2.
+Then SP1 calls SP2 for you.
 
 ---
 
 ## ⚙️ Step 11 — Create SP2 First
 
-SP2 performs:
+SP2 does this:
 
 ```text
 CUSTOMER_STAGING
@@ -329,7 +331,7 @@ CUSTOMER_STAGING
        └──────────► FACT_SALES
 ```
 
-Use this corrected version:
+Use this fixed version:
 
 ```sql
 CREATE OR REPLACE PROCEDURE SP_LOAD_STAR_SCHEMA()
@@ -483,7 +485,7 @@ END;
 $$;
 ```
 
-Run this first.
+Run this one first.
 
 You should get:
 
@@ -495,7 +497,7 @@ Procedure SP_LOAD_STAR_SCHEMA successfully created
 
 ## ⚙️ Step 12 — Now Create SP1
 
-SP1 performs:
+SP1 does this:
 
 ```text
 STAGE
@@ -635,15 +637,15 @@ Do **NOT** run:
 CALL SP_LOAD_STAR_SCHEMA();
 ```
 
-manually.
+by hand.
 
-SP1 will automatically call it.
+SP1 calls it for you.
 
 ---
 
 ## 🔍 Step 14 — What Happens Internally?
 
-When you execute:
+When you run:
 
 ```sql
 CALL SP_LOAD_STAGING();
@@ -724,7 +726,7 @@ Because Rahul appears twice:
 
 But Rahul is **one customer**.
 
-Therefore:
+So:
 
 ```text
 STAGING = 5
@@ -758,7 +760,7 @@ Sneha  → Keyboard  → 3000
 SELECT * FROM AUDIT_LOG ORDER BY AUDIT_ID;
 ```
 
-You should see approximately:
+You should see about this:
 
 ```text
 PROCEDURE              STAGING   DIM   FACT   RECON
@@ -767,7 +769,7 @@ SP_LOAD_STAGING           5       -     -    PENDING
 SP_LOAD_STAR_SCHEMA       5       4     5    MATCH
 ```
 
-And you'll also have:
+And you also get:
 
 ```text
 START_TIME
@@ -798,7 +800,7 @@ Your pipeline has **two different counts**:
 
 So **4 ≠ 5 is not an error**.
 
-The correct reconciliation is:
+The correct check is:
 
 ```text
 STAGING RECORDS = FACT RECORDS
@@ -821,13 +823,13 @@ DISTINCT CUSTOMER_ID
 
 ### ⚠️ One Snowflake-Specific Point
 
-For this **practice**, when you upload a file to an **internal Snowflake stage**, uploading the file itself does not automatically execute your stored procedure. After uploading, you start the pipeline with:
+For this **practice**, you upload the file to an **internal Snowflake stage**. Inside Snowflake, the upload does not run your stored procedure by itself. A stored procedure is a saved list of SQL steps inside Snowflake. You run it with one command. After the upload, you start the pipeline with:
 
 ```sql
 CALL SP_LOAD_STAGING();
 ```
 
-So the practical flow is:
+So the flow in practice is:
 
 ```text
 Upload file
@@ -839,7 +841,7 @@ SP1
 SP2
 ```
 
-Later, if we want to automate the trigger, we can add Snowflake scheduling/event mechanisms. But for this pipeline, we're keeping the focus on **Stored Procedure → Star Schema → Audit → Reconciliation**.
+Later, we can add a Snowflake schedule or event to start the job for you. For now, this pipeline focuses on **Stored Procedure → Star Schema → Audit → Reconciliation**.
 
 ### 🔑 Remember
 
@@ -857,7 +859,7 @@ because SP1 references SP2.
 SP1 → SP2
 ```
 
-because SP1 is the master procedure.
+because SP1 is the main procedure. It runs the whole job.
 
 **Run only:**
 
@@ -865,4 +867,4 @@ because SP1 is the master procedure.
 CALL SP_LOAD_STAGING();
 ```
 
-This version is the clean practical implementation of the architecture you described.
+This version is a clean, practical build of the design you described.

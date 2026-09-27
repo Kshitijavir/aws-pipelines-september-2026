@@ -5,9 +5,9 @@
 | File | What It Is |
 | ---- | ---------- |
 | [00) README.md](00%29%20README.md) | This explanation |
-| [input files/](input%20files/) | `customer.csv` — the 5 rows loaded into the RAW table |
+| [input files/](input%20files/) | `customer.csv` — the 5 rows we load into the raw table |
 
-Now we connect the main Snowflake concepts you've learned into **one simple pipeline**.
+Now we join the main Snowflake ideas you have learned into **one simple pipeline**.
 
 ## 🎯 Goal
 
@@ -25,7 +25,7 @@ TRANSFORMATION
 FINAL TABLE
 ```
 
-We will **not add Stream, Task, Stored Procedure, or SCD2** here. Those were already practiced separately.
+We will **not add Stream, Task, Stored Procedure, or SCD2** here. You already practiced each of those on its own.
 
 ---
 
@@ -54,7 +54,7 @@ USE WAREHOUSE E2E_WH;
 
 ## 📋 Step 2 — Create the RAW Table
 
-This table receives the CSV data exactly as it comes.
+This table gets the CSV data exactly as it comes in. Raw means the data has not been changed at all.
 
 ```sql
 CREATE TABLE CUSTOMER_RAW (
@@ -90,7 +90,7 @@ CREATE STAGE CUSTOMER_STAGE
 
 ## 📋 Step 5 — Create the FINAL Table
 
-This is where we want our cleaned data.
+This is where we want our cleaned-up data. Final means the cleaned version.
 
 ```sql
 CREATE TABLE CUSTOMER_FINAL (
@@ -106,7 +106,7 @@ CREATE TABLE CUSTOMER_FINAL (
 
 Source file: [input files/customer.csv](input%20files/customer.csv)
 
-This file is uploaded to the `CUSTOMER_STAGE` stage.
+We put this file into the `CUSTOMER_STAGE` stage.
 
 ---
 
@@ -118,7 +118,7 @@ In Snowsight:
 Data → Databases → SNOWFLAKE_END_TO_END_PRACTICE → E2E_SCHEMA → Stages → CUSTOMER_STAGE → Upload
 ```
 
-Upload `customer.csv`, then check:
+Upload `customer.csv`. Then check:
 
 ```sql
 LIST @CUSTOMER_STAGE;
@@ -159,7 +159,7 @@ You should see:
 
 ## 🔄 Step 9 — Transform the Data
 
-Now we transform the RAW data before putting it into the final table.
+Now we change the raw data before we put it in the final table. The raw table keeps the data exactly as it came from the file. The final table keeps the cleaned-up version.
 
 Our rule:
 
@@ -235,16 +235,16 @@ CUSTOMER_ID | CUSTOMER_NAME | CITY       | SALARY | SALARY_CATEGORY
 
 ### ⭐ What You Learned
 
-| Component | Purpose |
+| What it is | What it does |
 | --------- | ------- |
-| CSV | Source data |
-| Stage | Holds the file |
-| File Format | Tells Snowflake how to read CSV |
-| COPY INTO | Loads file into table |
-| RAW Table | Original loaded data |
-| SQL Transformation | Cleans/transforms data |
-| FINAL Table | Business-ready data |
+| CSV | The data we start with |
+| Stage | Keeps the file |
+| File Format | Tells Snowflake how to read the CSV |
+| COPY INTO | Loads the file into a table |
+| RAW Table | The data as it was loaded |
+| SQL Transformation | Cleans the data and changes it |
+| FINAL Table | Data that is ready to use |
 
-This is the **simple end-to-end Snowflake pipeline**. ✅
+This is the **simple Snowflake pipeline that runs the whole way through, from the file to the finished table**. ✅
 
-After this, your next practical can be a more realistic **incremental end-to-end pipeline** where new files arrive and only new/changed records are processed.
+After this, your next practical can be a more realistic **incremental pipeline that runs the whole way through**. New files arrive, and only the new or changed records are processed.

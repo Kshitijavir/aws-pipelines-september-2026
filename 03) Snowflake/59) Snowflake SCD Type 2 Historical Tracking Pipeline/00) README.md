@@ -12,9 +12,10 @@
 
 SCD = Slowly Changing Dimension.
 
-SCD Type 2 means:
+SCD Type 2 means: keep every old version of a row. Do not overwrite it.
+You add a new row instead. Then you mark which row is current.
 
-When a customer's important information changes, don't overwrite the old record. Keep the old version and create a new version.
+When a customer's details change, keep the old row. Add a new row with the new details.
 
 ### 📋 Example
 
@@ -33,13 +34,13 @@ CUSTOMER_ID | NAME  | CITY   | SALARY | START_DATE | END_DATE   | CURRENT
 1001        | Rahul | Pune   | 85000  | 2026-09-27 | 9999-12-31 | TRUE
 ```
 
-🔥 The old record is NOT deleted.
+🔥 The old row is NOT deleted.
 
-That's the whole point of SCD Type 2.
+That is the whole idea of SCD Type 2.
 
 ### ⚖️ SCD Type 1 vs Type 2
 
-**Type 1** — old value is overwritten:
+**Type 1** — the old value is overwritten:
 
 Before:
 
@@ -53,16 +54,16 @@ After:
 1001 | Rahul | Pune
 ```
 
-History is lost.
+The old value is gone.
 
-**Type 2** — old value is preserved:
+**Type 2** — the old value is kept:
 
 ```text
 1001 | Rahul | Mumbai | FALSE
 1001 | Rahul | Pune   | TRUE
 ```
 
-History is maintained.
+History is kept.
 
 ---
 
@@ -77,11 +78,11 @@ Mumbai
 ₹75,000
 ```
 
-Later Rahul moves to Bengaluru and salary becomes ₹85,000.
+Later Rahul moves to Bengaluru. His salary becomes ₹85,000.
 
-In **SCD Type 2**, we DON'T overwrite Mumbai.
+In **SCD Type 2**, we do NOT overwrite Mumbai.
 
-We keep both:
+We keep both rows:
 
 ```text
 1001 | Rahul | Mumbai    | 75000 | Old     | FALSE
@@ -115,7 +116,7 @@ USE WAREHOUSE SCD2_WH;
 
 ## 📋 Step 2 — Create the Source Table
 
-This is our incoming/current customer data.
+This table holds the current customer data. It is the input.
 
 ```sql
 CREATE TABLE CUSTOMER_SOURCE (
@@ -126,7 +127,7 @@ CREATE TABLE CUSTOMER_SOURCE (
 );
 ```
 
-Insert initial data:
+Add the first rows:
 
 ```sql
 INSERT INTO CUSTOMER_SOURCE VALUES
@@ -145,7 +146,7 @@ SELECT * FROM CUSTOMER_SOURCE;
 
 ## 📋 Step 3 — Create the SCD Type 2 Target Table
 
-This table stores **history**.
+This table keeps the **history**.
 
 ```sql
 CREATE TABLE CUSTOMER_HISTORY (
@@ -163,7 +164,7 @@ CREATE TABLE CUSTOMER_HISTORY (
 
 ## 🚚 Step 4 — Initial Load
 
-Load the first version of every customer:
+Load the first version of each customer:
 
 ```sql
 INSERT INTO CUSTOMER_HISTORY
@@ -184,7 +185,7 @@ Check:
 SELECT * FROM CUSTOMER_HISTORY ORDER BY CUSTOMER_ID;
 ```
 
-You'll have:
+You will have:
 
 ```text
 1001 | Rahul Sharma | Mumbai | 75000 | ... | 9999-12-31 | TRUE
@@ -198,7 +199,7 @@ You'll have:
 
 Now Rahul moves from Mumbai to Bengaluru.
 
-Update the source:
+Update the source table:
 
 ```sql
 UPDATE CUSTOMER_SOURCE
@@ -213,7 +214,7 @@ Check:
 SELECT * FROM CUSTOMER_SOURCE WHERE CUSTOMER_ID = 1001;
 ```
 
-Now source says:
+Now the source table says:
 
 ```text
 1001 | Rahul Sharma | Bengaluru | 85000
@@ -223,7 +224,7 @@ Now source says:
 
 ## ⏹️ Step 6 — Expire the Old Record
 
-Now we close Rahul's old Mumbai record.
+Now we close Rahul's old Mumbai row.
 
 ```sql
 UPDATE CUSTOMER_HISTORY
@@ -239,7 +240,7 @@ Check:
 SELECT * FROM CUSTOMER_HISTORY WHERE CUSTOMER_ID = 1001;
 ```
 
-Old record is now:
+The old row is now:
 
 ```text
 Rahul | Mumbai | 75000 | FALSE
@@ -249,7 +250,7 @@ Rahul | Mumbai | 75000 | FALSE
 
 ## ➕ Step 7 — Insert the New Version
 
-Now insert Rahul's new information:
+Now add Rahul's new details:
 
 ```sql
 INSERT INTO CUSTOMER_HISTORY
@@ -273,7 +274,7 @@ WHERE CUSTOMER_ID = 1001;
 SELECT * FROM CUSTOMER_HISTORY WHERE CUSTOMER_ID = 1001 ORDER BY VALID_FROM;
 ```
 
-You should now have:
+You should see:
 
 ```text
 CUSTOMER_ID | NAME         | CITY       | SALARY | IS_CURRENT
@@ -288,7 +289,7 @@ CUSTOMER_ID | NAME         | CITY       | SALARY | IS_CURRENT
 
 ## 🔥 The Main Logic
 
-Remember only these **3 steps**:
+Just remember these **3 steps**:
 
 ```text
 Customer changes
@@ -300,7 +301,7 @@ Insert new record
 IS_CURRENT = TRUE
 ```
 
-Visual:
+Picture:
 
 ```text
 SOURCE
@@ -316,9 +317,9 @@ CUSTOMER_HISTORY
 
 ### ⚖️ SCD Type 1 vs Type 2 — Summary
 
-| Type | What happens |
+| Type | What it does |
 | ---- | ------------ |
-| SCD Type 1 | Old value is overwritten |
-| SCD Type 2 | Old value is preserved + new version inserted |
+| SCD Type 1 | The old value is replaced |
+| SCD Type 2 | The old value is kept, and a new version is added |
 
-**For your practical roadmap, this simple version is enough to understand SCD Type 2.**
+**For your practice, this simple version is enough to understand SCD Type 2.**

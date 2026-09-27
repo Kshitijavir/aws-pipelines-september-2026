@@ -1,12 +1,12 @@
 # 🧹 Cleanup — 61) Snowflake Star Schema ETL with Stored Procedure & Audit
 
-Drops every Snowflake object this pipeline created. Run the statements top to bottom.
+This file removes every Snowflake object that this pipeline creates. Run the statements from top to bottom.
 
 ## 1️⃣ Drop Everything
 
 ```sql
 -- 61) Snowflake Star Schema ETL with Stored Procedure & Audit
--- SP_LOAD_STAGING contains CALL SP_LOAD_STAR_SCHEMA(), so drop the caller first
+-- SP_LOAD_STAGING calls SP_LOAD_STAR_SCHEMA, so drop the caller first
 DROP PROCEDURE IF EXISTS SNOWFLAKE_STAR_SCHEMA_PRACTICE.STAR_SCHEMA.SP_LOAD_STAGING();
 DROP PROCEDURE IF EXISTS SNOWFLAKE_STAR_SCHEMA_PRACTICE.STAR_SCHEMA.SP_LOAD_STAR_SCHEMA();
 
@@ -23,23 +23,23 @@ DROP DATABASE IF EXISTS SNOWFLAKE_STAR_SCHEMA_PRACTICE;
 DROP WAREHOUSE IF EXISTS STAR_WH;
 ```
 
-## 2️⃣ Or Just Stop the Compute
+## 2️⃣ Or Just Stop the Cost
 
 ```sql
--- Keeps every object, stops the billing
+-- Keeps all the objects, and stops the cost
 ALTER WAREHOUSE STAR_WH SUSPEND;
 ```
 
 ## 📌 Notes
 
-- Object names are fully qualified (`DATABASE.SCHEMA.OBJECT`), so the script works from any session context.
-- Two procedures exist. `SP_LOAD_STAGING` is the one that calls `CALL SP_LOAD_STAR_SCHEMA()`, so it is dropped before the procedure it calls.
-- Drop order for the tables follows the data flow: fact → dimension → staging → audit.
-- To reset the practice without dropping anything, clear the rows and the audit trail instead:
+- Every object name is written out in full (`DATABASE.SCHEMA.OBJECT`). So the script works in any session.
+- There are two procedures. `SP_LOAD_STAGING` calls `CALL SP_LOAD_STAR_SCHEMA()`. So it is dropped first, before the one it calls.
+- The tables are dropped in the order the data flows: fact → dimension → staging → audit.
+- To reset the practice and keep the objects, empty the rows and the audit rows instead:
   ```sql
   TRUNCATE TABLE SNOWFLAKE_STAR_SCHEMA_PRACTICE.STAR_SCHEMA.FACT_SALES;
   TRUNCATE TABLE SNOWFLAKE_STAR_SCHEMA_PRACTICE.STAR_SCHEMA.DIM_CUSTOMER;
   TRUNCATE TABLE SNOWFLAKE_STAR_SCHEMA_PRACTICE.STAR_SCHEMA.CUSTOMER_STAGING;
   TRUNCATE TABLE SNOWFLAKE_STAR_SCHEMA_PRACTICE.STAR_SCHEMA.AUDIT_LOG;
   ```
-- `DROP SCHEMA` fails while the schema still holds objects, which is why the procedures, stage, file format and tables come first.
+- `DROP SCHEMA` fails if the schema still holds objects. So the procedures, stage, file format and tables come first.

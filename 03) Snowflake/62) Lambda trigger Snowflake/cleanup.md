@@ -1,6 +1,6 @@
 # 🧹 Cleanup — 62) Lambda trigger Snowflake
 
-Drops every Snowflake object this pipeline created, then the AWS objects. Run the statements top to bottom.
+This file removes every Snowflake object that this pipeline creates. Then it removes the AWS objects. Run the statements from top to bottom.
 
 ## 1️⃣ Drop Everything (Snowflake)
 
@@ -24,16 +24,16 @@ AWS
      lets lambda.amazonaws.com assume it — see trust_policy.json)
 ```
 
-## 3️⃣ Or Just Stop the Compute
+## 3️⃣ Or Just Stop the Cost
 
 ```sql
--- Keeps every object, stops the billing
+-- Keeps all the objects, and stops the cost
 ALTER WAREHOUSE LAMBDA_EXPORT_WH SUSPEND;
 ```
 
 ## 📌 Notes
 
-- Object names are fully qualified (`DATABASE.SCHEMA.OBJECT`), so the script works from any session context.
-- The stored procedure is dropped first because it is the object Lambda calls; the stage and file format follow before the table they belong to.
-- The export target is a Snowflake **internal stage**, so there is no S3 bucket or S3 object to delete for this pipeline.
-- Delete the Lambda function before its IAM role — a role still attached to a function cannot be deleted.
+- Each object name is fully written out (`DATABASE.SCHEMA.OBJECT`). So the script works from any session.
+- The saved procedure is dropped first, because it is the object Lambda calls. The stage and the file format come next, before the table they belong to.
+- The export target is a Snowflake **internal stage**. That is a landing spot for files inside Snowflake. So there is no S3 bucket or S3 object to delete in this pipeline.
+- Delete the Lambda function before its IAM role. A role that is still attached to a function cannot be deleted.

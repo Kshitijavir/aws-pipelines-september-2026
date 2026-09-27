@@ -1,6 +1,6 @@
 # 🧹 Cleanup — 63) Snowflake to S3 Export Pipeline
 
-Drops every Snowflake object this pipeline created, then the AWS objects. Run the statements top to bottom.
+This file removes every Snowflake object that this pipeline creates, and then the AWS objects. Run the statements from top to bottom.
 
 ## 1️⃣ Drop Everything (Snowflake)
 
@@ -27,19 +27,19 @@ AWS
  └── Delete the bucket snowflake-s3-export-practice-2026
 ```
 
-## 3️⃣ Or Just Stop the Compute
+## 3️⃣ Or Just Stop the Cost
 
 ```sql
--- Keeps every object, stops the billing
+-- Keeps all the objects, and stops the cost
 ALTER WAREHOUSE S3_EXPORT_WH SUSPEND;
 ```
 
 ## 📌 Notes
 
-- Object names are fully qualified (`DATABASE.SCHEMA.OBJECT`), so the script works from any session context.
-- The stored procedure is dropped first — it is the object Lambda calls.
-- The external stage is dropped **before** the storage integration it references.
-- `S3_EXPORT_INTEGRATION` is an **account-level** object, not something inside the database, which is why it needs its own `DROP`.
-- Drop the stage and integration **before** deleting the IAM role, otherwise Snowflake may still reference a role that no longer exists.
-- Empty the S3 bucket before deleting it — AWS refuses to delete a bucket that still holds objects, and `staff_data.csv` will still be there.
-- Delete the Lambda function before `SnowflakeS3ExportPracticeRole` — a role still attached to a function cannot be deleted.
+- Object names are full (`DATABASE.SCHEMA.OBJECT`). So the script works from any session.
+- We drop the stored procedure first. It is the object Lambda calls.
+- We drop the external stage **before** the storage integration it uses.
+- `S3_EXPORT_INTEGRATION` belongs to the whole account. It is not inside the database. So it needs its own `DROP`.
+- Drop the stage and the integration **before** you delete the AWS role. If you do not, Snowflake may still point at a role that is gone.
+- Empty the S3 bucket before you delete it. AWS will not delete a bucket that still has objects. And `staff_data.csv` will still be inside it.
+- Delete the Lambda function before `SnowflakeS3ExportPracticeRole`. AWS will not delete a role that is still attached to a function.

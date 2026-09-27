@@ -11,7 +11,9 @@
 
 ## 🧠 First: What Is Snowpipe?
 
-Snowpipe is Snowflake's **continuous/automated file ingestion mechanism**.
+A pipe is a small job that watches a stage and loads new files into the table by itself.
+
+Snowpipe is Snowflake's tool for loading files on its own.
 
 Normal `COPY INTO`:
 
@@ -37,17 +39,17 @@ Snowpipe
 Table
 ```
 
-The Pipe itself contains the `COPY INTO` definition.
+The pipe holds the `COPY INTO` command inside itself.
 
 ---
 
 ## 🧠 Snowpipe vs COPY INTO
 
-| `COPY INTO`             | Snowpipe                                 |
-| ----------------------- | ---------------------------------------- |
-| Manual/batch loading    | Continuous/automated ingestion mechanism |
-| You execute the command | Pipe contains the `COPY INTO`            |
-| Stage → Table           | Stage → Snowpipe → Table                 |
+| `COPY INTO`             | Snowpipe                                   |
+| ----------------------- | ------------------------------------------ |
+| You load files by hand  | It loads new files by itself, all the time  |
+| You run the command     | The pipe holds the `COPY INTO`              |
+| Stage → Table           | Stage → Snowpipe → Table                    |
 
 So:
 
@@ -81,7 +83,7 @@ Table
 
 ## ⚠️ Important: Our Snowflake-Only Practical
 
-There are two concepts:
+There are two ways to do this:
 
 ### 🧪 Snowflake-only practice
 
@@ -111,9 +113,9 @@ Snowpipe
 Table
 ```
 
-Production Snowpipe commonly uses an event/notification mechanism to tell Snowpipe that a new file has arrived.
+In real projects, the cloud storage tells Snowflake when a new file lands. This message is called a notification. It tells the pipe to run.
 
-Since our goal is **pure Snowflake**, we will use an **internal stage + `ALTER PIPE ... REFRESH`**.
+Here we want **only Snowflake**. So we use an **internal stage** and the **`ALTER PIPE ... REFRESH`** command.
 
 ---
 
@@ -245,7 +247,7 @@ COPY INTO EMPLOYEE
 FROM @EMPLOYEE_STAGE
 ```
 
-The Pipe stores this loading definition.
+The pipe keeps this load rule inside itself. The load rule is the `COPY INTO` above.
 
 ---
 
@@ -267,7 +269,7 @@ Then:
 DESC PIPE EMPLOYEE_PIPE;
 ```
 
-You should see the `COPY INTO` definition.
+You should see the `COPY INTO` command stored in the pipe.
 
 ---
 
@@ -277,7 +279,7 @@ You should see the `COPY INTO` definition.
 SELECT SYSTEM$PIPE_STATUS('EMPLOYEE_PIPE');
 ```
 
-This gives you information about the Pipe's current state.
+This shows the state of the pipe right now. You can see if it is running or stopped.
 
 ---
 
@@ -332,15 +334,15 @@ You should see:
 employee_stage/first.csv
 ```
 
-At this point, **don't run `COPY INTO` manually**.
+Do not run `COPY INTO` by hand here.
 
-That's the whole point of this practical.
+That is the whole point of this exercise.
 
 ---
 
 ## 🔄 Step 13 — Trigger a Snowpipe Refresh
 
-This is the important correction.
+This is the key step.
 
 Run:
 
@@ -350,9 +352,9 @@ ALTER PIPE EMPLOYEE_PIPE REFRESH;
 
 This tells Snowpipe:
 
-> Scan the stage for files that haven't been loaded and process them.
+> Look in the stage for files that are not loaded yet. Load those files.
 
-So our flow is:
+So the flow is:
 
 ```text
 first.csv
@@ -418,7 +420,7 @@ employee_id,employee_name,email,department,salary,joining_date
 
 Upload it to `EMPLOYEE_STAGE`.
 
-> 📌 This file also already exists in [input files/](input%20files/).
+> 📌 This file is also already in [input files/](input%20files/).
 
 ---
 
@@ -428,7 +430,7 @@ Upload it to `EMPLOYEE_STAGE`.
 LIST @EMPLOYEE_STAGE;
 ```
 
-Now you should have:
+Now you should see:
 
 ```text
 employee_stage/first.csv
@@ -443,9 +445,9 @@ employee_stage/second.csv
 ALTER PIPE EMPLOYEE_PIPE REFRESH;
 ```
 
-Snowpipe checks the stage.
+The pipe looks in the stage. It skips the files it already loaded.
 
-Conceptually:
+Like this:
 
 ```text
 first.csv                      second.csv
@@ -493,7 +495,7 @@ Expected:
 SELECT SYSTEM$PIPE_STATUS('EMPLOYEE_PIPE');
 ```
 
-Use this when you want to investigate whether the Pipe is operating correctly.
+Use this when you want to check if the pipe is working well.
 
 ---
 
@@ -516,7 +518,7 @@ FROM TABLE(
 ORDER BY LAST_LOAD_TIME DESC;
 ```
 
-You should see your files and their load status.
+You should see your files and if they loaded.
 
 For example:
 
@@ -541,17 +543,17 @@ FROM TABLE(
 );
 ```
 
-This is useful for monitoring Snowpipe usage.
+This is useful to watch how much the pipe is used.
 
 ---
 
 ## ⚠️ Step 22 — If You Run the Practical Again
 
-Suppose `first.csv` is already loaded and you want to test it again.
+Say `first.csv` is already loaded. Now you want to test it again.
 
-Don't just upload another file with exactly the same name and expect it to load as a new file.
+Do not upload another file with the same name. It will not load as a new file.
 
-For a clean practice, use:
+For a clean test, use:
 
 ```text
 third.csv
@@ -569,7 +571,7 @@ Then upload a new file.
 
 ## 🧠 The Most Important Concept
 
-You now have three different ingestion methods in your head:
+You now know three ways to load files:
 
 ### 📁 Pipelines 50/51 — `COPY INTO`
 
@@ -629,7 +631,7 @@ Table
 
 ## 🧠 Snowpipe vs Task
 
-Don't confuse them.
+Do not mix them up.
 
 ### ⏰ Task
 
@@ -675,7 +677,7 @@ SNOWPIPE
 
 ## 🔥 Stream + Task + Snowpipe
 
-Eventually, these can work together:
+One day, these can all work together:
 
 ```text
                   NEW FILE
@@ -695,6 +697,6 @@ Eventually, these can work together:
                 FINAL TABLE
 ```
 
-That's a very useful Snowflake architecture.
+This is a very useful pattern in Snowflake.
 
-But we're intentionally learning each component separately first.
+But first we learn each part on its own. That is on purpose.

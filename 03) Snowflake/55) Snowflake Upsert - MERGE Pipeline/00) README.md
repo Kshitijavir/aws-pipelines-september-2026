@@ -8,17 +8,19 @@
 
 ## 🎯 Goal
 
-Now we move to one of the **most important Snowflake ETL concepts: `MERGE`**.
+This pipeline is about one of the **most important Snowflake ETL ideas: `MERGE`**.
 
-This pipeline will teach you how to handle:
+MERGE means: if the row is already there, update it. If the row is new, add it.
 
-* New records → **INSERT**
-* Existing records → **UPDATE**
-* Matching based on a key
+This pipeline shows you how to handle:
+
+* New rows → **INSERT** (add them)
+* Rows we already have → **UPDATE** (change them)
+* Matching rows by a key
 * Source table → Target table
 * `MERGE INTO`
 
-The practical scenario:
+Here is the simple picture:
 
 ```text
 SOURCE / NEW DATA
@@ -35,7 +37,7 @@ New      → INSERT
 
 ## 🏗️ Pipeline Architecture
 
-We'll create:
+We will create these objects:
 
 ```text
 NEW EMPLOYEE DATA
@@ -48,7 +50,7 @@ EMPLOYEE_SOURCE
 EMPLOYEE_TARGET
 ```
 
-We'll deliberately create:
+We will build these rows on purpose:
 
 ### 👥 Existing employees
 
@@ -114,7 +116,7 @@ USE WAREHOUSE MERGE_WH;
 
 ## 🎯 Step 4 — Create the Target Table
 
-This is the table that already contains our existing data.
+This table already holds the data we have.
 
 ```sql
 CREATE TABLE EMPLOYEE_TARGET (
@@ -145,7 +147,7 @@ Check:
 SELECT * FROM EMPLOYEE_TARGET ORDER BY EMPLOYEE_ID;
 ```
 
-We currently have:
+Right now the table has:
 
 ```text
 6001 Rahul  IT       85000
@@ -157,7 +159,7 @@ We currently have:
 
 ## 📋 Step 6 — Create the Source Table
 
-This represents the **new incoming data**.
+This table holds the **new data coming in**.
 
 ```sql
 CREATE TABLE EMPLOYEE_SOURCE (
@@ -182,11 +184,11 @@ INSERT INTO EMPLOYEE_SOURCE VALUES
 (6005, 'Vikas Kumar', 'vikas@example.com', 'Sales', 'Hyderabad', 65000);
 ```
 
-Notice carefully:
+Look at this closely:
 
 ### 🔸 `6002`
 
-Already exists but salary changed:
+This employee is already there, but the salary changed:
 
 ```text
 Old → 62000
@@ -195,7 +197,7 @@ New → 70000
 
 ### 🔸 `6003`
 
-Already exists but department and salary changed:
+This employee is already there, but the department and salary changed:
 
 ```text
 Old → Finance / 95000
@@ -204,9 +206,9 @@ New → IT / 105000
 
 ### 🔸 `6004` and `6005`
 
-Don't exist in target.
+These ids are not in the target table.
 
-Therefore:
+So:
 
 ```text
 6002 → UPDATE
@@ -227,7 +229,7 @@ SELECT * FROM EMPLOYEE_SOURCE ORDER BY EMPLOYEE_ID;
 
 ## 🔀 Step 9 — Perform MERGE
 
-Now the important part.
+This is the main step.
 
 ```sql
 MERGE INTO EMPLOYEE_TARGET AS TARGET
@@ -272,7 +274,7 @@ WHEN NOT MATCHED THEN
 SELECT * FROM EMPLOYEE_TARGET ORDER BY EMPLOYEE_ID;
 ```
 
-You should now have:
+The target table now looks like this:
 
 ```text
 6001 Rahul  IT       85000
@@ -286,7 +288,7 @@ You should now have:
 
 ## 🧠 Understand `MERGE`
 
-The core logic is:
+The main idea is:
 
 ```text
                  SOURCE
@@ -299,15 +301,15 @@ The core logic is:
            UPDATE       INSERT
 ```
 
-The condition is:
+This is the matching rule:
 
 ```sql
 ON TARGET.EMPLOYEE_ID = SOURCE.EMPLOYEE_ID
 ```
 
-That means:
+It means:
 
-> "Use EMPLOYEE_ID to determine whether this employee already exists."
+> "Use EMPLOYEE_ID to check if this employee is already there."
 
 ---
 
@@ -320,9 +322,9 @@ WHEN MATCHED THEN
     UPDATE SET ...
 ```
 
-Means:
+It means:
 
-> Record already exists → update it.
+> The row is already there → update it.
 
 ---
 
@@ -334,21 +336,21 @@ WHEN NOT MATCHED THEN
     VALUES (...);
 ```
 
-Means:
+It means:
 
-> Record doesn't exist → insert it.
+> The row is not there → add it.
 
 ---
 
 ## 💡 Step 12 — Why MERGE Is Important
 
-Imagine your company receives this every day:
+Imagine your company gets this file every day:
 
 ```text
 employee_daily_file.csv
 ```
 
-It contains:
+The file has:
 
 ```text
 Existing employees
@@ -358,7 +360,7 @@ New employees
 Updated employees
 ```
 
-You don't want to manually run:
+You do not want to run these by hand:
 
 ```text
 UPDATE
@@ -369,7 +371,7 @@ INSERT
 INSERT
 ```
 
-Instead:
+Instead do this:
 
 ```text
 Daily Data
@@ -381,21 +383,21 @@ MERGE
 Target
 ```
 
-One operation handles both:
+One step does both:
 
 ```text
 UPDATE + INSERT
 ```
 
-That's why `MERGE` is extremely common in data engineering.
+That is why `MERGE` is used so much in data engineering.
 
 ---
 
 ## 🔁 Step 13 — Test the MERGE Again
 
-Let's prove that the process works.
+Let's show that the process works.
 
-Add another employee:
+We add one more employee:
 
 ```sql
 INSERT INTO EMPLOYEE_SOURCE VALUES
@@ -404,13 +406,13 @@ INSERT INTO EMPLOYEE_SOURCE VALUES
 
 Run the same `MERGE` again.
 
-Then:
+Then check:
 
 ```sql
 SELECT * FROM EMPLOYEE_TARGET ORDER BY EMPLOYEE_ID;
 ```
 
-You'll now have:
+Now you have:
 
 ```text
 6001
@@ -425,17 +427,17 @@ You'll now have:
 
 ## ⚠️ Important Real-World Concept
 
-`MERGE` needs a reliable matching key.
+`MERGE` needs a key you can trust.
 
-Here we're using:
+Here we use:
 
 ```text
 EMPLOYEE_ID
 ```
 
-because it uniquely identifies an employee.
+It is unique for each employee.
 
-In real pipelines this could be:
+In real pipelines the key can be:
 
 ```text
 customer_id
@@ -444,7 +446,7 @@ product_id
 account_id
 ```
 
-depending on the dataset.
+It depends on the data.
 
 ---
 

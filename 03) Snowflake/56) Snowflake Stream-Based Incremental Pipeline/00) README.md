@@ -8,9 +8,9 @@
 
 ## 🎯 Goal
 
-This pipeline is where we properly learn **Snowflake Streams**.
+This pipeline teaches you **Snowflake Streams**.
 
-Before building anything, let's understand the concept in very simple terms.
+First, let's learn the idea in very simple words.
 
 ---
 
@@ -18,9 +18,9 @@ Before building anything, let's understand the concept in very simple terms.
 
 A **Stream is a change tracker**.
 
-It records the **changes that happen to a table** after the stream is created.
+It records the **changes made to a table** after you create the stream.
 
-Think of it like:
+Think of it like this:
 
 ```text
 EMPLOYEE_TABLE
@@ -33,9 +33,9 @@ EMPLOYEE_TABLE
 "Here are the rows that changed"
 ```
 
-A Stream does **not store a second copy of your entire table**.
+A Stream does **not save a second copy of your whole table**.
 
-Instead, it gives you information about changes such as:
+Instead, it tells you what changed. Here are the change types:
 
 ```text
 INSERT
@@ -47,7 +47,7 @@ DELETE
 
 ## 🧠 Simple Example
 
-Suppose our table contains:
+Suppose our table holds:
 
 ```text
 EMPLOYEE
@@ -65,14 +65,14 @@ CREATE STREAM EMPLOYEE_STREAM
 ON TABLE EMPLOYEE;
 ```
 
-Now someone inserts:
+Now someone adds a row:
 
 ```sql
 INSERT INTO EMPLOYEE VALUES
 (4, 'Sneha', 80000);
 ```
 
-The table becomes:
+The table now holds:
 
 ```text
 1 Rahul  50000
@@ -81,7 +81,7 @@ The table becomes:
 4 Sneha  80000
 ```
 
-But the Stream lets us see:
+But the Stream shows us:
 
 ```text
 4 Sneha 80000
@@ -101,16 +101,16 @@ SET SALARY = 65000
 WHERE ID = 2;
 ```
 
-The Stream captures the change.
+The Stream records the change.
 
-For an update, Snowflake can expose metadata such as:
+For an update, Snowflake can show extra details like:
 
 ```text
 METADATA$ACTION
 METADATA$ISUPDATE
 ```
 
-For example, conceptually:
+For example, in plain terms:
 
 ```text
 UPDATE
@@ -118,7 +118,7 @@ Old Priya row
 New Priya row
 ```
 
-This is extremely useful for CDC-style pipelines.
+This helps a lot with CDC-style pipelines.
 
 ---
 
@@ -131,7 +131,7 @@ DELETE FROM EMPLOYEE
 WHERE ID = 3;
 ```
 
-the Stream can show that the row was deleted.
+the Stream can show that the row is gone.
 
 So:
 
@@ -149,7 +149,7 @@ Imagine this table has **10 million records**.
 
 Every 10 minutes, only 500 records change.
 
-Without a Stream, you might have to repeatedly check:
+Without a Stream, you must read the whole table again and again:
 
 ```text
 10 million records
@@ -157,7 +157,7 @@ Without a Stream, you might have to repeatedly check:
 Find changed records
 ```
 
-That's inefficient.
+That wastes time and money.
 
 With a Stream:
 
@@ -174,13 +174,13 @@ Only changed records
     Process them
 ```
 
-That's the important idea.
+That is the main idea.
 
 ---
 
 ## ⚠️ Stream vs Stage
 
-Don't confuse them.
+Do not mix them up.
 
 ### 📦 Stage
 
@@ -235,9 +235,9 @@ Changes happening to that data
 
 ## 🔥 The Stream-Based Incremental Pipeline
 
-Now let's build a complete practical pipeline.
+Now let's build a full example pipeline.
 
-Our architecture will be:
+Our design will be:
 
 ```text
                  SOURCE TABLE
@@ -251,17 +251,17 @@ Our architecture will be:
                  TARGET TABLE
 ```
 
-We'll specifically practice:
+We will practice these steps:
 
-* Source table
-* Initial data
-* Stream
-* Insert new record
-* Update existing record
-* Delete record
-* Read Stream
-* Process Stream
-* Load changes into target table
+* The source table
+* The first rows of data
+* The Stream
+* Insert a new row
+* Update an existing row
+* Delete a row
+* Read the Stream
+* Use up the Stream rows
+* Load the changes into the target table
 * Understand `METADATA$ACTION`
 * Understand `METADATA$ISUPDATE`
 
@@ -322,13 +322,13 @@ INSERT INTO EMPLOYEE_SOURCE VALUES
 (7003, 'Amit Verma', 'Finance', 95000);
 ```
 
-Check:
+Check the table:
 
 ```sql
 SELECT * FROM EMPLOYEE_SOURCE ORDER BY EMPLOYEE_ID;
 ```
 
-You should have:
+You should see:
 
 ```text
 7001 Rahul  IT       85000
@@ -347,7 +347,7 @@ CREATE STREAM EMPLOYEE_STREAM
 ON TABLE EMPLOYEE_SOURCE;
 ```
 
-Check:
+Check the streams:
 
 ```sql
 SHOW STREAMS;
@@ -372,22 +372,22 @@ EMPLOYEE_SOURCE
 EMPLOYEE_STREAM
 ```
 
-But the stream has **no new changes yet** because we created it after the initial data was inserted.
+But the stream has **no new changes yet**. We made the stream after the first rows were added.
 
-That's intentional.
+That is on purpose.
 
 ---
 
 ## ➕ Step 7 — Insert a New Employee
 
-Now perform a change:
+Now make a change:
 
 ```sql
 INSERT INTO EMPLOYEE_SOURCE VALUES
 (7004, 'Sneha Joshi', 'IT', 78000);
 ```
 
-Check the source:
+Check the source table:
 
 ```sql
 SELECT * FROM EMPLOYEE_SOURCE ORDER BY EMPLOYEE_ID;
@@ -407,7 +407,7 @@ SELECT * FROM EMPLOYEE_STREAM;
 
 You should see the new change.
 
-Important metadata columns include:
+The important extra columns are:
 
 ```text
 METADATA$ACTION
@@ -415,7 +415,7 @@ METADATA$ISUPDATE
 METADATA$ROW_ID
 ```
 
-For the new employee, conceptually:
+For the new employee, in plain terms:
 
 ```text
 EMPLOYEE_ID = 7004
@@ -441,9 +441,9 @@ Read the stream:
 SELECT * FROM EMPLOYEE_STREAM;
 ```
 
-Now you'll see the change generated by the update.
+Now you see the change made by the update.
 
-The important thing is:
+The main point is:
 
 ```text
 UPDATE
@@ -468,15 +468,15 @@ Read:
 SELECT * FROM EMPLOYEE_STREAM;
 ```
 
-You can see the delete information.
+You can see the delete details.
 
 ---
 
 ## ⚠️ Important Stream Behavior
 
-Now comes one of the most important things to understand.
+This is one of the most important things to know.
 
-A Stream behaves somewhat like a **change queue**.
+A Stream acts like a **queue of changes**.
 
 If you do:
 
@@ -486,11 +486,11 @@ SELECT * FROM EMPLOYEE_STREAM;
 
 you are reading the stream.
 
-But the changes aren't simply "gone" because you queried it.
+But the changes do not vanish just because you read them.
 
-The Stream's change tracking is tied to **consumption through DML**, not merely running a `SELECT`.
+The stream only clears its rows when you **use them in a DML statement**. A plain `SELECT` is not enough.
 
-We'll demonstrate this properly by consuming the stream into another table.
+We will show this by reading the stream into another table.
 
 ---
 
@@ -509,7 +509,7 @@ CREATE TABLE EMPLOYEE_TARGET (
 
 ## 🚚 Step 12 — Consume the Stream
 
-We can use the Stream as the source of an `INSERT`:
+We can use the Stream as the input of an `INSERT`:
 
 ```sql
 INSERT INTO EMPLOYEE_TARGET
@@ -521,21 +521,21 @@ SELECT
 FROM EMPLOYEE_STREAM;
 ```
 
-Now check:
+Now check the target:
 
 ```sql
 SELECT * FROM EMPLOYEE_TARGET;
 ```
 
-The changed rows have been processed into the target.
+The changed rows are now in the target.
 
 ---
 
 ## 🧠 But there's a problem
 
-If we simply insert all Stream rows into the target, updates/deletes need special handling.
+If we just insert every stream row, updates and deletes need special care.
 
-For a proper CDC pipeline, we normally use:
+For a proper CDC pipeline, we normally do this:
 
 ```text
 Stream
@@ -545,13 +545,13 @@ MERGE
 Target
 ```
 
-And that's where Pipeline 55 and Pipeline 56 start connecting.
+This is where Pipeline 55 and Pipeline 56 meet.
 
 ---
 
 ## 🔀 Step 13 — Better Stream + MERGE Pattern
 
-Create another target table:
+Create a second target table:
 
 ```sql
 CREATE TABLE EMPLOYEE_FINAL (
@@ -562,7 +562,7 @@ CREATE TABLE EMPLOYEE_FINAL (
 );
 ```
 
-Then conceptually:
+Then, in plain terms:
 
 ```text
 Source Table
@@ -578,13 +578,13 @@ Source Table
 Target Table
 ```
 
-This is the pattern you'll see frequently in Snowflake pipelines.
+You will see this pattern often in Snowflake pipelines.
 
 ---
 
 ## 🔥 The Key Stream Columns
 
-When querying a stream, pay attention to:
+When you read a stream, look at:
 
 ### 🏷️ `METADATA$ACTION`
 
@@ -597,13 +597,13 @@ DELETE
 
 ### 🔁 `METADATA$ISUPDATE`
 
-Tells you whether the change is associated with an update.
+Tells you if the change comes from an update.
 
 ### 🆔 `METADATA$ROW_ID`
 
-A unique identifier associated with the row/change.
+A unique id for the row or change.
 
-For learning, run:
+To practice, run:
 
 ```sql
 SELECT
@@ -636,7 +636,7 @@ FROM EMPLOYEE_STREAM;
                 EMPLOYEE_TARGET
 ```
 
-The important difference from Pipeline 53 is:
+The key difference from Pipeline 53 is:
 
 ### 📁 Pipeline 53
 
@@ -666,19 +666,19 @@ Target
 
 ## 🎯 What You Should Understand After Pipeline 56
 
-You should be comfortable with:
+You should feel at ease with:
 
 * What a Stream is
-* Why Streams are used
-* Creating a Stream
-* Table → Stream relationship
-* INSERT tracking
-* UPDATE tracking
-* DELETE tracking
+* Why we use Streams
+* How to create a Stream
+* How a table and a Stream relate
+* How INSERT is tracked
+* How UPDATE is tracked
+* How DELETE is tracked
 * `METADATA$ACTION`
 * `METADATA$ISUPDATE`
 * `METADATA$ROW_ID`
-* Consuming Stream data
+* How to read and use Stream rows
 * Stream + `MERGE`
 * CDC-style processing
 

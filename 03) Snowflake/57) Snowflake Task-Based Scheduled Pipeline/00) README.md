@@ -4,17 +4,17 @@
 
 | File | What It Is |
 | ---- | ---------- |
-| [00) README.md](00%29%20README.md) | This explanation |
+| [00) README.md](00%29%20README.md) | This guide |
 
-Now we move to **Snowflake Tasks**. You already know the basic idea that a Task is used for scheduling. Now we'll actually build a pipeline where Snowflake automatically executes SQL on a schedule.
+Now we move on to **Snowflake Tasks**. You already know the basic idea: a task is used for scheduling. A task is a job that Snowflake runs for you on a schedule. Now we will build a pipeline where Snowflake runs SQL by itself on a schedule.
 
 ---
 
 ## 🧠 First: What Is a Snowflake Task?
 
-A **Task is Snowflake's scheduler/execution mechanism**.
+A **task is Snowflake's way to schedule and run SQL**.
 
-It can automatically execute SQL or call a stored procedure according to a schedule or dependency.
+It can run SQL by itself. It can also call a stored procedure. It runs on a schedule, or after another task.
 
 Think:
 
@@ -32,7 +32,7 @@ Think:
           Target Table
 ```
 
-For this practical, we'll start simple:
+For this practice, let's start simple:
 
 ```text
 SOURCE TABLE
@@ -44,7 +44,7 @@ SQL Transformation
 TARGET TABLE
 ```
 
-Then we'll build a **Task Chain**:
+Then we'll build a **chain of tasks**:
 
 ```text
 TASK 1
@@ -54,7 +54,7 @@ TASK 2
 TASK 3
 ```
 
-This is important because Snowflake Tasks aren't only about time-based scheduling.
+This matters because Snowflake tasks are not only about time. They can also run one after another.
 
 ---
 
@@ -76,16 +76,16 @@ EMPLOYEE_SUMMARY
 
 And we'll practice:
 
-* Creating a Task
+* Creating a task
 * `SCHEDULE`
 * `USING CRON`
 * `AFTER`
-* Task dependencies
+* Task dependencies (one task runs after another)
 * `ALTER TASK ... RESUME`
 * `ALTER TASK ... SUSPEND`
 * `TASK_HISTORY`
-* Task execution
-* Task chains
+* Task execution (watching a task run)
+* Chains of tasks
 
 ---
 
@@ -156,7 +156,7 @@ SELECT * FROM EMPLOYEE_SOURCE;
 
 ## 📋 Step 6 — Create the Target Table
 
-This table will contain the transformed data.
+This table will hold the changed data.
 
 ```sql
 CREATE TABLE EMPLOYEE_TARGET (
@@ -173,7 +173,7 @@ CREATE TABLE EMPLOYEE_TARGET (
 
 ## ⚡ Step 7 — Create Our First Task
 
-We'll make a simple Task that executes every minute.
+We'll make a simple task. It runs every minute.
 
 ```sql
 CREATE TASK EMPLOYEE_LOAD_TASK
@@ -203,7 +203,7 @@ SCHEDULE = '1 MINUTE'
 
 means:
 
-> Execute this Task every minute.
+> Run this task every minute.
 
 ---
 
@@ -223,9 +223,9 @@ EMPLOYEE_LOAD_TASK
 
 ## ⚠️ Step 9 — Task Is Initially Suspended
 
-Creating a Task does **not mean it immediately starts running**.
+Creating a task does **not start it right away**.
 
-You need to resume it.
+You must start it again.
 
 ```sql
 ALTER TASK EMPLOYEE_LOAD_TASK RESUME;
@@ -245,7 +245,7 @@ Scheduler can execute it
 
 ## ⏳ Step 10 — Wait and Check the Target
 
-Wait around 1–2 minutes.
+Wait about 1 to 2 minutes.
 
 Then:
 
@@ -253,13 +253,13 @@ Then:
 SELECT * FROM EMPLOYEE_TARGET;
 ```
 
-You should see the transformed rows.
+You should see the new rows.
 
 ---
 
 ## 🕘 Step 11 — Check Task History
 
-This is very important.
+This part is very important.
 
 ```sql
 SELECT *
@@ -272,7 +272,7 @@ FROM TABLE(
 ORDER BY SCHEDULED_TIME DESC;
 ```
 
-You'll be able to see things such as:
+You can see things like:
 
 ```text
 STATE
@@ -282,25 +282,25 @@ COMPLETED_TIME
 ERROR_MESSAGE
 ```
 
-This lets you check whether the Task executed successfully.
+This shows you if the task ran fine or not.
 
 ---
 
 ## 🛑 Step 12 — Suspend the Task
 
-For practice, don't leave it running continuously.
+For practice, don't leave it running all the time.
 
 ```sql
 ALTER TASK EMPLOYEE_LOAD_TASK SUSPEND;
 ```
 
-Now it stops scheduling executions.
+Now it stops starting new runs.
 
 ---
 
 ## 🔗 Step 13 — Create a Task Chain
 
-Now let's learn something more important.
+Now let's learn something bigger.
 
 Suppose we want:
 
@@ -325,7 +325,7 @@ TASK 3
 Final processing
 ```
 
-This is called a **Task Graph / Task Dependency**.
+This is called a **chain of tasks**. One task runs first. The next one runs after it.
 
 ---
 
@@ -345,7 +345,7 @@ CREATE TABLE DEPARTMENT_SUMMARY (
 
 ## 🌱 Step 15 — Create the Root Task
 
-First create the parent Task.
+First, create the parent task.
 
 ```sql
 CREATE TASK EMPLOYEE_ROOT_TASK
@@ -397,28 +397,28 @@ AFTER EMPLOYEE_ROOT_TASK
 
 This means:
 
-> Don't run this Task independently. Run it after the parent Task succeeds.
+> Don't run this task on its own. Run it after the parent task works.
 
 ---
 
 ## ▶️ Step 17 — Resume the Child First
 
-This is a very important Snowflake Task concept.
+This is a key idea in Snowflake tasks.
 
-Suspend both first if necessary:
+Stop both first if you need to:
 
 ```sql
 ALTER TASK DEPARTMENT_SUMMARY_TASK SUSPEND;
 ALTER TASK EMPLOYEE_ROOT_TASK SUSPEND;
 ```
 
-Then resume the child:
+Then start the child again:
 
 ```sql
 ALTER TASK DEPARTMENT_SUMMARY_TASK RESUME;
 ```
 
-Then resume the root:
+Then start the parent again:
 
 ```sql
 ALTER TASK EMPLOYEE_ROOT_TASK RESUME;
@@ -432,13 +432,13 @@ EMPLOYEE_ROOT_TASK
 DEPARTMENT_SUMMARY_TASK
 ```
 
-The root Task controls the schedule.
+The parent task controls the schedule.
 
 ---
 
 ## 🧠 Why Resume the Child First?
 
-Snowflake requires child Tasks to be resumed before the root Task is resumed for a task graph.
+In a chain of tasks, Snowflake wants the child task started first. Then you start the parent task.
 
 Think:
 
@@ -460,7 +460,7 @@ Child executes
 SHOW TASKS;
 ```
 
-You should see something like:
+You should see something like this:
 
 ```text
 EMPLOYEE_ROOT_TASK
@@ -492,20 +492,20 @@ ORDER BY SCHEDULED_TIME DESC;
 
 ## 🛑 Step 20 — Suspend Everything
 
-When finished practicing:
+When you finish practice:
 
 ```sql
 ALTER TASK DEPARTMENT_SUMMARY_TASK SUSPEND;
 ALTER TASK EMPLOYEE_ROOT_TASK SUSPEND;
 ```
 
-This prevents unnecessary repeated execution.
+This stops it from running again and again.
 
 ---
 
 ## 🧠 Schedule Types
 
-We've used:
+We have used:
 
 ```sql
 SCHEDULE = '1 MINUTE'
@@ -519,7 +519,7 @@ For example:
 SCHEDULE = 'USING CRON 0 19 * * * UTC'
 ```
 
-Conceptually:
+In plain words:
 
 ```text
 Every day
@@ -529,7 +529,7 @@ Every day
 Task executes
 ```
 
-You can also use intervals such as:
+You can also use time gaps like:
 
 ```sql
 SCHEDULE = '5 MINUTE'
@@ -545,7 +545,7 @@ SCHEDULE = '1 HOUR'
 
 ## 🔥 The Big Picture
 
-You should now understand:
+You should now know:
 
 ### 🕐 Simple Task
 
@@ -578,7 +578,7 @@ Table
 
 ## 🧠 Task vs Stream
 
-This distinction is **very important** because we just completed Streams.
+This difference is **very important**. We just finished Streams.
 
 ### 🌊 Stream
 
@@ -586,7 +586,7 @@ This distinction is **very important** because we just completed Streams.
 Stream = WHAT changed?
 ```
 
-It captures table changes.
+It remembers what changed in a table.
 
 ### ⏰ Task
 
@@ -594,7 +594,7 @@ It captures table changes.
 Task = WHEN / HOW should something execute?
 ```
 
-It executes SQL automatically.
+It runs SQL by itself.
 
 Together:
 
@@ -613,5 +613,5 @@ Together:
               TARGET
 ```
 
-This **Stream + Task** combination is one of the most useful Snowflake patterns to understand.
+This **Stream + Task** pair is one of the most useful Snowflake patterns to know.
 

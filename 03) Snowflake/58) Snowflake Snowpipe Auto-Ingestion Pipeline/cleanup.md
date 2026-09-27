@@ -1,11 +1,11 @@
 # 🧹 Cleanup — 58) Snowflake Snowpipe Auto-Ingestion Pipeline
 
-Drops every Snowflake object this pipeline created. Run the statements top to bottom.
+This file removes every Snowflake object that this pipeline creates. Run the statements from top to bottom.
 
 ## 1️⃣ Pause the Pipe
 
 ```sql
--- Optional but tidy: stop the pipe from firing before you remove it
+-- Optional, but tidy: stop the pipe before you remove it
 ALTER PIPE SNOWFLAKE_SNOWPIPE_PRACTICE.SNOWPIPE_SCHEMA.EMPLOYEE_PIPE SET PIPE_EXECUTION_PAUSED = TRUE;
 ```
 
@@ -22,20 +22,20 @@ DROP DATABASE IF EXISTS SNOWFLAKE_SNOWPIPE_PRACTICE;
 DROP WAREHOUSE IF EXISTS SNOWPIPE_WH;
 ```
 
-## 3️⃣ Or Just Stop the Compute
+## 3️⃣ Or Just Stop the Cost
 
 ```sql
--- Keeps every object and pauses ingestion, stops the billing
+-- Keeps all the objects, and stops the cost. Loading is stopped for now
 ALTER PIPE SNOWFLAKE_SNOWPIPE_PRACTICE.SNOWPIPE_SCHEMA.EMPLOYEE_PIPE SET PIPE_EXECUTION_PAUSED = TRUE;
 ALTER WAREHOUSE SNOWPIPE_WH SUSPEND;
 ```
 
 ## 📌 Notes
 
-- Object names are fully qualified (`DATABASE.SCHEMA.OBJECT`), so the script works from any session context.
-- The pipe is dropped **before** the stage and file format it reads through, and before the table it copies into.
-- `COPY_HISTORY` keeps the pipe's load metadata for a while even after the pipe is gone — that history is not something you delete manually.
-- This Snowflake-only version uses `ALTER PIPE ... REFRESH` to trigger ingestion, so there is **no notification integration and no AWS object** to clean up:
+- Object names use the full path (`DATABASE.SCHEMA.OBJECT`). So the script works from anywhere.
+- The pipe is removed **before** the stage and the file format it reads. It is also removed before the table it copies into.
+- `COPY_HISTORY` keeps the pipe's load details for a while, even after the pipe is gone. You do not delete that history by hand.
+- This Snowflake-only version uses `ALTER PIPE ... REFRESH` to start loading. So there is **no link from the cloud storage** and **no AWS object** to clean up:
   ```text
   AWS
    └── nothing to remove for this pipeline

@@ -9,11 +9,11 @@
 
 ## 🎯 Goal
 
-Pipeline 50 loaded **one** CSV. Here the same stage holds **five** CSVs and a **single** `COPY INTO` loads all of them — 15 rows in one statement.
+Pipeline 50 loaded **one** CSV file. Here the same idea is used with **five** CSV files. One single `COPY INTO` loads all five, which is 15 rows in one command.
 
 ## 📦 The Input Files
 
-Five files × 3 employees = **15 records**:
+Five files, three employees in each file = **15 rows**:
 
 ```text
 employees_01.csv   →   2001–2003
@@ -23,28 +23,28 @@ employees_04.csv   →   2010–2012
 employees_05.csv   →   2013–2015
 ```
 
-Every file shares the same header and layout:
+All five files have the same first line and the same columns:
 
 ```text
 employee_id, employee_name, email, country, department, joining_date, salary
 ```
 
-The only difference from Pipeline 50 is the extra `department` column and the number of files.
+The only differences from Pipeline 50 are the extra `department` column and the number of files.
 
-> 📌 We build a **completely new** environment (database, schema, warehouse, table, format, stage) instead of reusing Pipeline 50's objects — so the full setup is practised a second time and the two pipelines never interfere.
+> 📌 We build a **completely new** setup here (database, schema, warehouse, table, format, stage), instead of reusing Pipeline 50's objects. This way you practise the whole setup a second time, and the two pipelines never mix.
 
 ## 🧱 The Objects We Create
 
-| Object | Name | Why It Exists |
+| Object | Name | What it is for |
 | ------ | ---- | ------------- |
-| Database | `SNOWFLAKE_MULTI_FILE_PRACTICE` | Top-level container |
-| Schema | `MULTI_FILE_SCHEMA` | Groups this pipeline's objects |
-| Warehouse | `MULTI_FILE_WH` | The compute that runs the load |
-| Table | `EMPLOYEE_MULTI` | Where all 15 rows land |
-| File Format | `EMPLOYEE_MULTI_CSV_FORMAT` | How to parse the CSVs |
-| Stage | `EMPLOYEE_MULTI_STAGE` | Holds all five files at once |
+| Database | `SNOWFLAKE_MULTI_FILE_PRACTICE` | The big box that holds everything below |
+| Schema | `MULTI_FILE_SCHEMA` | A folder that keeps this pipeline's objects together |
+| Warehouse | `MULTI_FILE_WH` | The machine that runs the load |
+| Table | `EMPLOYEE_MULTI` | Where all 15 rows end up |
+| File Format | `EMPLOYEE_MULTI_CSV_FORMAT` | Tells Snowflake how to read the CSV files |
+| Stage | `EMPLOYEE_MULTI_STAGE` | Holds all five files at the same time |
 
-Build order: **Database → Schema → Warehouse → Table → File Format → Stage → Upload ×5 → COPY INTO → Verify**
+Do it in this order: **Database → Schema → Warehouse → Table → File Format → Stage → Upload ×5 → COPY INTO → Verify**
 
 ```mermaid
 flowchart TB
@@ -97,13 +97,13 @@ CREATE WAREHOUSE MULTI_FILE_WH
 USE WAREHOUSE MULTI_FILE_WH;
 ```
 
-> 📌 A warehouse is an account-level object, not part of the database. One warehouse can serve many pipelines — this exercise creates its own only so the setup is practised completely.
+> 📌 A warehouse sits at the account level, not inside the database. One warehouse can serve many pipelines. This exercise creates its own just so you practise the full setup.
 
 ---
 
 ## 📋 Step 4 — Create the Table
 
-Note the extra `DEPARTMENT` column compared with Pipeline 50:
+Notice the extra `DEPARTMENT` column, which Pipeline 50 did not have:
 
 | CSV column | Table column | Data Type |
 | ---------- | ------------ | --------- |
@@ -137,7 +137,7 @@ DESC TABLE EMPLOYEE_MULTI;
 
 ## 📄 Step 5 — Create the File Format
 
-One file format serves all five files, because they all share the same layout and header:
+One file format is enough for all five files, because they all have the same columns and the same first line:
 
 ```sql
 CREATE FILE FORMAT EMPLOYEE_MULTI_CSV_FORMAT
@@ -154,7 +154,7 @@ Check it:
 DESC FILE FORMAT EMPLOYEE_MULTI_CSV_FORMAT;
 ```
 
-> 📌 `SKIP_HEADER = 1` matters more here than in Pipeline 50 — every one of the five files has a header row, and Snowflake skips it in **each** file. That is why the result is 15 rows, not 20.
+> 📌 `SKIP_HEADER = 1` matters even more here than in Pipeline 50. All five files have a first line with column names, and Snowflake skips it in **each** file. That is why you get 15 rows and not 20.
 
 ---
 
@@ -197,7 +197,7 @@ Data → Databases → SNOWFLAKE_MULTI_FILE_PRACTICE → MULTI_FILE_SCHEMA → S
 
 Upload **all five** files: `employees_01.csv` … `employees_05.csv`.
 
-> ⚠️ Upload them into the stage **root**. If they land in a sub-folder such as `employees/`, the plain `COPY INTO` in Step 9 will not find them — you would need `FROM @EMPLOYEE_MULTI_STAGE/employees/` instead.
+> ⚠️ Upload the files into the stage **root**. If they go into a sub-folder such as `employees/`, the plain `COPY INTO` in Step 9 will not find them. You would need `FROM @EMPLOYEE_MULTI_STAGE/employees/` instead.
 
 ---
 
@@ -207,7 +207,7 @@ Upload **all five** files: `employees_01.csv` … `employees_05.csv`.
 LIST @EMPLOYEE_MULTI_STAGE;
 ```
 
-You should see five entries:
+You should see five lines, one for each file:
 
 ```text
 employees_01.csv
@@ -217,7 +217,7 @@ employees_04.csv
 employees_05.csv
 ```
 
-The stage is now a **queue of files** instead of a single file — that is the whole difference from Pipeline 50:
+Now the stage holds a **list of files** instead of one file. That is the whole difference from Pipeline 50:
 
 ```text
 Pipeline 50                       Pipeline 51
@@ -245,7 +245,7 @@ FILE_FORMAT = (
 );
 ```
 
-Snowflake will find the CSV files in the stage and load them into the table.
+Snowflake finds the CSV files in the stage and loads them into the table.
 
 ---
 
@@ -255,7 +255,7 @@ Snowflake will find the CSV files in the stage and load them into the table.
 SELECT * FROM EMPLOYEE_MULTI ORDER BY EMPLOYEE_ID;
 ```
 
-All 15 rows, exactly as they sit in the five input files:
+You should see all 15 rows, exactly as they are in the five input files:
 
 ```text
 EMPLOYEE_ID | EMPLOYEE_NAME | EMAIL                     | COUNTRY | DEPARTMENT | JOINING_DATE | SALARY
@@ -289,13 +289,13 @@ Expected:
 15
 ```
 
-> 📌 `15 = 5 files × 3 rows`, not `20`. That is the proof that `SKIP_HEADER = 1` was applied to **every** file and not just the first one.
+> 📌 The answer is `15` (5 files × 3 rows), not `20`. This proves that `SKIP_HEADER = 1` was used on **every** file, and not only on the first one.
 
 ---
 
 ## 🏷️ Step 11 — Which File Did Each Row Come From?
 
-Every loaded row keeps the metadata of the file it came from. This is the most useful trick when debugging a multi-file load:
+Every loaded row remembers which file it came from. This is the most useful trick when you need to debug a multi-file load:
 
 ```sql
 SELECT
@@ -307,7 +307,7 @@ FROM EMPLOYEE_MULTI
 ORDER BY SOURCE_FILE, EMPLOYEE_ID;
 ```
 
-That gives a direct file → row mapping:
+That shows you which row came from which file:
 
 ```text
 SOURCE_FILE        | EMPLOYEE_ID | EMPLOYEE_NAME
@@ -321,21 +321,21 @@ employees_02.csv   | 2006        | Meera Desai
 ...
 ```
 
-You can read the same metadata straight off the stage, before any load at all:
+You can also read the same details straight from the stage, before you load anything at all:
 
 ```sql
 SELECT METADATA$FILENAME, METADATA$FILE_ROW_NUMBER
 FROM @EMPLOYEE_MULTI_STAGE;
 ```
 
-| Metadata column | Gives you |
+| Metadata column | What it tells you |
 | --------------- | --------- |
-| `METADATA$FILENAME` | Full path of the staged file the row belongs to |
+| `METADATA$FILENAME` | The full path of the file the row came from |
 | `METADATA$FILE_ROW_NUMBER` | The row's position inside that file |
-| `METADATA$FILE_LAST_MODIFIED` | When that file was last modified |
-| `METADATA$FILE_CONTENT_KEY` | Checksum of that file |
+| `METADATA$FILE_LAST_MODIFIED` | When that file was last changed |
+| `METADATA$FILE_CONTENT_KEY` | A checksum of that file |
 
-> 📌 `FILE_ROW_NUMBER` is the row's position in the source file, and the header still occupies a line — so do not assume the first data row is `1`. Read the value instead of hard-coding an offset.
+> 📌 `FILE_ROW_NUMBER` is the row's position in the file, and the first line is the header. So do not assume that the first data row is `1`. Read the value instead of guessing a fixed number.
 
 ---
 
@@ -357,36 +357,36 @@ FROM TABLE(
 ORDER BY LAST_LOAD_TIME;
 ```
 
-You should see **five rows** — one per file, each with `STATUS = LOADED` and `ROW_COUNT = 3`. That is the proof a single `COPY INTO` really did process all five files.
+You should see **five rows**, one for each file. Each row should have `STATUS = LOADED` and `ROW_COUNT = 3`. This proves that one single `COPY INTO` really did load all five files.
 
-> 📌 `COPY_HISTORY` only returns rows inside the time window you pass, so widen `START_TIME` (to `-7` or `-30` days) when the load was not within the last hour.
+> 📌 `COPY_HISTORY` shows only the time range you give it. If you did the load more than an hour ago, make the range bigger — for example `-7` or `-30` days.
 
 ---
 
 ## ⚠️ Common Errors
 
-| Error | Cause | Fix |
+| Error | Why it happens | How to fix it |
 | ----- | ----- | --- |
-| `rows_loaded = 0` | `COPY INTO` matched no files — usually they were uploaded into a sub-folder | `LIST @EMPLOYEE_MULTI_STAGE` and fix the upload location or the stage path |
-| Only 3 of 5 files loaded | The remaining files were uploaded after the `COPY INTO` ran | Just re-run `COPY INTO` — new files are loaded, old ones skipped |
-| `COUNT(*)` = 20 instead of 15 | `SKIP_HEADER = 1` missing from the file format | Add it and reload with `FORCE = TRUE` |
-| Load aborts because of one bad row | Default `ON_ERROR = 'ABORT_STATEMENT'` | Use `VALIDATION_MODE = RETURN_ERRORS` to locate the row, or `ON_ERROR = 'CONTINUE'` to skip it |
-| `Number of columns in file does not match the table` | A file has a different layout — the extra `department` column is the usual suspect | Compare against the table in Step 4 |
-| Second run loads nothing | Snowflake already loaded those exact files | `FORCE = TRUE`, or upload renamed files |
+| `rows_loaded = 0` | `COPY INTO` found no files. Usually they were uploaded into a sub-folder | Run `LIST @EMPLOYEE_MULTI_STAGE` and fix the upload location or the stage path |
+| Only 3 of 5 files loaded | The other files were uploaded after `COPY INTO` ran | Just run `COPY INTO` again. New files get loaded, old ones are skipped |
+| `COUNT(*)` = 20 instead of 15 | `SKIP_HEADER = 1` is missing from the file format | Add it, then load again with `FORCE = TRUE` |
+| The load stops because of one bad row | The default setting is `ON_ERROR = 'ABORT_STATEMENT'` | Use `VALIDATION_MODE = RETURN_ERRORS` to find the row, or `ON_ERROR = 'CONTINUE'` to skip it |
+| `Number of columns in file does not match the table` | One file has different columns. The extra `department` column is the usual reason | Compare it with the table in Step 4 |
+| The second run loads nothing | Snowflake already loaded those exact files | Use `FORCE = TRUE`, or upload the files with new names |
 
 ---
 
 ## ⭐ What to Take Away
 
-| Concept | Point |
+| Idea | What to remember |
 | ------- | ----- |
-| **One stage, many files** | A stage is a folder — `COPY INTO` processes every file inside it |
-| **One `COPY INTO`, many files** | No loop needed; Snowflake fans out over the stage for you |
-| **One file format for all** | Safe only because the files share the same layout and header |
-| **`SKIP_HEADER = 1`** | Applies per file, which is why the count stays at 15 |
-| **Load metadata** | Snowflake remembers loaded files, so re-runs skip them instead of duplicating data |
-| **`METADATA$FILENAME`** | Tells you exactly which file every row came from |
-| **`COPY_HISTORY`** | Audits what was loaded, when, and whether any rows failed |
+| **One stage, many files** | A stage is like a folder. `COPY INTO` reads every file inside it |
+| **One `COPY INTO`, many files** | You need no loop. Snowflake reads all the files in the stage for you |
+| **One file format for all** | This is safe only because all the files have the same columns and the same first line |
+| **`SKIP_HEADER = 1`** | It is used for each file, which is why the count stays at 15 |
+| **Load memory** | Snowflake remembers the files it loaded, so a second run skips them instead of adding the rows twice |
+| **`METADATA$FILENAME`** | Tells you exactly which file each row came from |
+| **`COPY_HISTORY`** | Shows what was loaded, when, and whether any rows failed |
 
 The two pipelines side by side:
 

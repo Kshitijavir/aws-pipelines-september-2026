@@ -1,6 +1,6 @@
 # 🧹 Cleanup — 50) Snowflake Basic CSV Batch Load Pipeline
 
-Drops every Snowflake object this pipeline created. Run the statements top to bottom.
+This file removes every Snowflake object that this pipeline creates. Run the statements from top to bottom.
 
 ## 1️⃣ Drop Everything
 
@@ -14,16 +14,16 @@ DROP DATABASE IF EXISTS SNOWFLAKE_PRACTICE;
 DROP WAREHOUSE IF EXISTS PRACTICE_WH;
 ```
 
-## 2️⃣ Or Just Stop the Compute
+## 2️⃣ Or Just Stop the Cost
 
 ```sql
--- Keeps every object, stops the billing
+-- Keeps all the objects, and stops the cost
 ALTER WAREHOUSE PRACTICE_WH SUSPEND;
 ```
 
 ## 📌 Notes
 
-- Object names are fully qualified (`DATABASE.SCHEMA.OBJECT`), so the script works from any session context — no `USE DATABASE` needed.
-- Children are dropped before parents: stage → file format → table → schema → database.
-- `DROP SCHEMA` fails while the schema still holds objects, which is why the stage, file format and table come first. Add `CASCADE` only if you want one statement to take everything inside the schema with it.
-- `DROP WAREHOUSE` is independent of the database, so it can run in any position.
+- The object names are written in full (`DATABASE.SCHEMA.OBJECT`), so this file works in any session. You do not need to run `USE DATABASE` first.
+- Small objects are dropped before the big object that holds them: stage → file format → table → schema → database.
+- `DROP SCHEMA` fails if the schema still has objects inside it. That is why the stage, file format and table are dropped first. Add `CASCADE` only if you want one statement to delete everything inside the schema.
+- `DROP WAREHOUSE` does not belong to the database, so you can run it at any point.

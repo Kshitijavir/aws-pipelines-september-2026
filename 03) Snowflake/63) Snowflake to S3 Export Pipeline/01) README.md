@@ -41,56 +41,6 @@ flowchart TD
     I --> J["Amazon S3: employee-export/staff_data.csv"]
 ```
 
-The same flow in text:
-
-```text
-                       YOU
-                        │
-                        │ Click TEST
-                        ▼
-              ┌─────────────────────┐
-              │     AWS LAMBDA      │
-              │ snowflake-s3-       │
-              │ export-lambda       │
-              └──────────┬──────────┘
-                         │
-                         │ Snowflake Python Connector
-                         ▼
-              ┌─────────────────────┐
-              │      SNOWFLAKE      │
-              │                     │
-              │ STAFF_DATA          │
-              │        ↓            │
-              │ EXPORT_STAFF_TO_S3  │
-              └──────────┬──────────┘
-                         │
-                         │ COPY INTO
-                         ▼
-              ┌─────────────────────┐
-              │  External Stage     │
-              │ STAFF_S3_EXPORT_    │
-              │ STAGE               │
-              └──────────┬──────────┘
-                         │
-                         │ Storage Integration
-                         ▼
-              ┌─────────────────────┐
-              │ Snowflake IAM Role  │
-              │ SnowflakeS3Export-  │
-              │ SnowflakeRole       │
-              └──────────┬──────────┘
-                         │
-                         │ S3 permissions
-                         ▼
-              ┌─────────────────────┐
-              │     AMAZON S3       │
-              │                     │
-              │ employee-export/    │
-              │        ↓            │
-              │ staff_data.csv      │
-              └─────────────────────┘
-```
-
 ---
 
 ## 💡 2. First Understand the Business Idea
@@ -479,25 +429,7 @@ Use a temporary trust policy — it will be replaced in Step 12:
 }
 ```
 
-Attach a policy that lets Snowflake read and write the bucket. `AmazonS3FullAccess` works for practice; this is the least-privilege version:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["s3:GetBucketLocation", "s3:ListBucket"],
-      "Resource": "arn:aws:s3:::snowflake-s3-export-practice-2026"
-    },
-    {
-      "Effect": "Allow",
-      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
-      "Resource": "arn:aws:s3:::snowflake-s3-export-practice-2026/employee-export/*"
-    }
-  ]
-}
-```
+Attach `AmazonS3FullAccess` to this role so Snowflake can read and write the bucket.
 
 Copy the **role ARN**:
 
@@ -952,7 +884,7 @@ AWS
 | Error | Cause | Fix |
 | ----- | ----- | --- |
 | `Access Denied` on `LIST @stage` | Trust policy does not match the integration | Re-run `DESC INTEGRATION` and paste both values into the role trust policy |
-| `Access Denied` even with the right trust policy | Role cannot write to the bucket | Attach `AmazonS3FullAccess` or the least-privilege policy from Step 8 |
+| `Access Denied` even with the right trust policy | Role cannot write to the bucket | Attach `AmazonS3FullAccess` to the role |
 | `Insufficient privileges to operate on integration` | The role creating the stage has no rights on the integration | `GRANT USAGE ON INTEGRATION S3_EXPORT_INTEGRATION TO ROLE <your_role>;` |
 | `Storage integration ... is not enabled` | `ENABLED = TRUE` was missed or set to false | `ALTER STORAGE INTEGRATION S3_EXPORT_INTEGRATION SET ENABLED = TRUE;` |
 | `Failure using stage area. Cause: Access Denied` during `COPY INTO` | The allowed location does not include the path being written | Add the path to `STORAGE_ALLOWED_LOCATIONS` |

@@ -1,0 +1,5 @@
+employee_id	name	department	salary
+101	Rahul	IT	60000
+102	Amit	HR	50000
+103	Neha	Finance	70000
+104	Priya	IT	65000

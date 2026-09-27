@@ -1,0 +1,5 @@
+2026-09-20 10:15:22 INFO  Employee Rahul from IT logged in
+2026-09-20 10:16:05 INFO  Employee Amit from HR logged in
+2026-09-20 10:17:41 WARN  Employee Neha from Finance salary pending
+2026-09-20 10:18:03 ERROR Employee Priya from IT access denied
+2026-09-20 10:19:55 INFO  Employee Rahul from IT logged out

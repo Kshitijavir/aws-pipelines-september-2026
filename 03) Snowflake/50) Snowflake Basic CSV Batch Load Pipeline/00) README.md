@@ -328,29 +328,6 @@ The most useful columns are `FILE_NAME`, `STATUS`, `ROW_COUNT`, `ROW_PARSED` and
 
 ---
 
-## 🧹 Cleanup
-
-Stop paying for compute as soon as the practice is done:
-
-```sql
-ALTER WAREHOUSE PRACTICE_WH SUSPEND;
-```
-
-Or remove everything, in dependency order:
-
-```sql
-DROP TABLE IF EXISTS EMPLOYEE;
-DROP STAGE IF EXISTS EMPLOYEE_STAGE;
-DROP FILE FORMAT IF EXISTS EMPLOYEE_CSV_FORMAT;
-DROP SCHEMA IF EXISTS EMPLOYEE_SCHEMA;
-DROP WAREHOUSE IF EXISTS PRACTICE_WH;
-DROP DATABASE IF EXISTS SNOWFLAKE_PRACTICE;
-```
-
-> ⚠️ `DROP SCHEMA` fails if the schema still contains objects unless you add `CASCADE` — hence dropping the table, stage and file format first, as above.
-
----
-
 ## ⚠️ Common Errors
 
 | Error | Cause | Fix |

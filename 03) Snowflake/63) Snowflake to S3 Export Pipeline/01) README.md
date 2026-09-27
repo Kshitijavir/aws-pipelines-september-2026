@@ -852,33 +852,6 @@ AWS
 
 ---
 
-## 🧹 Cleanup
-
-```sql
--- Snowflake
-DROP PROCEDURE IF EXISTS EXPORT_STAFF_TO_S3();
-DROP STAGE IF EXISTS STAFF_S3_EXPORT_STAGE;
-DROP STORAGE INTEGRATION IF EXISTS S3_EXPORT_INTEGRATION;
-DROP FILE FORMAT IF EXISTS STAFF_CSV_FORMAT;
-DROP TABLE IF EXISTS STAFF_DATA;
-DROP SCHEMA IF EXISTS S3_EXPORT_SCHEMA;
-DROP DATABASE IF EXISTS SNOWFLAKE_S3_EXPORT_PRACTICE;
-DROP WAREHOUSE IF EXISTS S3_EXPORT_WH;
-```
-
-```text
-AWS
- ├── Delete the Lambda function snowflake-s3-export-lambda
- ├── Delete the role SnowflakeS3ExportPracticeRole
- ├── Delete the role SnowflakeS3ExportSnowflakeRole
- ├── Empty the bucket snowflake-s3-export-practice-2026
- └── Delete the bucket snowflake-s3-export-practice-2026
-```
-
-> 📌 Drop the stage and integration **before** deleting the IAM role, otherwise Snowflake may still reference a role that no longer exists.
-
----
-
 ## 🚨 Common Errors
 
 | Error | Cause | Fix |

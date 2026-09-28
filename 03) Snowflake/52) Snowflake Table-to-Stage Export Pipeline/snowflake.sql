@@ -118,3 +118,54 @@ FROM CUSTOMER_EXPORT;
 -- ============================================================
 
 LIST @CUSTOMER_EXPORT_STAGE;
+
+
+-- ============================================================
+-- STEP 11. EXPORT WITH COLUMN HEADERS
+-- Same export, but the first line of the file holds the column names.
+-- Step 10 in the README is the download, so there is no SQL for it.
+-- ============================================================
+
+-- Empty the stage first, so the old file does not block the new one.
+-- If you skip this, Snowflake says:
+-- "Files already existing at the unload destination"
+REMOVE @CUSTOMER_EXPORT_STAGE;
+
+COPY INTO @CUSTOMER_EXPORT_STAGE
+FROM CUSTOMER_EXPORT
+HEADER = TRUE;
+
+
+-- ============================================================
+-- STEP 12. EXPORT ONLY SELECTED COLUMNS
+-- You do not have to export the whole table
+-- ============================================================
+
+COPY INTO @CUSTOMER_EXPORT_STAGE
+FROM (
+    SELECT
+        CUSTOMER_ID,
+        CUSTOMER_NAME,
+        CITY,
+        TOTAL_PURCHASE
+    FROM CUSTOMER_EXPORT
+)
+HEADER = TRUE;
+
+
+-- ============================================================
+-- STEP 13. EXPORT FILTERED DATA
+-- You can also export only some of the rows
+-- ============================================================
+
+COPY INTO @CUSTOMER_EXPORT_STAGE
+FROM (
+    SELECT
+        CUSTOMER_ID,
+        CUSTOMER_NAME,
+        CITY,
+        TOTAL_PURCHASE
+    FROM CUSTOMER_EXPORT
+    WHERE TOTAL_PURCHASE > 65000
+)
+HEADER = TRUE;

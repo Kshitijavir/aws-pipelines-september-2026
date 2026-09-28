@@ -1,0 +1,4 @@
+employee_id,employee_name,email,country,department,joining_date,salary
+3004,Harsh Vardhan,harsh.vardhan@example.com,India,Sales,2026-09-04,60000
+3005,Kavya Menon,kavya.menon@example.com,India,IT,2026-09-05,83000
+3006,Nikhil Rane,nikhil.rane@example.com,India,Finance,2026-09-06,74500

@@ -251,26 +251,3 @@ FROM TABLE(
         DATE_RANGE_END => CURRENT_TIMESTAMP()
     )
 );
-
-
--- ============================================================
--- 22. IF YOU RUN THE PRACTICAL AGAIN
--- Clears the files out of the stage, so the same file names can load again
--- ============================================================
-
-REMOVE @EMPLOYEE_STAGE;
-
-
--- ============================================================
--- 🚫 DO NOT RUN THE STATEMENT BELOW BY HAND
--- Who runs it : the Snowpipe pipe EMPLOYEE_PIPE
--- Why         : the pipe does this COPY INTO for you every time a new file
---               lands in the stage. If you run it by hand too, the same
---               files load a second time and EMPLOYEE gets duplicate rows.
--- ============================================================
-
--- COPY INTO EMPLOYEE
--- FROM @EMPLOYEE_STAGE
--- FILE_FORMAT = (
---     FORMAT_NAME = 'EMPLOYEE_CSV_FORMAT'
--- );

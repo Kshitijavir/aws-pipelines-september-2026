@@ -1,158 +1,206 @@
-# 17) Lambda to Secrets Manager (Fetch Secret)
+# Lambda → Secrets Manager
 
-`Lambda → Secrets Manager → CloudWatch Logs`
+## Goal
 
-A Lambda function gets a **secret** (a username and a password) from **AWS Secrets Manager**. It prints the secret **name** and the **key names** inside it — never the secret values.
+This pipeline demonstrates how AWS Lambda fetches a secret from **AWS Secrets Manager**.
 
----
+The secret contains:
 
-## 📁 Files in This Folder
-
-| File | What It Is |
-| ---- | ---------- |
-| [01) README.md](01%29%20README.md) | Complete explanation of the Lambda → Secrets Manager pipeline |
-| [lambda_function.py](lambda_function.py) | The Lambda handler that fetches the secret and prints the summary |
-| [trust_policy.json](trust_policy.json) | The IAM trust policy that lets the Lambda service assume the execution role |
-
-This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
-
----
-
-## 🎯 Goal
-
-A secret is stored once in **AWS Secrets Manager**. It holds two keys: `username` and `password`.
-
-A Lambda function runs and does four things:
-
-- Gets the secret from Secrets Manager
-- Prints the **secret name**
-- Prints the **key names** inside the secret, one per line
-- Prints **"Secret fetched successfully"**
-
-All of this output goes to **Amazon CloudWatch Logs**.
-
-The point of this pipeline is the **pattern**: the password never sits inside the code. The code asks Secrets Manager for it at run time, using the permissions of its IAM role.
-
-> 📌 There is **no trigger** in this pipeline. Nothing starts the Lambda automatically — you start it yourself with the **Test** button in the Lambda console.
-
----
-
-## 🗺️ Architecture
-
-```mermaid
-graph TD
-    A["🔐 AWS Secrets Manager<br/>practice/lambda/database-secret"] -->|"get_secret_value(SecretId=...)"| B["⚡ Lambda<br/>lambda-secrets-manager-practice"]
-    C["🔑 IAM Role<br/>LambdaSecretsManagerPracticeRole"] -.->|"permission to read the secret"| B
-    B --> D["🔍 json.loads(SecretString)"]
-    D --> E["🖨️ Print secret name, key names<br/>secret fetched successfully"]
-    E --> F["☁️ CloudWatch Logs"]
-
-    style A fill:#fff3e0
-    style B fill:#f3e5f5
-    style C fill:#e8eaf6
-    style F fill:#fce4ec
+```
+username
+password
 ```
 
-Two things travel in this flow:
+Secret name:
 
-- **Permission** — the IAM role gives the Lambda the right to read the secret
-- **Data** — the secret value travels back to the Lambda inside the response
-
-The secret value is used in memory only. It is **not** printed, so it never lands in CloudWatch.
-
----
-
-## 🔑 Step 1 — The Secret in Secrets Manager
-
-**AWS Console → Secrets Manager → Store a new secret**
-
-| Setting | Value |
-| ------- | ----- |
-| Secret type | **Other type of secret** |
-| Secret name | **`practice/lambda/database-secret`** |
-| Key 1 | `username` → `admin` |
-| Key 2 | `password` → `MyPassword@123` |
-
-Because we chose **Other type of secret**, we type the keys ourselves. Inside Secrets Manager, the secret is stored as a JSON string like this:
-
-```json
-{
-  "username": "admin",
-  "password": "MyPassword@123"
-}
+```
+new_secret_2026
 ```
 
-That is exactly why the code runs `json.loads(response["SecretString"])` — the secret comes back as one text string, and `json.loads` turns it into a Python dictionary. Only then can we loop over its keys with `for key in secret.keys()`.
+Lambda will:
 
-> ⚠️ In this practice pipeline we choose **not** to use automatic rotation. The secret stays as we typed it, so the printed key list always stays `username` and `password`.
+1. Fetch the secret from Secrets Manager.
+2. Print the Secret Manager name.
+3. Print the key names.
+4. Print `Secret fetched successfully`.
 
-> 📌 The name uses slashes — `practice/lambda/database-secret` — so it looks like a folder path. That is only a naming style. Secrets Manager does not create any folders; the whole name is just one secret name.
-
-> ⚠️ The Lambda code ships with a **placeholder** — `secret_name = "YOUR SECRET MANAGER NAME"`. Replace it with the real name you typed here, which for this practice is `practice/lambda/database-secret`. The name in the code and the name in the console must match **exactly**, or you get `ResourceNotFoundException`.
+The actual username and password are **never printed**.
 
 ---
 
-## 🔐 Step 2 — IAM Role and Trust Policy
+## IAM Role
 
-| Field | Value |
-| ----- | ----- |
-| Role name | **`LambdaSecretsManagerPracticeRole`** |
-| Used by | `lambda-secrets-manager-practice` only |
-| Trusted entity | AWS Service → **Lambda** (`lambda.amazonaws.com`) |
-
-Attach these **two** AWS-managed policies:
-
-| Managed policy | Purpose |
-| -------------- | ------- |
-| `AWSLambdaBasicExecutionRole` | Lets the Lambda write logs to CloudWatch |
-| `SecretsManagerReadWrite` | Lets the Lambda read the secret from Secrets Manager |
+Create this Lambda execution role:
 
 ```
 LambdaSecretsManagerPracticeRole
-│
-├── AWSLambdaBasicExecutionRole
-└── SecretsManagerReadWrite
 ```
 
-The trust policy in [trust_policy.json](trust_policy.json) allows **only `lambda.amazonaws.com`** to assume the role. Secrets Manager is **not** in the trust policy, and that is correct — Secrets Manager never assumes this role. The Lambda *calls* Secrets Manager, the same way it calls any other AWS service.
+Attach these managed policies:
 
-> ⚠️ `SecretsManagerReadWrite` is **broader than we need**. It can create, change and delete secrets in the whole account, not just read this one. That is fine for practice. Production would use a small custom policy that allows only `secretsmanager:GetSecretValue` on that one secret ARN instead — same API call, tighter permission.
+```
+AWSLambdaBasicExecutionRole
+SecretsManagerReadWrite
+```
 
----
+### Purpose
 
-## 🧠 Step 3 — The Lambda Function
+`AWSLambdaBasicExecutionRole`
 
-**`lambda-secrets-manager-practice`** · Runtime **Python 3.x** · Handler `lambda_function.lambda_handler`
+Allows Lambda to write logs to **CloudWatch Logs**.
 
-| Step | What Happens |
-| ---- | ------------ |
-| 1 | Creates one Secrets Manager client **outside** the handler, so it is built once and reused |
-| 2 | Stores the secret name in a variable — the placeholder `YOUR SECRET MANAGER NAME`, which you replace with your own secret name |
-| 3 | Calls `get_secret_value(SecretId=secret_name)` inside a `try` |
-| 4 | Reads `response["SecretString"]` — the one text string that holds the secret |
-| 5 | Runs `json.loads` on it to get a Python dictionary |
-| 6 | Loops over the keys with `for key in secret.keys()` and prints each **name** on its own line |
-| 7 | Prints the secret name, the key names and the success line |
-| 8 | Returns `statusCode` **200** with the message **Secret fetched successfully** |
-| 9 | If anything fails, the `except` block prints the failure banner and the error, then returns `statusCode` **500** |
+`SecretsManagerReadWrite`
 
-> 📌 **Names are printed, values are not.** The loop prints `key` — the label — and never `secret[key]` — the value behind it. So the log proves the secret was read and parsed, while `admin` and `MyPassword@123` stay out of CloudWatch.
+Allows Lambda to access Secrets Manager.
 
-> 📌 The client is created **outside** `lambda_handler`. Lambda reuses the same container for a while, so building the client once saves time on every later run.
+> `SecretsManagerReadWrite` is suitable for this practice pipeline. In production, a more restricted custom policy with only the required `GetSecretValue` permission should be used.
 
-> 📌 The handler ignores the `event` and `context` arguments completely. That is why any test event works — even an empty one.
+> The trust policy for this role is in [trust_policy.json](trust_policy.json) — it allows only `lambda.amazonaws.com` to assume the role.
 
 ---
 
-## 🖨️ Step 4 — Expected CloudWatch Output
+## Secrets Manager
 
-After you click **Test**, open **CloudWatch → Log groups → /aws/lambda/lambda-secrets-manager-practice** and you should see:
+Create a secret in:
 
-```text
+**AWS Console → Secrets Manager → Store a new secret**
+
+Secret name:
+
+```
+new_secret_2026
+```
+
+Add the following keys:
+
+```
+username = admin
+password = MyPassword@123
+```
+
+The secret will contain:
+
+```
+{
+    "username": "admin",
+    "password": "MyPassword@123"
+}
+```
+
+---
+
+## Why Is This Pipeline Important?
+
+When Lambda needs to connect to a database, API, or any other external service, we usually need credentials such as:
+
+```
+Username
+Password
+API Key
+Access Token
+```
+
+We should **not hardcode these credentials inside the Lambda code**.
+
+For example, we should never write:
+
+```
+username = "admin"
+password = "MyPassword@123"
+```
+
+If these credentials are hardcoded, they can be exposed through the Lambda source code, GitHub, deployment packages, logs, or other places where the code may be accessed.
+
+Instead, we store the credentials securely in **AWS Secrets Manager**.
+
+Lambda then retrieves the secret at runtime using its **IAM execution role**.
+
+This keeps sensitive credentials outside the application code and makes them easier to manage or rotate when required.
+
+The same approach can be used when Lambda needs to connect to:
+
+```
+Database
+RDS
+Redshift
+External APIs
+Third-party services
+```
+
+The general pattern is:
+
+```
+Secrets Manager
+       |
+       | Fetch credentials
+       v
+     Lambda
+       |
+       | Use credentials
+       v
+ Database / API / Service
+```
+
+---
+
+## Architecture
+
+```
+AWS Secrets Manager
+        |
+        | get_secret_value()
+        v
+      Lambda
+        |
+        v
+  CloudWatch Logs
+```
+
+---
+
+## Lambda
+
+Lambda function name:
+
+```
+lambda-secrets-manager-practice
+```
+
+Runtime:
+
+```
+Python 3.x
+```
+
+The Lambda code uses:
+
+```
+secrets_manager.get_secret_value()
+```
+
+to fetch the secret.
+
+The secret is converted from JSON into a Python dictionary, and only the **key names** are printed.
+
+The actual values are never printed.
+
+The code ships with a placeholder secret name:
+
+```
+secret_name = "YOUR SECRET MANAGER NAME"
+```
+
+Replace it with `new_secret_2026`. The name in the code and the name in the console must match exactly, or the function fails with `ResourceNotFoundException`.
+
+---
+
+## Expected Output
+
+```
 ===================================
 Secret Manager Pipeline
 ===================================
-Secret Name : practice/lambda/database-secret
+Secret Name : new_secret_2026
 -----------------------------------
 Keys inside Secret:
 -----------------------------------
@@ -163,112 +211,49 @@ Secret fetched successfully
 ===================================
 ```
 
-> 📌 The key names come out in the order they are stored in the secret — `username` first, then `password`, because that is how we typed them into Secrets Manager.
+The following should **never appear in CloudWatch**:
 
-And the Lambda response in the console:
-
-```json
-{
-  "statusCode": 200,
-  "message": "Secret fetched successfully"
-}
 ```
-
-When the secret name is wrong, the failure path prints its own banner and the run returns **500**:
-
-```text
-===================================
-Secret Manager Pipeline Failed
-===================================
-Failed to fetch secret
-Error: An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets Manager can't find the specified secret.
+admin
+MyPassword@123
 ```
-
-> ⚠️ You will **not** see `admin` or `MyPassword@123` anywhere in the logs. That is on purpose — see the section below.
 
 ---
 
-## 🧪 Step 5 — Testing
+## Testing
 
-In the Lambda console, open the **Test** tab, create a new test event, and use an empty JSON body:
+1. Create the secret `new_secret_2026`.
+2. Add `username` and `password`.
+3. Create the IAM role.
+4. Attach the required policies.
+5. Create the Lambda function.
+6. Attach `LambdaSecretsManagerPracticeRole`.
+7. Add the Lambda code.
+8. Run a test event.
+9. Check the CloudWatch logs.
 
-```json
+Test event:
+
+```
 {}
 ```
 
-| Test | What You Do | Expected Result |
-| ---- | ----------- | --------------- |
-| 1 | Run the function with `{}` | `statusCode 200`, and the two key names are listed |
-| 2 | Add a third key to the secret, then run again | A third `- keyname` line appears — the list comes from the secret, not from the code |
-| 3 | Change the secret name in the code to a wrong name, then run | `statusCode 500`, the failure banner, and `Failed to fetch secret` |
-| 4 | Detach `SecretsManagerReadWrite` from the role, then run | `statusCode 500` with `AccessDeniedException` |
-
-Test 2 is the proof that the code reads the secret **live**: change the secret in the console, run the function again, and the printed key list changes with it. No redeploy needed.
-
 ---
 
-## 🚀 Deployment Steps
+## Important
 
-1. Go to **Secrets Manager → Store a new secret**
-2. Choose **Other type of secret**, add the keys `username` and `password`, and give the secret a name — for example `practice/lambda/database-secret`
-3. Create the IAM role `LambdaSecretsManagerPracticeRole` — trusted entity **Lambda**
-4. Attach `AWSLambdaBasicExecutionRole` and `SecretsManagerReadWrite`
-5. Check that the trust policy matches [trust_policy.json](trust_policy.json)
-6. Create the Lambda `lambda-secrets-manager-practice`, runtime **Python 3.x**, using that role
-7. Paste the code from [lambda_function.py](lambda_function.py), replace `YOUR SECRET MANAGER NAME` with your secret name, and click **Deploy**
-8. Create a test event with `{}` and click **Test**
-9. Open the CloudWatch log group and check the output lines — the secret name, then `- username` and `- password`
+Never hardcode passwords, database credentials, API keys, or tokens inside Lambda code.
 
-> ⚠️ Keep the **Lambda and the secret in the same Region**. If the secret is in `us-east-1` and the Lambda runs in `ap-south-1`, the call fails with `ResourceNotFoundException` even when the name is typed perfectly.
+Use:
 
----
+```
+Secrets Manager → Lambda → Database/API
+```
 
-## 🔒 Why We Never Print the Secret Value
+instead of:
 
-The code deliberately prints only two safe things:
+```
+Hardcoded Password → Lambda → Database/API
+```
 
-- The **secret name** — that is just a label, not a secret
-- The **key names** — `username` and `password` are labels too. The loop prints `key`, never `secret[key]`
-
-It never prints `secret["username"]` or `secret["password"]`.
-
-That is the important habit in this pipeline. **CloudWatch logs are not private.** Anyone in the account who can read the log group can read every line, and logs are kept for as long as the retention setting says. A password printed once is a password leaked forever — you cannot take it back. If a real password ever lands in a log, the fix is to rotate it in Secrets Manager, not just to delete the log line.
-
-The key-name loop is exactly the right way to prove the value really arrived without leaking it: seeing `- username` and `- password` in the log tells you the JSON was parsed and the keys are real, while the values behind them stay out of CloudWatch.
-
----
-
-## 🚨 Common Errors
-
-| Error | Why it happens | How to fix it |
-| ----- | -------------- | ------------- |
-| `ResourceNotFoundException` | The secret name in the code does not match the real name, or the two are in different Regions | Compare the name character by character, and check the Region shown in the console |
-| `AccessDeniedException` | The role is missing `SecretsManagerReadWrite` | Attach the `SecretsManagerReadWrite` managed policy to the execution role |
-| `json.JSONDecodeError` | The secret was stored as a **plaintext** secret or a plain string, so it is not JSON | Store it as a key/value secret, or skip `json.loads` if you really stored plain text |
-| Only one `- keyname` line appears | Both values were typed into one key, or a key was removed | Open the secret and check that there are exactly two keys |
-| A third `- keyname` line appears | An extra key was added to the secret | Remove the extra key, or update the README's expected output |
-| The key names come out in a different order | JSON keeps the order the keys were typed in, and that order is what you get back | Nothing is broken — the loop follows the secret's own order, so re-type the keys if you want a fixed order |
-| Nothing in CloudWatch | The role lacks `AWSLambdaBasicExecutionRole`, or you are looking at the wrong log group | Attach the policy, and open `/aws/lambda/lambda-secrets-manager-practice` |
-
----
-
-## ⚠️ Things to Know
-
-1. **The Lambda response is not a secret.** The returned JSON holds only a status code and a fixed message — safe to show anywhere.
-2. **Secrets Manager costs money per secret.** A stored secret has a small monthly charge, so delete the secret when you finish practising.
-3. **The container is reused.** Because the client is created outside the handler, a warm container skips the setup work on the next run.
-4. **There is no caching in this code.** Every run calls `get_secret_value` again and picks up the newest version of the secret immediately.
-5. **This is the pattern to reuse.** Database passwords, API keys and third-party tokens all belong in Secrets Manager with a role that can only read them — exactly like this pipeline.
-6. **Key names are safe to print, values are not.** `username` and `password` are only labels; they tell you the secret arrived without telling anyone the password. The moment you print `secret[key]` instead of `key`, you have leaked it.
-
----
-
-## 🎤 How to Explain This in an Interview
-
-> **"This pipeline shows how a Lambda reads a secret from AWS Secrets Manager without ever hard-coding it. My secret holds two keys, `username` and `password`, under the name `practice/lambda/database-secret`."**
->
-> **"The Lambda creates a Secrets Manager client, calls `get_secret_value`, and then runs `json.loads` on `SecretString`, because Secrets Manager returns the secret as one JSON text string. Then it loops over the keys and prints each key **name** — `username`, `password` — never the values behind them, because CloudWatch logs are readable by anyone with log access, and a printed password cannot be un-printed."**
->
-> **"Permissions come from the execution role, with the Lambda service as the trusted entity. For practice I attached the managed policy `SecretsManagerReadWrite`, but for production I would swap it for a custom policy that allows only `secretsmanager:GetSecretValue` on that one secret ARN — least privilege, and no code change, because the API call stays the same."**
-
-This pipeline shows the safe way to handle credentials in a serverless setup: **the password lives in Secrets Manager, the permission lives in the IAM role, and the code only ever reads — and it prints names, never values.**
+This is a common and important pattern when building secure AWS data pipelines and serverless applications.

@@ -2,7 +2,7 @@
 
 `Lambda → Secrets Manager → CloudWatch Logs`
 
-A Lambda function gets a **secret** (a username and a password) from **AWS Secrets Manager**. It prints the secret **name** and the **number of keys** — never the secret values.
+A Lambda function gets a **secret** (a username and a password) from **AWS Secrets Manager**. It prints the secret **name** and the **key names** inside it — never the secret values.
 
 ---
 
@@ -26,7 +26,7 @@ A Lambda function runs and does four things:
 
 - Gets the secret from Secrets Manager
 - Prints the **secret name**
-- Prints the **number of keys** inside the secret
+- Prints the **key names** inside the secret, one per line
 - Prints **"Secret fetched successfully"**
 
 All of this output goes to **Amazon CloudWatch Logs**.
@@ -44,7 +44,7 @@ graph TD
     A["🔐 AWS Secrets Manager<br/>practice/lambda/database-secret"] -->|"get_secret_value(SecretId=...)"| B["⚡ Lambda<br/>lambda-secrets-manager-practice"]
     C["🔑 IAM Role<br/>LambdaSecretsManagerPracticeRole"] -.->|"permission to read the secret"| B
     B --> D["🔍 json.loads(SecretString)"]
-    D --> E["🖨️ Print secret name, key count<br/>secret fetched successfully"]
+    D --> E["🖨️ Print secret name, key names<br/>secret fetched successfully"]
     E --> F["☁️ CloudWatch Logs"]
 
     style A fill:#fff3e0
@@ -82,9 +82,9 @@ Because we chose **Other type of secret**, we type the keys ourselves. Inside Se
 }
 ```
 
-That is exactly why the code runs `json.loads(response["SecretString"])` — the secret comes back as one text string, and `json.loads` turns it into a Python dictionary. Only then can we count its keys with `len(secret.keys())`.
+That is exactly why the code runs `json.loads(response["SecretString"])` — the secret comes back as one text string, and `json.loads` turns it into a Python dictionary. Only then can we loop over its keys with `for key in secret.keys()`.
 
-> ⚠️ In this practice pipeline we choose **not** to use automatic rotation. The secret stays as we typed it, so the printed key count always stays `2`.
+> ⚠️ In this practice pipeline we choose **not** to use automatic rotation. The secret stays as we typed it, so the printed key list always stays `username` and `password`.
 
 > 📌 The name uses slashes — `practice/lambda/database-secret` — so it looks like a folder path. That is only a naming style. Secrets Manager does not create any folders; the whole name is just one secret name.
 
@@ -131,10 +131,12 @@ The trust policy in [trust_policy.json](trust_policy.json) allows **only `lambda
 | 3 | Calls `get_secret_value(SecretId=secret_name)` inside a `try` |
 | 4 | Reads `response["SecretString"]` — the one text string that holds the secret |
 | 5 | Runs `json.loads` on it to get a Python dictionary |
-| 6 | Counts the keys with `len(secret.keys())` |
-| 7 | Prints the secret name, the key count and the success line |
+| 6 | Loops over the keys with `for key in secret.keys()` and prints each **name** on its own line |
+| 7 | Prints the secret name, the key names and the success line |
 | 8 | Returns `statusCode` **200** with the message **Secret fetched successfully** |
-| 9 | If anything fails, the `except` block prints the error and returns `statusCode` **500** |
+| 9 | If anything fails, the `except` block prints the failure banner and the error, then returns `statusCode` **500** |
+
+> 📌 **Names are printed, values are not.** The loop prints `key` — the label — and never `secret[key]` — the value behind it. So the log proves the secret was read and parsed, while `admin` and `MyPassword@123` stay out of CloudWatch.
 
 > 📌 The client is created **outside** `lambda_handler`. Lambda reuses the same container for a while, so building the client once saves time on every later run.
 
@@ -150,11 +152,18 @@ After you click **Test**, open **CloudWatch → Log groups → /aws/lambda/lambd
 ===================================
 Secret Manager Pipeline
 ===================================
-Secret Name        : practice/lambda/database-secret
-Number of Keys     : 2
+Secret Name : practice/lambda/database-secret
+-----------------------------------
+Keys inside Secret:
+-----------------------------------
+- username
+- password
+-----------------------------------
 Secret fetched successfully
 ===================================
 ```
+
+> 📌 The key names come out in the order they are stored in the secret — `username` first, then `password`, because that is how we typed them into Secrets Manager.
 
 And the Lambda response in the console:
 
@@ -163,6 +172,16 @@ And the Lambda response in the console:
   "statusCode": 200,
   "message": "Secret fetched successfully"
 }
+```
+
+When the secret name is wrong, the failure path prints its own banner and the run returns **500**:
+
+```text
+===================================
+Secret Manager Pipeline Failed
+===================================
+Failed to fetch secret
+Error: An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets Manager can't find the specified secret.
 ```
 
 > ⚠️ You will **not** see `admin` or `MyPassword@123` anywhere in the logs. That is on purpose — see the section below.
@@ -179,12 +198,12 @@ In the Lambda console, open the **Test** tab, create a new test event, and use a
 
 | Test | What You Do | Expected Result |
 | ---- | ----------- | --------------- |
-| 1 | Run the function with `{}` | `statusCode 200`, key count `2` |
-| 2 | Add a third key to the secret, then run again | Key count becomes `3` — the count comes from the secret, not from the code |
-| 3 | Change the secret name in the code to a wrong name, then run | `statusCode 500` and `Failed to fetch secret` |
+| 1 | Run the function with `{}` | `statusCode 200`, and the two key names are listed |
+| 2 | Add a third key to the secret, then run again | A third `- keyname` line appears — the list comes from the secret, not from the code |
+| 3 | Change the secret name in the code to a wrong name, then run | `statusCode 500`, the failure banner, and `Failed to fetch secret` |
 | 4 | Detach `SecretsManagerReadWrite` from the role, then run | `statusCode 500` with `AccessDeniedException` |
 
-Test 2 is the proof that the code reads the secret **live**: change the secret in the console, run the function again, and the printed number changes with it. No redeploy needed.
+Test 2 is the proof that the code reads the secret **live**: change the secret in the console, run the function again, and the printed key list changes with it. No redeploy needed.
 
 ---
 
@@ -198,7 +217,7 @@ Test 2 is the proof that the code reads the secret **live**: change the secret i
 6. Create the Lambda `lambda-secrets-manager-practice`, runtime **Python 3.x**, using that role
 7. Paste the code from [lambda_function.py](lambda_function.py), replace `YOUR SECRET MANAGER NAME` with your secret name, and click **Deploy**
 8. Create a test event with `{}` and click **Test**
-9. Open the CloudWatch log group and check the four output lines
+9. Open the CloudWatch log group and check the output lines — the secret name, then `- username` and `- password`
 
 > ⚠️ Keep the **Lambda and the secret in the same Region**. If the secret is in `us-east-1` and the Lambda runs in `ap-south-1`, the call fails with `ResourceNotFoundException` even when the name is typed perfectly.
 
@@ -209,13 +228,13 @@ Test 2 is the proof that the code reads the secret **live**: change the secret i
 The code deliberately prints only two safe things:
 
 - The **secret name** — that is just a label, not a secret
-- The **number of keys** — just a count, like `2`
+- The **key names** — `username` and `password` are labels too. The loop prints `key`, never `secret[key]`
 
 It never prints `secret["username"]` or `secret["password"]`.
 
 That is the important habit in this pipeline. **CloudWatch logs are not private.** Anyone in the account who can read the log group can read every line, and logs are kept for as long as the retention setting says. A password printed once is a password leaked forever — you cannot take it back. If a real password ever lands in a log, the fix is to rotate it in Secrets Manager, not just to delete the log line.
 
-If you ever need to prove the value really arrived, print something harmless instead — for example `print(f"Keys found: {list(secret.keys())}")`, which shows the key **names** but no values.
+The key-name loop is exactly the right way to prove the value really arrived without leaking it: seeing `- username` and `- password` in the log tells you the JSON was parsed and the keys are real, while the values behind them stay out of CloudWatch.
 
 ---
 
@@ -226,8 +245,9 @@ If you ever need to prove the value really arrived, print something harmless ins
 | `ResourceNotFoundException` | The secret name in the code does not match the real name, or the two are in different Regions | Compare the name character by character, and check the Region shown in the console |
 | `AccessDeniedException` | The role is missing `SecretsManagerReadWrite` | Attach the `SecretsManagerReadWrite` managed policy to the execution role |
 | `json.JSONDecodeError` | The secret was stored as a **plaintext** secret or a plain string, so it is not JSON | Store it as a key/value secret, or skip `json.loads` if you really stored plain text |
-| Key count is `1` instead of `2` | Both values were typed into one key, or a key was removed | Open the secret and check that there are exactly two keys |
-| Key count is `3` instead of `2` | An extra key was added to the secret | Remove the extra key, or update the README's expected output |
+| Only one `- keyname` line appears | Both values were typed into one key, or a key was removed | Open the secret and check that there are exactly two keys |
+| A third `- keyname` line appears | An extra key was added to the secret | Remove the extra key, or update the README's expected output |
+| The key names come out in a different order | JSON keeps the order the keys were typed in, and that order is what you get back | Nothing is broken — the loop follows the secret's own order, so re-type the keys if you want a fixed order |
 | Nothing in CloudWatch | The role lacks `AWSLambdaBasicExecutionRole`, or you are looking at the wrong log group | Attach the policy, and open `/aws/lambda/lambda-secrets-manager-practice` |
 
 ---
@@ -239,6 +259,7 @@ If you ever need to prove the value really arrived, print something harmless ins
 3. **The container is reused.** Because the client is created outside the handler, a warm container skips the setup work on the next run.
 4. **There is no caching in this code.** Every run calls `get_secret_value` again and picks up the newest version of the secret immediately.
 5. **This is the pattern to reuse.** Database passwords, API keys and third-party tokens all belong in Secrets Manager with a role that can only read them — exactly like this pipeline.
+6. **Key names are safe to print, values are not.** `username` and `password` are only labels; they tell you the secret arrived without telling anyone the password. The moment you print `secret[key]` instead of `key`, you have leaked it.
 
 ---
 
@@ -246,8 +267,8 @@ If you ever need to prove the value really arrived, print something harmless ins
 
 > **"This pipeline shows how a Lambda reads a secret from AWS Secrets Manager without ever hard-coding it. My secret holds two keys, `username` and `password`, under the name `practice/lambda/database-secret`."**
 >
-> **"The Lambda creates a Secrets Manager client, calls `get_secret_value`, and then runs `json.loads` on `SecretString`, because Secrets Manager returns the secret as one JSON text string. Only the secret name and the number of keys are printed — never the values, because CloudWatch logs are readable by anyone with log access, and a printed password cannot be un-printed."**
+> **"The Lambda creates a Secrets Manager client, calls `get_secret_value`, and then runs `json.loads` on `SecretString`, because Secrets Manager returns the secret as one JSON text string. Then it loops over the keys and prints each key **name** — `username`, `password` — never the values behind them, because CloudWatch logs are readable by anyone with log access, and a printed password cannot be un-printed."**
 >
 > **"Permissions come from the execution role, with the Lambda service as the trusted entity. For practice I attached the managed policy `SecretsManagerReadWrite`, but for production I would swap it for a custom policy that allows only `secretsmanager:GetSecretValue` on that one secret ARN — least privilege, and no code change, because the API call stays the same."**
 
-This pipeline shows the safe way to handle credentials in a serverless setup: **the password lives in Secrets Manager, the permission lives in the IAM role, and the code only ever reads — it never prints.**
+This pipeline shows the safe way to handle credentials in a serverless setup: **the password lives in Secrets Manager, the permission lives in the IAM role, and the code only ever reads — and it prints names, never values.**

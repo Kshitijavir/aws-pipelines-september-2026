@@ -2,7 +2,7 @@ import boto3
 import json
 import logging
 
-# Create a logger so every line carries the time and the level
+# Create a logger
 logger = logging.getLogger("secret-manager-pipeline")
 logger.setLevel(logging.INFO)
 
@@ -12,9 +12,11 @@ secrets_manager = boto3.client("secretsmanager")
 # Replace this with your own secret name from Secrets Manager
 secret_name = "YOUR SECRET MANAGER NAME"
 
+
 logger.info("===================================")
 logger.info("Glue Job Started")
 logger.info("===================================")
+
 
 try:
 
@@ -26,19 +28,25 @@ try:
     # Convert secret string into Python dictionary
     secret = json.loads(response["SecretString"])
 
-    # Get number of keys
-    key_count = len(secret.keys())
-
     logger.info("-----------------------------------")
     logger.info("Secret Manager Pipeline")
     logger.info("-----------------------------------")
 
-    logger.info(f"Secret Name        : {secret_name}")
-    logger.info(f"Number of Keys     : {key_count}")
-
-    logger.info("Secret fetched successfully")
+    # Print Secret Manager name
+    logger.info(f"Secret Name : {secret_name}")
 
     logger.info("-----------------------------------")
+    logger.info("Keys inside Secret:")
+    logger.info("-----------------------------------")
+
+    # Print only key names
+    for key in secret.keys():
+        logger.info(f"- {key}")
+
+    logger.info("-----------------------------------")
+    logger.info("Secret fetched successfully")
+    logger.info("-----------------------------------")
+
 
 except Exception as e:
 
@@ -51,6 +59,7 @@ except Exception as e:
 
     # Make sure Glue marks the job run as FAILED
     raise
+
 
 logger.info("===================================")
 logger.info("Glue Job Completed Successfully")

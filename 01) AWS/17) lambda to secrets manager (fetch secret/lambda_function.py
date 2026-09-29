@@ -4,12 +4,14 @@ import json
 # Create Secrets Manager client
 secrets_manager = boto3.client("secretsmanager")
 
+
 def lambda_handler(event, context):
 
     # Replace this with your own secret name from Secrets Manager
     secret_name = "YOUR SECRET MANAGER NAME"
 
     try:
+
         # Fetch secret
         response = secrets_manager.get_secret_value(
             SecretId=secret_name
@@ -18,18 +20,23 @@ def lambda_handler(event, context):
         # Convert secret string into Python dictionary
         secret = json.loads(response["SecretString"])
 
-        # Get number of keys
-        key_count = len(secret.keys())
-
         print("===================================")
         print("Secret Manager Pipeline")
         print("===================================")
 
-        print(f"Secret Name        : {secret_name}")
-        print(f"Number of Keys     : {key_count}")
+        # Print Secret Manager name
+        print(f"Secret Name : {secret_name}")
 
+        print("-----------------------------------")
+        print("Keys inside Secret:")
+        print("-----------------------------------")
+
+        # Print only key names
+        for key in secret.keys():
+            print(f"- {key}")
+
+        print("-----------------------------------")
         print("Secret fetched successfully")
-
         print("===================================")
 
         return {
@@ -38,6 +45,10 @@ def lambda_handler(event, context):
         }
 
     except Exception as e:
+
+        print("===================================")
+        print("Secret Manager Pipeline Failed")
+        print("===================================")
 
         print("Failed to fetch secret")
         print(f"Error: {str(e)}")

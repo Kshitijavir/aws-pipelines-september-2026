@@ -13,7 +13,6 @@ A Lambda function gets a **secret** (a username and a password) from **AWS Secre
 | [01) README.md](01%29%20README.md) | Complete explanation of the Lambda → Secrets Manager pipeline |
 | [lambda_function.py](lambda_function.py) | The Lambda handler that fetches the secret and prints the summary |
 | [trust_policy.json](trust_policy.json) | The IAM trust policy that lets the Lambda service assume the execution role |
-| [least_privilege_policy.json](least_privilege_policy.json) | Optional custom policy with only `secretsmanager:GetSecretValue` — the least-privilege way |
 
 This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
 
@@ -89,6 +88,8 @@ That is exactly why the code runs `json.loads(response["SecretString"])` — the
 
 > 📌 The name uses slashes — `practice/lambda/database-secret` — so it looks like a folder path. That is only a naming style. Secrets Manager does not create any folders; the whole name is just one secret name.
 
+> ⚠️ The Lambda code ships with a **placeholder** — `secret_name = "YOUR SECRET MANAGER NAME"`. Replace it with the real name you typed here, which for this practice is `practice/lambda/database-secret`. The name in the code and the name in the console must match **exactly**, or you get `ResourceNotFoundException`.
+
 ---
 
 ## 🔐 Step 2 — IAM Role and Trust Policy
@@ -115,7 +116,7 @@ LambdaSecretsManagerPracticeRole
 
 The trust policy in [trust_policy.json](trust_policy.json) allows **only `lambda.amazonaws.com`** to assume the role. Secrets Manager is **not** in the trust policy, and that is correct — Secrets Manager never assumes this role. The Lambda *calls* Secrets Manager, the same way it calls any other AWS service.
 
-> ⚠️ `SecretsManagerReadWrite` is **broader than we need**. It can create, change and delete secrets in the whole account. That is fine for practice, but production should use a small custom policy that allows only `secretsmanager:GetSecretValue` on one secret — that version is in [least_privilege_policy.json](least_privilege_policy.json).
+> ⚠️ `SecretsManagerReadWrite` is **broader than we need**. It can create, change and delete secrets in the whole account, not just read this one. That is fine for practice. Production would use a small custom policy that allows only `secretsmanager:GetSecretValue` on that one secret ARN instead — same API call, tighter permission.
 
 ---
 
@@ -126,7 +127,7 @@ The trust policy in [trust_policy.json](trust_policy.json) allows **only `lambda
 | Step | What Happens |
 | ---- | ------------ |
 | 1 | Creates one Secrets Manager client **outside** the handler, so it is built once and reused |
-| 2 | Stores the secret name in a variable — `practice/lambda/database-secret` |
+| 2 | Stores the secret name in a variable — the placeholder `YOUR SECRET MANAGER NAME`, which you replace with your own secret name |
 | 3 | Calls `get_secret_value(SecretId=secret_name)` inside a `try` |
 | 4 | Reads `response["SecretString"]` — the one text string that holds the secret |
 | 5 | Runs `json.loads` on it to get a Python dictionary |
@@ -190,12 +191,12 @@ Test 2 is the proof that the code reads the secret **live**: change the secret i
 ## 🚀 Deployment Steps
 
 1. Go to **Secrets Manager → Store a new secret**
-2. Choose **Other type of secret**, add the keys `username` and `password`, and name the secret `practice/lambda/database-secret`
+2. Choose **Other type of secret**, add the keys `username` and `password`, and give the secret a name — for example `practice/lambda/database-secret`
 3. Create the IAM role `LambdaSecretsManagerPracticeRole` — trusted entity **Lambda**
 4. Attach `AWSLambdaBasicExecutionRole` and `SecretsManagerReadWrite`
 5. Check that the trust policy matches [trust_policy.json](trust_policy.json)
 6. Create the Lambda `lambda-secrets-manager-practice`, runtime **Python 3.x**, using that role
-7. Paste the code from [lambda_function.py](lambda_function.py) and click **Deploy**
+7. Paste the code from [lambda_function.py](lambda_function.py), replace `YOUR SECRET MANAGER NAME` with your secret name, and click **Deploy**
 8. Create a test event with `{}` and click **Test**
 9. Open the CloudWatch log group and check the four output lines
 
@@ -218,34 +219,12 @@ If you ever need to prove the value really arrived, print something harmless ins
 
 ---
 
-## ⚖️ Least Privilege — The Better Version
-
-`SecretsManagerReadWrite` is an **AWS-managed** policy. It is easy to attach, but it is wide open: in the worst case it can manage every secret in the account.
-
-The better version is a **customer-managed** policy that allows one action on one secret. The file is in this folder as [least_privilege_policy.json](least_privilege_policy.json):
-
-| Field | Value | What It Means |
-| ----- | ----- | ------------- |
-| `Action` | `secretsmanager:GetSecretValue` | Read one secret value. Nothing else |
-| `Resource` | `arn:aws:secretsmanager:YOUR_REGION:YOUR_ACCOUNT_ID:secret:practice/lambda/database-secret-*` | Only this one secret, in your Region and account |
-
-Two details that matter:
-
-- **One action** — `GetSecretValue` only. No `PutSecretValue`, no `DeleteSecret`, no `CreateSecret`.
-- **The trailing `-*`** — real secret ARNs end with a random six-character suffix, like `...-a1b2c3`. The `-*` at the end matches that suffix, so you do not need to know it in advance.
-
-To use it: attach this policy to the role **instead of** `SecretsManagerReadWrite`, and keep the Lambda code exactly the same. The code calls the same API, so nothing needs to change.
-
-> 📌 Read-only access is also easier to explain in a review: this function only ever reads a secret, so its policy should only ever allow reading a secret.
-
----
-
 ## 🚨 Common Errors
 
 | Error | Why it happens | How to fix it |
 | ----- | -------------- | ------------- |
 | `ResourceNotFoundException` | The secret name in the code does not match the real name, or the two are in different Regions | Compare the name character by character, and check the Region shown in the console |
-| `AccessDeniedException` | The role is missing `SecretsManagerReadWrite`, or the custom policy's ARN is wrong | Attach the managed policy, or fix the ARN in the custom policy |
+| `AccessDeniedException` | The role is missing `SecretsManagerReadWrite` | Attach the `SecretsManagerReadWrite` managed policy to the execution role |
 | `json.JSONDecodeError` | The secret was stored as a **plaintext** secret or a plain string, so it is not JSON | Store it as a key/value secret, or skip `json.loads` if you really stored plain text |
 | Key count is `1` instead of `2` | Both values were typed into one key, or a key was removed | Open the secret and check that there are exactly two keys |
 | Key count is `3` instead of `2` | An extra key was added to the secret | Remove the extra key, or update the README's expected output |

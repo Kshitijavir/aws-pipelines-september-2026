@@ -6,7 +6,8 @@ secrets_manager = boto3.client("secretsmanager")
 
 def lambda_handler(event, context):
 
-    secret_name = "practice/lambda/database-secret"
+    # Replace this with your own secret name from Secrets Manager
+    secret_name = "YOUR SECRET MANAGER NAME"
 
     try:
         # Fetch secret

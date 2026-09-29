@@ -1,10 +1,10 @@
 -- ============================================================
--- 57) Snowflake -- Task-Based Scheduled Pipeline
+-- 57) Snowflake -- Simple Task-Based Scheduled Pipeline
 -- All the SQL from the README, in the same order.
 -- Paste this whole file into a Snowflake worksheet and run it.
 --
 -- A task runs SQL for you on a timer. Notes about starting and
--- stopping tasks are written as comments next to the statements.
+-- stopping the task are written as comments next to the statements.
 -- ============================================================
 
 
@@ -40,263 +40,207 @@ CREATE WAREHOUSE TASK_WH
     AUTO_SUSPEND = 60
     AUTO_RESUME = TRUE;
 
--- Use this warehouse to run the tasks
+-- Use this warehouse to run the task
 USE WAREHOUSE TASK_WH;
 
 
 -- ============================================================
--- 4. CREATE SOURCE TABLE
+-- 4. CREATE THE EMPLOYEE TABLE
 -- Makes the table that holds the employee data
 -- ============================================================
 
-CREATE TABLE EMPLOYEE_SOURCE (
-    EMPLOYEE_ID   NUMBER,
+CREATE TABLE EMPLOYEE (
+    EMPLOYEE_ID NUMBER,
     EMPLOYEE_NAME VARCHAR(100),
-    DEPARTMENT    VARCHAR(50),
-    SALARY        NUMBER
+    DEPARTMENT VARCHAR(50),
+    SALARY NUMBER
 );
 
-SELECT * FROM EMPLOYEE_SOURCE;
+-- The table is empty right now
+SELECT * FROM EMPLOYEE;
 
 
 -- ============================================================
--- 5. INSERT SAMPLE DATA
--- Adds the first employee rows
+-- 5. INSERT 5 RECORDS
+-- Adds the five employee rows
 -- ============================================================
 
-INSERT INTO EMPLOYEE_SOURCE VALUES
-(8001, 'Rahul Sharma', 'IT', 85000),
-(8002, 'Priya Patil', 'HR', 62000),
-(8003, 'Amit Verma', 'Finance', 95000),
-(8004, 'Sneha Joshi', 'IT', 78000),
-(8005, 'Vikas Kumar', 'Sales', 58000);
+INSERT INTO EMPLOYEE VALUES
+(1001, 'Rahul', 'IT', 85000),
+(1002, 'Priya', 'HR', 65000),
+(1003, 'Amit', 'Finance', 95000),
+(1004, 'Sneha', 'IT', 78000),
+(1005, 'Vikas', 'Sales', 55000);
 
 -- Checks the rows you just added
-SELECT * FROM EMPLOYEE_SOURCE;
+SELECT * FROM EMPLOYEE;
 
 
 -- ============================================================
--- 6. CREATE TARGET TABLE
--- Makes the table that will hold the new rows
+-- 6. CREATE THE TASK
+-- The task runs this SQL every 1 minute
+-- A new task always starts SUSPENDED, so it does not run yet
 -- ============================================================
 
-CREATE TABLE EMPLOYEE_TARGET (
-    EMPLOYEE_ID     NUMBER,
-    EMPLOYEE_NAME   VARCHAR(100),
-    DEPARTMENT      VARCHAR(50),
-    SALARY          NUMBER,
-    SALARY_CATEGORY VARCHAR(20),
-    LOAD_TIME       TIMESTAMP
-);
-
-SELECT * FROM EMPLOYEE_TARGET;
-
-
--- ============================================================
--- 7. CREATE THE FIRST TASK
--- The task does this INSERT for you, every 1 minute
--- ============================================================
-
-CREATE TASK EMPLOYEE_LOAD_TASK
+CREATE TASK EMPLOYEE_TASK
     WAREHOUSE = TASK_WH
     SCHEDULE = '1 MINUTE'
 AS
-INSERT INTO EMPLOYEE_TARGET
-SELECT
-    EMPLOYEE_ID,
-    UPPER(EMPLOYEE_NAME),
-    DEPARTMENT,
-    SALARY,
-    CASE
-        WHEN SALARY >= 100000 THEN 'HIGH'
-        WHEN SALARY >= 70000  THEN 'MEDIUM'
-        ELSE 'LOW'
-    END,
-    CURRENT_TIMESTAMP()
-FROM EMPLOYEE_SOURCE;
+SELECT * FROM EMPLOYEE;
 
 
 -- ============================================================
--- 8. SHOW TASKS
--- Shows the task you made
+-- 7. CHECK THE TASK
+-- STATE should say SUSPENDED here
 -- ============================================================
 
-SHOW TASKS;
-
-
--- ============================================================
--- 9. RESUME THE TASK
--- A new task starts stopped. Start it, so the timer
--- can run it
--- ============================================================
-
-ALTER TASK EMPLOYEE_LOAD_TASK RESUME;
+SHOW TASKS LIKE 'EMPLOYEE_TASK';
 
 
 -- ============================================================
--- 10. CHECK THE TARGET TABLE
--- Wait 1 or 2 minutes, then look at the new rows
+-- 8. RESUME THE TASK
+-- Starts the scheduler. From now on the task runs every minute
 -- ============================================================
 
-SELECT * FROM EMPLOYEE_TARGET;
+ALTER TASK EMPLOYEE_TASK RESUME;
+
+-- STATE should say started now
+SHOW TASKS LIKE 'EMPLOYEE_TASK';
 
 
 -- ============================================================
--- 11. CHECK TASK HISTORY
--- Shows when the task ran and if it went fine
+-- 9. MONITOR TASK SCHEDULING AND EXECUTION
+-- Shows the previous executions in IST, and the next 5 expected runs
 -- ============================================================
 
-SELECT *
-FROM TABLE(
-    INFORMATION_SCHEMA.TASK_HISTORY(
-        TASK_NAME => 'EMPLOYEE_LOAD_TASK',
-        SCHEDULED_TIME_RANGE_START => DATEADD(HOUR, -1, CURRENT_TIMESTAMP())
+WITH TASK_HISTORY_DATA AS (
+
+    SELECT
+        NAME,
+        STATE,
+        SCHEDULED_TIME,
+        QUERY_START_TIME,
+        COMPLETED_TIME,
+        ERROR_MESSAGE
+    FROM TABLE(
+        INFORMATION_SCHEMA.TASK_HISTORY(
+            TASK_NAME => 'EMPLOYEE_TASK',
+            SCHEDULED_TIME_RANGE_START =>
+                DATEADD(HOUR, -1, CURRENT_TIMESTAMP())
+        )
     )
+),
+
+LATEST_SCHEDULE AS (
+
+    SELECT
+        MAX(SCHEDULED_TIME) AS LAST_SCHEDULED_TIME
+    FROM TASK_HISTORY_DATA
+),
+
+NEXT_5_EXECUTIONS AS (
+
+    SELECT
+        DATEADD(
+            MINUTE,
+            ROW_NUMBER() OVER (ORDER BY SEQ4()),
+            LAST_SCHEDULED_TIME
+        ) AS NEXT_SCHEDULE_TIME
+    FROM LATEST_SCHEDULE,
+         TABLE(GENERATOR(ROWCOUNT => 5))
 )
-ORDER BY SCHEDULED_TIME DESC;
 
-
--- ============================================================
--- 12. SUSPEND THE TASK
--- Stops the task, so it does not run again
--- ============================================================
-
-ALTER TASK EMPLOYEE_LOAD_TASK SUSPEND;
-
-
--- ============================================================
--- 13. CREATE THE SUMMARY TABLE
--- Makes the table for the department summary
--- ============================================================
-
-CREATE TABLE DEPARTMENT_SUMMARY (
-    DEPARTMENT      VARCHAR(50),
-    EMPLOYEE_COUNT  NUMBER,
-    TOTAL_SALARY    NUMBER,
-    AVG_SALARY      NUMBER,
-    LOAD_TIME       TIMESTAMP
-);
-
-SELECT * FROM DEPARTMENT_SUMMARY;
-
-
--- ============================================================
--- 14. CREATE THE ROOT (PARENT) TASK
--- The parent task does this INSERT for you, every 5 minutes
--- ============================================================
-
-CREATE TASK EMPLOYEE_ROOT_TASK
-    WAREHOUSE = TASK_WH
-    SCHEDULE = '5 MINUTE'
-AS
-INSERT INTO EMPLOYEE_TARGET
+-- Previous / current executions
 SELECT
-    EMPLOYEE_ID,
-    UPPER(EMPLOYEE_NAME),
-    DEPARTMENT,
-    SALARY,
+    NAME AS TASK_NAME,
+
     CASE
-        WHEN SALARY >= 100000 THEN 'HIGH'
-        WHEN SALARY >= 70000  THEN 'MEDIUM'
-        ELSE 'LOW'
-    END,
-    CURRENT_TIMESTAMP()
-FROM EMPLOYEE_SOURCE;
+        WHEN STATE = 'SUCCEEDED' THEN 'SUCCESS'
+        WHEN STATE = 'EXECUTING' THEN 'RUNNING'
+        WHEN STATE = 'FAILED' THEN 'FAILED'
+        WHEN STATE = 'SCHEDULED' THEN 'SCHEDULED'
+        ELSE STATE
+    END AS EXECUTION_STATUS,
 
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', SCHEDULED_TIME),
+        'YYYY-MM-DD'
+    ) AS EXECUTION_DATE_IST,
 
--- ============================================================
--- 15. CREATE THE CHILD TASK
--- AFTER EMPLOYEE_ROOT_TASK means: this task does not run on
--- its own. It runs after the parent task.
--- ============================================================
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', SCHEDULED_TIME),
+        'HH12:MI:SS AM'
+    ) || ' IST' AS SCHEDULED_TIME_IST,
 
-CREATE TASK DEPARTMENT_SUMMARY_TASK
-    WAREHOUSE = TASK_WH
-    AFTER EMPLOYEE_ROOT_TASK
-AS
-INSERT INTO DEPARTMENT_SUMMARY
-SELECT
-    DEPARTMENT,
-    COUNT(*),
-    SUM(SALARY),
-    AVG(SALARY),
-    CURRENT_TIMESTAMP()
-FROM EMPLOYEE_TARGET
-GROUP BY DEPARTMENT;
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', QUERY_START_TIME),
+        'HH12:MI:SS AM'
+    ) || ' IST' AS START_TIME_IST,
 
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', COMPLETED_TIME),
+        'HH12:MI:SS AM'
+    ) || ' IST' AS COMPLETED_TIME_IST,
 
--- ============================================================
--- 16. SUSPEND BOTH, THEN RESUME THE CHILD FIRST
--- In a chain, start the child task first, then the parent.
--- The parent task holds the timer.
--- ============================================================
+    DATEDIFF(
+        'SECOND',
+        QUERY_START_TIME,
+        COMPLETED_TIME
+    ) AS EXECUTION_SECONDS,
 
--- Stop both tasks first
-ALTER TASK DEPARTMENT_SUMMARY_TASK SUSPEND;
-ALTER TASK EMPLOYEE_ROOT_TASK SUSPEND;
-
--- Start this one first
-ALTER TASK DEPARTMENT_SUMMARY_TASK RESUME;
-
--- Then start the parent task
-ALTER TASK EMPLOYEE_ROOT_TASK RESUME;
-
-
--- ============================================================
--- 17. SHOW TASKS
--- Shows the parent task and the child task
--- ============================================================
-
-SHOW TASKS;
-
-
--- ============================================================
--- 18. CHECK TASK HISTORY FOR ALL TASKS
--- Shows when each task ran and if it went fine
--- ============================================================
-
-SELECT
-    NAME,
-    STATE,
-    SCHEDULED_TIME,
-    QUERY_START_TIME,
-    COMPLETED_TIME,
     ERROR_MESSAGE
-FROM TABLE(
-    INFORMATION_SCHEMA.TASK_HISTORY(
-        SCHEDULED_TIME_RANGE_START = DATEADD(HOUR, -1, CURRENT_TIMESTAMP())
-    )
-)
-ORDER BY SCHEDULED_TIME DESC;
+
+FROM TASK_HISTORY_DATA
+
+UNION ALL
+
+-- Next 5 expected executions
+SELECT
+    'EMPLOYEE_TASK' AS TASK_NAME,
+
+    'UPCOMING' AS EXECUTION_STATUS,
+
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', NEXT_SCHEDULE_TIME),
+        'YYYY-MM-DD'
+    ) AS EXECUTION_DATE_IST,
+
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', NEXT_SCHEDULE_TIME),
+        'HH12:MI:SS AM'
+    ) || ' IST' AS SCHEDULED_TIME_IST,
+
+    NULL AS START_TIME_IST,
+
+    NULL AS COMPLETED_TIME_IST,
+
+    NULL AS EXECUTION_SECONDS,
+
+    NULL AS ERROR_MESSAGE
+
+FROM NEXT_5_EXECUTIONS
+
+ORDER BY
+    SCHEDULED_TIME_IST DESC;
 
 
 -- ============================================================
--- 19. SUSPEND EVERYTHING
--- Stops both tasks, so they do not run again
+-- 10. SUSPEND THE TASK WHEN FINISHED
+-- Stops future scheduled executions, so the task stops costing money
 -- ============================================================
 
-ALTER TASK DEPARTMENT_SUMMARY_TASK SUSPEND;
-ALTER TASK EMPLOYEE_ROOT_TASK SUSPEND;
+ALTER TASK EMPLOYEE_TASK SUSPEND;
+
+-- STATE should say suspended now
+SHOW TASKS LIKE 'EMPLOYEE_TASK';
 
 
 -- ============================================================
--- 🚫 DO NOT RUN THE STATEMENT BELOW BY HAND
--- Who runs it : the Snowflake task scheduler
--- Why         : The tasks above run this INSERT for you, on a
---               timer. If you run it by hand, you add rows to
---               EMPLOYEE_TARGET that the timer did not add.
+-- 11. RESUME AGAIN WHEN YOU WANT TO PRACTICE
+-- Starts the scheduler again
 -- ============================================================
 
--- INSERT INTO EMPLOYEE_TARGET
--- SELECT
---     EMPLOYEE_ID,
---     UPPER(EMPLOYEE_NAME),
---     DEPARTMENT,
---     SALARY,
---     CASE
---         WHEN SALARY >= 100000 THEN 'HIGH'
---         WHEN SALARY >= 70000  THEN 'MEDIUM'
---         ELSE 'LOW'
---     END,
---     CURRENT_TIMESTAMP()
--- FROM EMPLOYEE_SOURCE;
+ALTER TASK EMPLOYEE_TASK RESUME;
+
+-- STATE should say started again
+SHOW TASKS LIKE 'EMPLOYEE_TASK';

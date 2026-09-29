@@ -1,98 +1,85 @@
-# 57) Snowflake — Task-Based Scheduled Pipeline
+# 57) Snowflake — Simple Task-Based Scheduled Pipeline
 
 ## 📁 Files in This Folder
 
 | File | What It Is |
 | ---- | ---------- |
-| [00) README.md](00%29%20README.md) | This guide |
-| [snowflake.sql](snowflake.sql) | Every SQL statement for this pipeline in one file, ready to paste into a Snowflake worksheet |
+| 📘 [00) README.md](00%29%20README.md) | This guide |
+| 🧾 [snowflake.sql](snowflake.sql) | Every SQL statement for this pipeline in one file, ready to paste into a Snowflake worksheet |
 
-Now we move on to **Snowflake Tasks**. You already know the basic idea: a task is used for scheduling. A task is a job that Snowflake runs for you on a schedule. Now we will build a pipeline where Snowflake runs SQL by itself on a schedule.
+🚀 Now we move on to **Snowflake Tasks**.
 
----
+For this practice, we will keep the pipeline very simple:
 
-## 🧠 First: What Is a Snowflake Task?
-
-A **task is Snowflake's way to schedule and run SQL**.
-
-It can run SQL by itself. It can also call a stored procedure. It runs on a schedule, or after another task.
-
-Think:
-
-```text
-             TASK
-              │
-              │ Every 1 minute
-              ↓
-        Execute SQL
-              │
-              ↓
-       Transform Data
-              │
-              ↓
-          Target Table
-```
-
-For this practice, let's start simple:
-
-```text
-SOURCE TABLE
-     ↓
-   TASK
-     ↓
-SQL Transformation
-     ↓
-TARGET TABLE
-```
-
-Then we'll build a **chain of tasks**:
-
-```text
-TASK 1
-  ↓
-TASK 2
-  ↓
-TASK 3
-```
-
-This matters because Snowflake tasks are not only about time. They can also run one after another.
+- 🗄️ One database
+- 📂 One schema
+- ⚙️ One warehouse
+- 📋 One `EMPLOYEE` table
+- 🔢 5 records
+- ⚡ One Snowflake Task
+- ⏱️ Task runs every 1 minute
+- 📊 Task execution can be monitored through `TASK_HISTORY`
+- 🔮 Next 5 expected executions can also be displayed
 
 ---
 
-## 🎯 What We'll Build
+# 🧠 1. What Is a Snowflake Task?
 
-We'll build:
+A **Snowflake Task** is used to automatically execute SQL based on a schedule.
 
-```text
-EMPLOYEE_SOURCE
+💡 Think:
+
+```
+📋 EMPLOYEE TABLE
       ↓
-   TASK 1
+   ⚡ TASK
       ↓
-TRANSFORMED_EMPLOYEE
+⏱️ Every 1 minute
       ↓
-   TASK 2
-      ↓
-EMPLOYEE_SUMMARY
+  ▶️ Execute SQL
 ```
 
-And we'll practice:
+A Task can execute SQL directly or can call a stored procedure.
 
-* Creating a task
-* `SCHEDULE`
-* `USING CRON`
-* `AFTER`
-* Task dependencies (one task runs after another)
-* `ALTER TASK ... RESUME`
-* `ALTER TASK ... SUSPEND`
-* `TASK_HISTORY`
-* Task execution (watching a task run)
-* Chains of tasks
+📌 For this practice, we are using a simple `SELECT` statement.
 
 ---
 
-## 🗄️ Step 1 — Create the Database
+# 🎯 2. What We Will Build
 
-```sql
+🏗️ Our practice pipeline is:
+
+```
+📋 EMPLOYEE
+   │
+   │ 5 Records
+   ↓
+⚡ EMPLOYEE_TASK
+   │
+   │ ⏱️ Every 1 minute
+   ↓
+▶️ Execute SQL
+   │
+   ↓
+📊 TASK HISTORY
+```
+
+🚫 We are **not** using:
+
+- 🚫 Task chains
+- 🚫 Child tasks
+- 🚫 Root tasks
+- 🚫 Streams
+- 🚫 Summary tables
+- 🚫 Target tables
+
+📌 The purpose is simply to understand **Snowflake Task scheduling and monitoring**.
+
+---
+
+# 🗄️ Step 1 — Create the Database
+
+```
 CREATE DATABASE SNOWFLAKE_TASK_PRACTICE;
 
 USE DATABASE SNOWFLAKE_TASK_PRACTICE;
@@ -100,9 +87,9 @@ USE DATABASE SNOWFLAKE_TASK_PRACTICE;
 
 ---
 
-## 📂 Step 2 — Create the Schema
+# 📂 Step 2 — Create the Schema
 
-```sql
+```
 CREATE SCHEMA TASK_SCHEMA;
 
 USE SCHEMA TASK_SCHEMA;
@@ -110,9 +97,9 @@ USE SCHEMA TASK_SCHEMA;
 
 ---
 
-## ⚙️ Step 3 — Create the Warehouse
+# ⚙️ Step 3 — Create the Warehouse
 
-```sql
+```
 CREATE WAREHOUSE TASK_WH
     WAREHOUSE_SIZE = XSMALL
     AUTO_SUSPEND = 60
@@ -121,498 +108,518 @@ CREATE WAREHOUSE TASK_WH
 USE WAREHOUSE TASK_WH;
 ```
 
+### 💡 Why XSMALL?
+
+This is only a small practice workload, so an XSMALL warehouse is enough.
+
+```
+AUTO_SUSPEND = 60
+```
+
+means the warehouse automatically suspends after 60 seconds of inactivity.
+
 ---
 
-## 📋 Step 4 — Create the Source Table
+# 📋 Step 4 — Create the Employee Table
 
-```sql
-CREATE TABLE EMPLOYEE_SOURCE (
-    EMPLOYEE_ID   NUMBER,
+```
+CREATE TABLE EMPLOYEE (
+    EMPLOYEE_ID NUMBER,
     EMPLOYEE_NAME VARCHAR(100),
-    DEPARTMENT    VARCHAR(50),
-    SALARY        NUMBER
+    DEPARTMENT VARCHAR(50),
+    SALARY NUMBER
 );
 ```
 
 ---
 
-## ✍️ Step 5 — Insert Initial Data
+# ✍️ Step 5 — Insert 5 Records
 
-```sql
-INSERT INTO EMPLOYEE_SOURCE VALUES
-(8001, 'Rahul Sharma', 'IT', 85000),
-(8002, 'Priya Patil', 'HR', 62000),
-(8003, 'Amit Verma', 'Finance', 95000),
-(8004, 'Sneha Joshi', 'IT', 78000),
-(8005, 'Vikas Kumar', 'Sales', 58000);
+```
+INSERT INTO EMPLOYEE VALUES
+(1001, 'Rahul', 'IT', 85000),
+(1002, 'Priya', 'HR', 65000),
+(1003, 'Amit', 'Finance', 95000),
+(1004, 'Sneha', 'IT', 78000),
+(1005, 'Vikas', 'Sales', 55000);
 ```
 
-Check:
+✅ Check the records:
 
-```sql
-SELECT * FROM EMPLOYEE_SOURCE;
+```
+SELECT * FROM EMPLOYEE;
 ```
 
----
+You should see:
 
-## 📋 Step 6 — Create the Target Table
-
-This table will hold the changed data.
-
-```sql
-CREATE TABLE EMPLOYEE_TARGET (
-    EMPLOYEE_ID     NUMBER,
-    EMPLOYEE_NAME   VARCHAR(100),
-    DEPARTMENT      VARCHAR(50),
-    SALARY          NUMBER,
-    SALARY_CATEGORY VARCHAR(20),
-    LOAD_TIME       TIMESTAMP
-);
+```
+1001 Rahul
+1002 Priya
+1003 Amit
+1004 Sneha
+1005 Vikas
 ```
 
 ---
 
-## ⚡ Step 7 — Create Our First Task
+# ⚡ Step 6 — Create the Task
 
-We'll make a simple task. It runs every minute.
+⚡ Now create the task.
 
-```sql
-CREATE TASK EMPLOYEE_LOAD_TASK
+```
+CREATE TASK EMPLOYEE_TASK
     WAREHOUSE = TASK_WH
     SCHEDULE = '1 MINUTE'
 AS
-INSERT INTO EMPLOYEE_TARGET
-SELECT
-    EMPLOYEE_ID,
-    UPPER(EMPLOYEE_NAME),
-    DEPARTMENT,
-    SALARY,
-    CASE
-        WHEN SALARY >= 100000 THEN 'HIGH'
-        WHEN SALARY >= 70000  THEN 'MEDIUM'
-        ELSE 'LOW'
-    END,
-    CURRENT_TIMESTAMP()
-FROM EMPLOYEE_SOURCE;
+SELECT * FROM EMPLOYEE;
 ```
 
-### 💡 Notice
+### 🧩 What does this mean?
 
-```text
+```
 SCHEDULE = '1 MINUTE'
 ```
 
 means:
 
-> Run this task every minute.
+> ⏱️ Snowflake schedules this task to execute every 1 minute.
+
+The SQL executed by the task is:
+
+```
+SELECT * FROM EMPLOYEE;
+```
 
 ---
 
-## 🔍 Step 8 — Check the Task
+# 🔍 Step 7 — Check the Task
 
-```sql
-SHOW TASKS;
+```
+SHOW TASKS LIKE 'EMPLOYEE_TASK';
+```
+
+🔍 When you first create the task, its state will be:
+
+```
+SUSPENDED
+```
+
+📌 This is expected.
+
+Creating the task only **creates the task definition**. It does not start the scheduler.
+
+---
+
+# ▶️ Step 8 — Resume the Task
+
+🚀 To allow Snowflake to start scheduling the task:
+
+```
+ALTER TASK EMPLOYEE_TASK RESUME;
+```
+
+Then check again:
+
+```
+SHOW TASKS LIKE 'EMPLOYEE_TASK';
+```
+
+✅ The task should now be in the started/running state.
+
+---
+
+# 🧠 Why and When Do We Use `ALTER TASK`?
+
+📌 This is an important concept.
+
+### 🧱 `CREATE TASK`
+
+Used to **create the task**.
+
+```
+CREATE TASK EMPLOYEE_TASK
+    WAREHOUSE = TASK_WH
+    SCHEDULE = '1 MINUTE'
+AS
+SELECT * FROM EMPLOYEE;
+```
+
+💡 Think:
+
+```
+🧱 CREATE TASK
+     ↓
+📝 Create the task definition
+```
+
+📌 The newly created task is initially suspended.
+
+---
+
+### ▶️ `ALTER TASK ... RESUME`
+
+Used to **start/enable the task scheduler**.
+
+```
+ALTER TASK EMPLOYEE_TASK RESUME;
+```
+
+💡 Think:
+
+```
+🧱 Task created
+     ↓
+⏸️ SUSPENDED
+     ↓
+▶️ RESUME
+     ↓
+⏱️ Task starts getting scheduled
+```
+
+✅ Use `RESUME` when:
+
+- 🆕 You create a new task and want it to start
+- ▶️ You previously suspended the task
+- 🔄 You want scheduled execution to continue again
+
+---
+
+### 🛑 `ALTER TASK ... SUSPEND`
+
+Used to **stop future scheduled executions**.
+
+```
+ALTER TASK EMPLOYEE_TASK SUSPEND;
+```
+
+💡 Think:
+
+```
+▶️ Task running
+     ↓
+🛑 SUSPEND
+     ↓
+⏸️ Future scheduled executions stop
+```
+
+🛑 Use `SUSPEND` when:
+
+- 🏁 You finish your practice
+- 💰 You don't want the task to keep executing
+- ⏸️ You temporarily want to stop scheduled processing
+- 🔧 You need to make changes that require the task to be suspended
+
+📌 The task is **not deleted**.
+
+✅ You can start it again:
+
+```
+ALTER TASK EMPLOYEE_TASK RESUME;
+```
+
+### 🎤 Easy interview answer
+
+> `CREATE TASK` creates the task definition. `ALTER TASK RESUME` starts task scheduling, and `ALTER TASK SUSPEND` stops future scheduled executions.
+
+---
+
+# 📊 Step 9 — Monitor Task Scheduling and Execution
+
+👀 Use the following query to see:
+
+- 🕘 Previous executions
+- 📌 Current task state
+- 📅 Scheduled time
+- ▶️ Start time
+- ✅ Completion time
+- 🚦 Success/failed/running status
+- ⏳ Execution duration
+- 🔮 Next 5 expected executions
+- 🇮🇳 IST date and time
+- 🕛 12-hour AM/PM format
+
+```
+WITH TASK_HISTORY_DATA AS (
+
+    SELECT
+        NAME,
+        STATE,
+        SCHEDULED_TIME,
+        QUERY_START_TIME,
+        COMPLETED_TIME,
+        ERROR_MESSAGE
+    FROM TABLE(
+        INFORMATION_SCHEMA.TASK_HISTORY(
+            TASK_NAME => 'EMPLOYEE_TASK',
+            SCHEDULED_TIME_RANGE_START =>
+                DATEADD(HOUR, -1, CURRENT_TIMESTAMP())
+        )
+    )
+),
+
+LATEST_SCHEDULE AS (
+
+    SELECT
+        MAX(SCHEDULED_TIME) AS LAST_SCHEDULED_TIME
+    FROM TASK_HISTORY_DATA
+),
+
+NEXT_5_EXECUTIONS AS (
+
+    SELECT
+        DATEADD(
+            MINUTE,
+            ROW_NUMBER() OVER (ORDER BY SEQ4()),
+            LAST_SCHEDULED_TIME
+        ) AS NEXT_SCHEDULE_TIME
+    FROM LATEST_SCHEDULE,
+         TABLE(GENERATOR(ROWCOUNT => 5))
+)
+
+-- Previous / current executions
+SELECT
+    NAME AS TASK_NAME,
+
+    CASE
+        WHEN STATE = 'SUCCEEDED' THEN 'SUCCESS'
+        WHEN STATE = 'EXECUTING' THEN 'RUNNING'
+        WHEN STATE = 'FAILED' THEN 'FAILED'
+        WHEN STATE = 'SCHEDULED' THEN 'SCHEDULED'
+        ELSE STATE
+    END AS EXECUTION_STATUS,
+
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', SCHEDULED_TIME),
+        'YYYY-MM-DD'
+    ) AS EXECUTION_DATE_IST,
+
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', SCHEDULED_TIME),
+        'HH12:MI:SS AM'
+    ) || ' IST' AS SCHEDULED_TIME_IST,
+
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', QUERY_START_TIME),
+        'HH12:MI:SS AM'
+    ) || ' IST' AS START_TIME_IST,
+
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', COMPLETED_TIME),
+        'HH12:MI:SS AM'
+    ) || ' IST' AS COMPLETED_TIME_IST,
+
+    DATEDIFF(
+        'SECOND',
+        QUERY_START_TIME,
+        COMPLETED_TIME
+    ) AS EXECUTION_SECONDS,
+
+    ERROR_MESSAGE
+
+FROM TASK_HISTORY_DATA
+
+UNION ALL
+
+-- Next 5 expected executions
+SELECT
+    'EMPLOYEE_TASK' AS TASK_NAME,
+
+    'UPCOMING' AS EXECUTION_STATUS,
+
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', NEXT_SCHEDULE_TIME),
+        'YYYY-MM-DD'
+    ) AS EXECUTION_DATE_IST,
+
+    TO_CHAR(
+        CONVERT_TIMEZONE('Asia/Kolkata', NEXT_SCHEDULE_TIME),
+        'HH12:MI:SS AM'
+    ) || ' IST' AS SCHEDULED_TIME_IST,
+
+    NULL AS START_TIME_IST,
+
+    NULL AS COMPLETED_TIME_IST,
+
+    NULL AS EXECUTION_SECONDS,
+
+    NULL AS ERROR_MESSAGE
+
+FROM NEXT_5_EXECUTIONS
+
+ORDER BY
+    SCHEDULED_TIME_IST DESC;
+```
+
+---
+
+# 📊 What This Monitoring Query Shows
+
+📋 You will get columns such as:
+
+| Column | Meaning |
+| ------ | ------- |
+| 🏷️ `TASK_NAME` | Name of the task |
+| 🚦 `EXECUTION_STATUS` | SUCCESS / RUNNING / FAILED / SCHEDULED / UPCOMING |
+| 📅 `EXECUTION_DATE_IST` | Execution date in IST |
+| 🕘 `SCHEDULED_TIME_IST` | Scheduled time in IST |
+| ▶️ `START_TIME_IST` | Actual execution start time |
+| ✅ `COMPLETED_TIME_IST` | Execution completion time |
+| ⏳ `EXECUTION_SECONDS` | How long execution took |
+| 🚨 `ERROR_MESSAGE` | Error information if execution failed |
+
+📝 Example:
+
+```
+EMPLOYEE_TASK | SUCCESS  | 2026-09-29 | 09:01:57 PM IST | 09:01:58 PM IST | 09:01:59 PM IST
+EMPLOYEE_TASK | SUCCESS  | 2026-09-29 | 09:00:57 PM IST | 09:00:58 PM IST | 09:00:59 PM IST
+EMPLOYEE_TASK | UPCOMING | 2026-09-29 | 09:02:57 PM IST | NULL           | NULL
+```
+
+🔮 The `UPCOMING` rows represent the **next 5 expected execution times** based on the task's 1-minute schedule.
+
+---
+
+# 🛑 Step 10 — Suspend the Task When Finished
+
+🏁 When you are finished practicing:
+
+```
+ALTER TASK EMPLOYEE_TASK SUSPEND;
+```
+
+⏸️ This stops future scheduled executions.
+
+🔍 You can verify:
+
+```
+SHOW TASKS LIKE 'EMPLOYEE_TASK';
 ```
 
 You should see:
 
-```text
-EMPLOYEE_LOAD_TASK
+```
+STATE = suspended
 ```
 
 ---
 
-## ⚠️ Step 9 — Task Is Initially Suspended
+# 🔄 Step 11 — Resume Again When You Want to Practice
 
-Creating a task does **not start it right away**.
+▶️ Whenever you want to start the task again:
 
-You must start it again.
-
-```sql
-ALTER TASK EMPLOYEE_LOAD_TASK RESUME;
 ```
-
-Now:
-
-```text
-Task
- ↓
-RESUMED
- ↓
-Scheduler can execute it
+ALTER TASK EMPLOYEE_TASK RESUME;
 ```
-
----
-
-## ⏳ Step 10 — Wait and Check the Target
-
-Wait about 1 to 2 minutes.
 
 Then:
 
-```sql
-SELECT * FROM EMPLOYEE_TARGET;
 ```
-
-You should see the new rows.
-
----
-
-## 🕘 Step 11 — Check Task History
-
-This part is very important.
-
-```sql
-SELECT *
-FROM TABLE(
-    INFORMATION_SCHEMA.TASK_HISTORY(
-        TASK_NAME => 'EMPLOYEE_LOAD_TASK',
-        SCHEDULED_TIME_RANGE_START => DATEADD(HOUR, -1, CURRENT_TIMESTAMP())
-    )
-)
-ORDER BY SCHEDULED_TIME DESC;
-```
-
-You can see things like:
-
-```text
-STATE
-SCHEDULED_TIME
-QUERY_START_TIME
-COMPLETED_TIME
-ERROR_MESSAGE
-```
-
-This shows you if the task ran fine or not.
-
----
-
-## 🛑 Step 12 — Suspend the Task
-
-For practice, don't leave it running all the time.
-
-```sql
-ALTER TASK EMPLOYEE_LOAD_TASK SUSPEND;
-```
-
-Now it stops starting new runs.
-
----
-
-## 🔗 Step 13 — Create a Task Chain
-
-Now let's learn something bigger.
-
-Suppose we want:
-
-```text
-Task 1
-  ↓
-Task 2
-  ↓
-Task 3
-```
-
-Example:
-
-```text
-TASK 1
-Load employee data
-         ↓
-TASK 2
-Calculate department summary
-         ↓
-TASK 3
-Final processing
-```
-
-This is called a **chain of tasks**. One task runs first. The next one runs after it.
-
----
-
-## 📋 Step 14 — Create the Summary Table
-
-```sql
-CREATE TABLE DEPARTMENT_SUMMARY (
-    DEPARTMENT      VARCHAR(50),
-    EMPLOYEE_COUNT  NUMBER,
-    TOTAL_SALARY    NUMBER,
-    AVG_SALARY      NUMBER,
-    LOAD_TIME       TIMESTAMP
-);
+SHOW TASKS LIKE 'EMPLOYEE_TASK';
 ```
 
 ---
 
-## 🌱 Step 15 — Create the Root Task
+# ⏰ Schedule Options
 
-First, create the parent task.
+⏰ We are using:
 
-```sql
-CREATE TASK EMPLOYEE_ROOT_TASK
-    WAREHOUSE = TASK_WH
-    SCHEDULE = '5 MINUTE'
-AS
-INSERT INTO EMPLOYEE_TARGET
-SELECT
-    EMPLOYEE_ID,
-    UPPER(EMPLOYEE_NAME),
-    DEPARTMENT,
-    SALARY,
-    CASE
-        WHEN SALARY >= 100000 THEN 'HIGH'
-        WHEN SALARY >= 70000  THEN 'MEDIUM'
-        ELSE 'LOW'
-    END,
-    CURRENT_TIMESTAMP()
-FROM EMPLOYEE_SOURCE;
 ```
-
----
-
-## 🌿 Step 16 — Create the Child Task
-
-Now:
-
-```sql
-CREATE TASK DEPARTMENT_SUMMARY_TASK
-    WAREHOUSE = TASK_WH
-    AFTER EMPLOYEE_ROOT_TASK
-AS
-INSERT INTO DEPARTMENT_SUMMARY
-SELECT
-    DEPARTMENT,
-    COUNT(*),
-    SUM(SALARY),
-    AVG(SALARY),
-    CURRENT_TIMESTAMP()
-FROM EMPLOYEE_TARGET
-GROUP BY DEPARTMENT;
-```
-
-Notice:
-
-```sql
-AFTER EMPLOYEE_ROOT_TASK
-```
-
-This means:
-
-> Don't run this task on its own. Run it after the parent task works.
-
----
-
-## ▶️ Step 17 — Resume the Child First
-
-This is a key idea in Snowflake tasks.
-
-Stop both first if you need to:
-
-```sql
-ALTER TASK DEPARTMENT_SUMMARY_TASK SUSPEND;
-ALTER TASK EMPLOYEE_ROOT_TASK SUSPEND;
-```
-
-Then start the child again:
-
-```sql
-ALTER TASK DEPARTMENT_SUMMARY_TASK RESUME;
-```
-
-Then start the parent again:
-
-```sql
-ALTER TASK EMPLOYEE_ROOT_TASK RESUME;
-```
-
-Now:
-
-```text
-EMPLOYEE_ROOT_TASK
-         ↓
-DEPARTMENT_SUMMARY_TASK
-```
-
-The parent task controls the schedule.
-
----
-
-## 🧠 Why Resume the Child First?
-
-In a chain of tasks, Snowflake wants the child task started first. Then you start the parent task.
-
-Think:
-
-```text
-Child ready
-   ↓
-Root starts
-   ↓
-Root completes
-   ↓
-Child executes
-```
-
----
-
-## 🗺️ Step 18 — Check the Task Graph
-
-```sql
-SHOW TASKS;
-```
-
-You should see something like this:
-
-```text
-EMPLOYEE_ROOT_TASK
-         ↓
-DEPARTMENT_SUMMARY_TASK
-```
-
----
-
-## 🕘 Step 19 — Check Task History
-
-```sql
-SELECT
-    NAME,
-    STATE,
-    SCHEDULED_TIME,
-    QUERY_START_TIME,
-    COMPLETED_TIME,
-    ERROR_MESSAGE
-FROM TABLE(
-    INFORMATION_SCHEMA.TASK_HISTORY(
-        SCHEDULED_TIME_RANGE_START = DATEADD(HOUR, -1, CURRENT_TIMESTAMP())
-    )
-)
-ORDER BY SCHEDULED_TIME DESC;
-```
-
----
-
-## 🛑 Step 20 — Suspend Everything
-
-When you finish practice:
-
-```sql
-ALTER TASK DEPARTMENT_SUMMARY_TASK SUSPEND;
-ALTER TASK EMPLOYEE_ROOT_TASK SUSPEND;
-```
-
-This stops it from running again and again.
-
----
-
-## 🧠 Schedule Types
-
-We have used:
-
-```sql
 SCHEDULE = '1 MINUTE'
 ```
 
-You can also use CRON.
+🕐 Other interval examples:
 
-For example:
-
-```sql
-SCHEDULE = 'USING CRON 0 19 * * * UTC'
 ```
-
-In plain words:
-
-```text
-Every day
-    ↓
-7:00 PM UTC
-    ↓
-Task executes
-```
-
-You can also use time gaps like:
-
-```sql
 SCHEDULE = '5 MINUTE'
 ```
 
-or:
-
-```sql
+```
 SCHEDULE = '1 HOUR'
 ```
 
----
+📅 You can also use CRON scheduling.
 
-## 🔥 The Big Picture
+Example:
 
-You should now know:
-
-### 🕐 Simple Task
-
-```text
-Schedule
-   ↓
-Task
-   ↓
-SQL
-   ↓
-Table
+```
+SCHEDULE = 'USING CRON 0 19 * * * UTC'
 ```
 
-### 🔗 Task Chain
-
-```text
-                 ROOT TASK
-                     │
-                     ↓
-              TRANSFORMATION
-                     │
-                     ↓
-                  TASK 2
-                     │
-                     ↓
-                 SUMMARY
-```
+🕖 This schedules the task for **7:00 PM UTC every day**.
 
 ---
 
-## 🧠 Task vs Stream
+# 🔥 Final Architecture
 
-This difference is **very important**. We just finished Streams.
+🏗️ Your entire practice pipeline is:
+
+```
+              📋 EMPLOYEE
+                  │
+                  │ 5 records
+                  ↓
+            ⚡ EMPLOYEE_TASK
+                  │
+                  │
+             ⏱️ Every 1 minute
+                  │
+                  ↓
+             ▶️ Execute SQL
+                  │
+                  ↓
+           📊 TASK HISTORY
+                  │
+       ┌──────────┼──────────┐
+       ↓          ↓          ↓
+   ✅ SUCCESS  ❌ FAILED  🔄 RUNNING
+                  │
+                  ↓
+          🔍 Execution Details
+                  │
+        ┌─────────┼─────────┐
+        ↓         ↓         ↓
+      📅 DATE   🕘 TIME   ⏳ DURATION
+        IST       IST
+                  │
+                  ↓
+          🔮 NEXT 5 EXECUTIONS
+              UPCOMING
+```
+
+---
+
+# 🧠 Task vs Stream
+
+📌 Keep this difference clear.
 
 ### 🌊 Stream
 
-```text
-Stream = WHAT changed?
+```
+🌊 STREAM = WHAT CHANGED?
 ```
 
-It remembers what changed in a table.
+A Stream tracks changes made to table data.
 
 ### ⏰ Task
 
-```text
-Task = WHEN / HOW should something execute?
+```
+⏰ TASK = WHEN SHOULD SQL RUN?
 ```
 
-It runs SQL by itself.
+A Task automatically executes SQL based on a schedule or dependency.
 
-Together:
+🔗 Together they can be used as:
 
-```text
-             SOURCE TABLE
-                  │
-                  ↓
-               STREAM
-           "What changed?"
-                  │
-                  ↓
-                TASK
-        "Process the changes"
-                  │
-                  ↓
-              TARGET
+```
+📋 SOURCE TABLE
+     ↓
+🌊 STREAM
+"What changed?"
+     ↓
+⏰ TASK
+"When/process it?"
+     ↓
+🎯 TARGET
 ```
 
-This **Stream + Task** pair is one of the most useful Snowflake patterns to know.
-
+📌 For this practice, we are intentionally keeping it simple and learning **Tasks first** without adding Streams or Task chains.

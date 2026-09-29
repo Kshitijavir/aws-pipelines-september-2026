@@ -1,14 +1,14 @@
-# Lambda → Secrets Manager
+# ⚡ Lambda → Secrets Manager
 
-## Goal
+## 🎯 Goal
 
 This pipeline demonstrates how AWS Lambda fetches a secret from **AWS Secrets Manager**.
 
 The secret contains:
 
 ```
-username
-password
+👤 username
+🔑 password
 ```
 
 Secret name:
@@ -19,16 +19,16 @@ new_secret_2026
 
 Lambda will:
 
-1. Fetch the secret from Secrets Manager.
-2. Print the Secret Manager name.
-3. Print the key names.
-4. Print `Secret fetched successfully`.
+1. 📥 Fetch the secret from Secrets Manager.
+2. 🏷️ Print the Secret Manager name.
+3. 🔑 Print the key names.
+4. ✅ Print `Secret fetched successfully`.
 
-The actual username and password are **never printed**.
+🚫 The actual username and password are **never printed**.
 
 ---
 
-## IAM Role
+## 🔐 IAM Role
 
 Create this Lambda execution role:
 
@@ -43,23 +43,23 @@ AWSLambdaBasicExecutionRole
 SecretsManagerReadWrite
 ```
 
-### Purpose
+### 🎯 Purpose
 
-`AWSLambdaBasicExecutionRole`
+☁️ `AWSLambdaBasicExecutionRole`
 
 Allows Lambda to write logs to **CloudWatch Logs**.
 
-`SecretsManagerReadWrite`
+🔐 `SecretsManagerReadWrite`
 
 Allows Lambda to access Secrets Manager.
 
-> `SecretsManagerReadWrite` is suitable for this practice pipeline. In production, a more restricted custom policy with only the required `GetSecretValue` permission should be used.
+> 💡 `SecretsManagerReadWrite` is suitable for this practice pipeline. In production, a more restricted custom policy with only the required `GetSecretValue` permission should be used.
 
-> The trust policy for this role is in [trust_policy.json](trust_policy.json) — it allows only `lambda.amazonaws.com` to assume the role.
+> 📌 The trust policy for this role is in [trust_policy.json](trust_policy.json) — it allows only `lambda.amazonaws.com` to assume the role.
 
 ---
 
-## Secrets Manager
+## 🔑 Secrets Manager
 
 Create a secret in:
 
@@ -89,20 +89,20 @@ The secret will contain:
 
 ---
 
-## Why Is This Pipeline Important?
+## 💡 Why Is This Pipeline Important?
 
 When Lambda needs to connect to a database, API, or any other external service, we usually need credentials such as:
 
 ```
-Username
-Password
-API Key
-Access Token
+👤 Username
+🔑 Password
+🗝️ API Key
+🎟️ Access Token
 ```
 
 We should **not hardcode these credentials inside the Lambda code**.
 
-For example, we should never write:
+❌ For example, we should never write:
 
 ```
 username = "admin"
@@ -120,45 +120,45 @@ This keeps sensitive credentials outside the application code and makes them eas
 The same approach can be used when Lambda needs to connect to:
 
 ```
-Database
-RDS
-Redshift
-External APIs
-Third-party services
+🗄️ Database
+🛢️ RDS
+📊 Redshift
+🌐 External APIs
+🤝 Third-party services
 ```
 
 The general pattern is:
 
 ```
-Secrets Manager
+🔐 Secrets Manager
        |
        | Fetch credentials
        v
-     Lambda
+⚡ Lambda
        |
        | Use credentials
        v
- Database / API / Service
+🗄️ Database / API / Service
 ```
 
 ---
 
-## Architecture
+## 🗺️ Architecture
 
 ```
-AWS Secrets Manager
+🔐 AWS Secrets Manager
         |
         | get_secret_value()
         v
-      Lambda
+⚡ Lambda
         |
         v
-  CloudWatch Logs
+☁️ CloudWatch Logs
 ```
 
 ---
 
-## Lambda
+## 🧠 Lambda
 
 Lambda function name:
 
@@ -184,7 +184,7 @@ The secret is converted from JSON into a Python dictionary, and only the **key n
 
 The actual values are never printed.
 
-The code ships with a placeholder secret name:
+⚠️ The code ships with a placeholder secret name:
 
 ```
 secret_name = "YOUR SECRET MANAGER NAME"
@@ -194,7 +194,7 @@ Replace it with `new_secret_2026`. The name in the code and the name in the cons
 
 ---
 
-## Expected Output
+## 🖨️ Expected Output
 
 ```
 ===================================
@@ -211,7 +211,7 @@ Secret fetched successfully
 ===================================
 ```
 
-The following should **never appear in CloudWatch**:
+🚫 The following should **never appear in CloudWatch**:
 
 ```
 admin
@@ -220,19 +220,19 @@ MyPassword@123
 
 ---
 
-## Testing
+## 🧪 Testing
 
-1. Create the secret `new_secret_2026`.
-2. Add `username` and `password`.
-3. Create the IAM role.
-4. Attach the required policies.
-5. Create the Lambda function.
-6. Attach `LambdaSecretsManagerPracticeRole`.
-7. Add the Lambda code.
-8. Run a test event.
-9. Check the CloudWatch logs.
+1. 🗝️ Create the secret `new_secret_2026`.
+2. 👤 Add `username` and `password`.
+3. 🔐 Create the IAM role.
+4. 📎 Attach the required policies.
+5. ⚡ Create the Lambda function.
+6. 🔗 Attach `LambdaSecretsManagerPracticeRole`.
+7. 📄 Add the Lambda code.
+8. ▶️ Run a test event.
+9. ☁️ Check the CloudWatch logs.
 
-Test event:
+🧾 Test event:
 
 ```
 {}
@@ -240,20 +240,20 @@ Test event:
 
 ---
 
-## Important
+## ⚠️ Important
 
-Never hardcode passwords, database credentials, API keys, or tokens inside Lambda code.
+🚫 Never hardcode passwords, database credentials, API keys, or tokens inside Lambda code.
 
-Use:
+✅ Use:
 
 ```
 Secrets Manager → Lambda → Database/API
 ```
 
-instead of:
+❌ Instead of:
 
 ```
 Hardcoded Password → Lambda → Database/API
 ```
 
-This is a common and important pattern when building secure AWS data pipelines and serverless applications.
+💡 This is a common and important pattern when building secure AWS data pipelines and serverless applications.

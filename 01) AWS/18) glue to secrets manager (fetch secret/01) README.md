@@ -1,14 +1,14 @@
-# Glue → Secrets Manager
+# ⚙️ Glue → Secrets Manager
 
-## Goal
+## 🎯 Goal
 
 This pipeline demonstrates how an AWS Glue job fetches a secret from **AWS Secrets Manager**.
 
 The secret contains:
 
 ```
-username
-password
+👤 username
+🔑 password
 ```
 
 Secret name:
@@ -19,16 +19,16 @@ new_secret_2026
 
 The Glue job will:
 
-1. Fetch the secret from Secrets Manager.
-2. Log the Secret Manager name.
-3. Log the key names.
-4. Log `Secret fetched successfully`.
+1. 📥 Fetch the secret from Secrets Manager.
+2. 🏷️ Log the Secret Manager name.
+3. 🔑 Log the key names.
+4. ✅ Log `Secret fetched successfully`.
 
-The actual username and password are **never logged**.
+🚫 The actual username and password are **never logged**.
 
 ---
 
-## IAM Role
+## 🔐 IAM Role
 
 Create this Glue job role:
 
@@ -43,25 +43,25 @@ AWSGlueConsoleFullAccess
 SecretsManagerReadWrite
 ```
 
-### Purpose
+### 🎯 Purpose
 
-`AWSGlueConsoleFullAccess`
+☁️ `AWSGlueConsoleFullAccess`
 
 Allows the Glue job to run, and to read its own run logs.
 
-`SecretsManagerReadWrite`
+🔐 `SecretsManagerReadWrite`
 
 Allows the Glue job to access Secrets Manager.
 
-> `SecretsManagerReadWrite` is suitable for this practice pipeline. In production, a more restricted custom policy with only the required `GetSecretValue` permission should be used.
+> 💡 `SecretsManagerReadWrite` is suitable for this practice pipeline. In production, a more restricted custom policy with only the required `GetSecretValue` permission should be used.
 
-> `AWSGlueConsoleFullAccess` only allows `logs:GetLogEvents` — that is **reading** logs, not **writing** them. A Glue job writes its run log with the permissions of its own role, so also attach `AWSGlueServiceRole` (or add `logs:CreateLogGroup`, `logs:CreateLogStream` and `logs:PutLogEvents` on `/aws-glue/*`). Without this the job can succeed but the log group stays empty.
+> ⚠️ `AWSGlueConsoleFullAccess` only allows `logs:GetLogEvents` — that is **reading** logs, not **writing** them. A Glue job writes its run log with the permissions of its own role, so also attach `AWSGlueServiceRole` (or add `logs:CreateLogGroup`, `logs:CreateLogStream` and `logs:PutLogEvents` on `/aws-glue/*`). Without this the job can succeed but the log group stays empty.
 
-> The trust policy for this role is in [trust_policy.json](trust_policy.json) — it allows only `glue.amazonaws.com` to assume the role.
+> 📌 The trust policy for this role is in [trust_policy.json](trust_policy.json) — it allows only `glue.amazonaws.com` to assume the role.
 
 ---
 
-## Secrets Manager
+## 🔑 Secrets Manager
 
 Create a secret in:
 
@@ -89,24 +89,24 @@ The secret will contain:
 }
 ```
 
-The Lambda pipeline reads this same secret, so the two pipelines can share one secret.
+🔄 The Lambda pipeline reads this same secret, so the two pipelines can share one secret.
 
 ---
 
-## Why Is This Pipeline Important?
+## 💡 Why Is This Pipeline Important?
 
 When a Glue job needs to connect to a database, API, or any other external service, we usually need credentials such as:
 
 ```
-Username
-Password
-API Key
-Access Token
+👤 Username
+🔑 Password
+🗝️ API Key
+🎟️ Access Token
 ```
 
 We should **not hardcode these credentials inside the Glue job code**.
 
-For example, we should never write:
+❌ For example, we should never write:
 
 ```
 username = "admin"
@@ -124,45 +124,45 @@ This keeps sensitive credentials outside the application code and makes them eas
 The same approach can be used when a Glue job needs to connect to:
 
 ```
-Database
-RDS
-Redshift
-External APIs
-Third-party services
+🗄️ Database
+🛢️ RDS
+📊 Redshift
+🌐 External APIs
+🤝 Third-party services
 ```
 
 The general pattern is:
 
 ```
-Secrets Manager
+🔐 Secrets Manager
        |
        | Fetch credentials
        v
-   Glue Job
+⚙️ Glue Job
        |
        | Use credentials
        v
- Database / API / Service
+🗄️ Database / API / Service
 ```
 
 ---
 
-## Architecture
+## 🗺️ Architecture
 
 ```
-AWS Secrets Manager
+🔐 AWS Secrets Manager
         |
         | get_secret_value()
         v
-    Glue Job
+⚙️ Glue Job
         |
         v
-  CloudWatch Logs
+☁️ CloudWatch Logs
 ```
 
 ---
 
-## Glue Job
+## 🧠 Glue Job
 
 Glue job name:
 
@@ -191,9 +191,9 @@ The actual values are never logged.
 
 The script logs through a Python logger named `secret-manager-pipeline`, so every line carries a time stamp and a level — `INFO` for the normal lines, `ERROR` for the failure lines.
 
-A Glue script has no handler and no return value, so the failure path logs the error and then **raises** it. That raised exception is what marks the job run as **FAILED**.
+⚠️ A Glue script has no handler and no return value, so the failure path logs the error and then **raises** it. That raised exception is what marks the job run as **FAILED**.
 
-The code ships with a placeholder secret name:
+⚠️ The code ships with a placeholder secret name:
 
 ```
 secret_name = "YOUR SECRET MANAGER NAME"
@@ -203,7 +203,7 @@ Replace it with `new_secret_2026`. The name in the code and the name in the cons
 
 ---
 
-## Expected Output
+## 📝 Expected Output
 
 ```
 2026-09-29 10:15:22,101 INFO ===================================
@@ -226,11 +226,11 @@ Replace it with `new_secret_2026`. The name in the code and the name in the cons
 2026-09-29 10:15:22,103 INFO ===================================
 ```
 
-The date, the time and the level are added by the logger — you never type them.
+📌 The date, the time and the level are added by the logger — you never type them.
 
-The log group is `/aws-glue/jobs/output`.
+☁️ The log group is `/aws-glue/jobs/output`.
 
-The following should **never appear in CloudWatch**:
+🚫 The following should **never appear in CloudWatch**:
 
 ```
 admin
@@ -239,34 +239,34 @@ MyPassword@123
 
 ---
 
-## Testing
+## 🧪 Testing
 
-1. Create the secret `new_secret_2026`.
-2. Add `username` and `password`.
-3. Create the IAM role.
-4. Attach the required policies.
-5. Create the Glue job.
-6. Attach `GlueSecretsManagerPracticeRole`.
-7. Add the Glue code.
-8. Run the job.
-9. Check the CloudWatch logs in `/aws-glue/jobs/output`.
+1. 🗝️ Create the secret `new_secret_2026`.
+2. 👤 Add `username` and `password`.
+3. 🔐 Create the IAM role.
+4. 📎 Attach the required policies.
+5. ⚙️ Create the Glue job.
+6. 🔗 Attach `GlueSecretsManagerPracticeRole`.
+7. 📄 Add the Glue code.
+8. ▶️ Run the job.
+9. ☁️ Check the CloudWatch logs in `/aws-glue/jobs/output`.
 
 ---
 
-## Important
+## ⚠️ Important
 
-Never hardcode passwords, database credentials, API keys, or tokens inside a Glue job script.
+🚫 Never hardcode passwords, database credentials, API keys, or tokens inside a Glue job script.
 
-Use:
+✅ Use:
 
 ```
 Secrets Manager → Glue Job → Database/API
 ```
 
-instead of:
+❌ Instead of:
 
 ```
 Hardcoded Password → Glue Job → Database/API
 ```
 
-This is a common and important pattern when building secure AWS data pipelines.
+💡 This is a common and important pattern when building secure AWS data pipelines.

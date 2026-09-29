@@ -24,6 +24,8 @@ venv/
 *.env
 *secret*
 
-# Exception: pipeline 17 is named after AWS Secrets Manager, it holds no real keys
+# Exception: pipelines 17 and 18 are named after AWS Secrets Manager, they hold no real keys
 !01) AWS/17) lambda to secrets manager (fetch secret/
 !01) AWS/17) lambda to secrets manager (fetch secret/**
+!01) AWS/18) glue to secrets manager (fetch secret/
+!01) AWS/18) glue to secrets manager (fetch secret/**

@@ -2,7 +2,7 @@
 
 `Glue Job → Secrets Manager → CloudWatch Logs`
 
-An **AWS Glue job** gets a **secret** (a username and a password) from **AWS Secrets Manager**. It prints the secret **name** and the **number of keys** — never the secret values.
+An **AWS Glue job** gets a **secret** (a username and a password) from **AWS Secrets Manager**. It logs the secret **name** and the **number of keys** — never the secret values.
 
 ---
 
@@ -11,12 +11,12 @@ An **AWS Glue job** gets a **secret** (a username and a password) from **AWS Sec
 | File | What It Is |
 | ---- | ---------- |
 | [01) README.md](01%29%20README.md) | Complete explanation of the Glue → Secrets Manager pipeline |
-| [glue_job.py](glue_job.py) | The Glue job script that fetches the secret and prints the summary |
+| [glue_job.py](glue_job.py) | The Glue job script that fetches the secret and logs the summary |
 | [trust_policy.json](trust_policy.json) | The IAM trust policy that lets the Glue service assume the job role |
 
 This README explains the **theory** — how the pieces fit together and why. The code itself lives in the files above.
 
-This is the **Glue version of pipeline 17** (which does the same thing with Lambda). Same secret, same two keys, same three printed lines — only the compute service changes.
+This is the **Glue version of pipeline 17** (which does the same thing with Lambda). Same secret, same two keys, same three logged lines — only the compute service changes, and this one writes them through a logger.
 
 ---
 
@@ -27,9 +27,9 @@ A secret is stored once in **AWS Secrets Manager**. It holds two keys: `username
 A **Glue job** runs and does four things:
 
 - Gets the secret from Secrets Manager
-- Prints the **secret name**
-- Prints the **number of keys** inside the secret
-- Prints **"Secret fetched successfully"**
+- Logs the **secret name**
+- Logs the **number of keys** inside the secret
+- Logs **"Secret fetched successfully"**
 
 All of this output goes to **Amazon CloudWatch Logs**, in the log group `/aws-glue/jobs/output`.
 
@@ -46,7 +46,7 @@ graph TD
     A["🔐 AWS Secrets Manager<br/>practice/glue/database-secret"] -->|"get_secret_value(SecretId=...)"| B["⚙️ AWS Glue Job<br/>glue-secrets-manager-practice"]
     C["🔑 IAM Role<br/>GlueSecretsManagerPracticeRole"] -.->|"permission to read the secret"| B
     B --> D["🔍 json.loads(SecretString)"]
-    D --> E["🖨️ Print secret name, key count<br/>secret fetched successfully"]
+    D --> E["� Log secret name, key count<br/>secret fetched successfully"]
     E --> F["☁️ CloudWatch Logs<br/>/aws-glue/jobs/output"]
 
     style A fill:#fff3e0
@@ -60,7 +60,7 @@ Two things travel in this flow:
 - **Permission** — the IAM role gives the Glue job the right to read the secret
 - **Data** — the secret value travels back to the job inside the response
 
-The secret value is used in memory only. It is **not** printed, so it never lands in CloudWatch.
+The secret value is used in memory only. It is **not** logged, so it never lands in CloudWatch.
 
 ---
 
@@ -76,7 +76,7 @@ The secret value is used in memory only. It is **not** printed, so it never land
 | Log group | `/aws/lambda/<function-name>` | `/aws-glue/jobs/output` |
 | Start-up time | Milliseconds | A few minutes — Glue starts a Spark cluster |
 
-The middle four rows are the whole difference. The secret, the two keys and the printed lines are identical.
+The middle four rows are the whole difference. The secret, the two keys and the logged lines are identical.
 
 ---
 
@@ -152,15 +152,19 @@ The trust policy in [trust_policy.json](trust_policy.json) allows **only `glue.a
 
 | Step | What Happens |
 | ---- | ------------ |
-| 1 | Imports `boto3` and `json`, then creates one Secrets Manager client at the top of the script |
+| 1 | Imports `boto3`, `json` and `logging`, then creates a logger named `secret-manager-pipeline` and sets its level to `INFO` |
 | 2 | Stores the secret name in a variable — the placeholder `YOUR SECRET MANAGER NAME`, which you replace with your own secret name |
-| 3 | Prints the start banner, then calls `get_secret_value(SecretId=secret_name)` inside a `try` |
+| 3 | Logs the start banner, then calls `get_secret_value(SecretId=secret_name)` inside a `try` |
 | 4 | Reads `response["SecretString"]` — the one text string that holds the secret |
 | 5 | Runs `json.loads` on it to get a Python dictionary |
 | 6 | Counts the keys with `len(secret.keys())` |
-| 7 | Prints the secret name, the key count and the success line |
-| 8 | Prints the closing banner — the job run finishes as **SUCCEEDED** |
-| 9 | If anything fails, the `except` block prints the error and **re-raises** it, so Glue marks the run as **FAILED** |
+| 7 | Logs the secret name, the key count and the success line |
+| 8 | Logs the closing banner — the job run finishes as **SUCCEEDED** |
+| 9 | If anything fails, the `except` block logs the error at **ERROR** level and **re-raises** it, so Glue marks the run as **FAILED** |
+
+> 📌 **Every line goes through a logger, not `print`.** Progress lines use `logger.info(...)` and the failure path uses `logger.error(...)`, so the level in the log tells you at a glance whether the run was healthy. A Python logger writes to the same `/aws-glue/jobs/output` log group that `print` used, so nothing about *where* you look changes — only what the lines look like.
+
+> 📌 **Why not `glueContext.get_logger()`?** Glue has its own logger too, but it writes to `/aws-glue/jobs/logs-v2` (and to `/aws-glue/jobs/error` when continuous logging is off). We use the standard Python logger so every line stays in one predictable log group.
 
 > 📌 There is **no handler and no return value**. A Glue script is just a script that runs from the first line to the last. That is why the failure path uses `raise` instead of returning `statusCode 500` like the Lambda version — a raised exception is the only way a Glue script can say "I failed".
 
@@ -168,24 +172,36 @@ The trust policy in [trust_policy.json](trust_policy.json) allows **only `glue.a
 
 ---
 
-## 🖨️ Step 4 — Expected CloudWatch Output
+## � Step 4 — Expected CloudWatch Output
 
 After you click **Run**, open the job's **Run details** and then **CloudWatch logs** — or go straight to **CloudWatch → Log groups → /aws-glue/jobs/output** and pick the stream whose name starts with the job run ID.
 
 ```text
-===================================
-Glue Job Started
-===================================
------------------------------------
-Secret Manager Pipeline
------------------------------------
-Secret Name        : practice/glue/database-secret
-Number of Keys     : 2
-Secret fetched successfully
------------------------------------
-===================================
-Glue Job Completed Successfully
-===================================
+2026-09-29 10:15:22,101 INFO ===================================
+2026-09-29 10:15:22,101 INFO Glue Job Started
+2026-09-29 10:15:22,101 INFO ===================================
+2026-09-29 10:15:22,102 INFO -----------------------------------
+2026-09-29 10:15:22,102 INFO Secret Manager Pipeline
+2026-09-29 10:15:22,102 INFO -----------------------------------
+2026-09-29 10:15:22,102 INFO Secret Name        : practice/glue/database-secret
+2026-09-29 10:15:22,102 INFO Number of Keys     : 2
+2026-09-29 10:15:22,102 INFO Secret fetched successfully
+2026-09-29 10:15:22,102 INFO -----------------------------------
+2026-09-29 10:15:22,103 INFO ===================================
+2026-09-29 10:15:22,103 INFO Glue Job Completed Successfully
+2026-09-29 10:15:22,103 INFO ===================================
+```
+
+> 📌 The date, the time, the level and the logger name in front of each line are added by the logger — you never type them. The exact prefix depends on the Glue version, so your lines may look a little different. What matters is that every line now starts with a **timestamp** and a **level**, which `print` never gave you.
+
+When the secret name is wrong, the same banner comes back at **ERROR** level and the run is marked **Failed**:
+
+```text
+2026-09-29 10:17:04,220 ERROR ===================================
+2026-09-29 10:17:04,220 ERROR Glue Job Failed
+2026-09-29 10:17:04,220 ERROR ===================================
+2026-09-29 10:17:04,220 ERROR Failed to fetch secret
+2026-09-29 10:17:04,221 ERROR Error: An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation
 ```
 
 And on the job's **Runs** tab:
@@ -197,7 +213,7 @@ And on the job's **Runs** tab:
 
 > ⚠️ You will **not** see `admin` or `MyPassword@123` anywhere in the logs. That is on purpose — see the section below.
 
-> 📌 Nothing is printed if the run stops before the first `print`. Open `/aws-glue/jobs/error` instead — Spark and permission errors land there.
+> 📌 Nothing is logged if the run stops before the script starts. Open `/aws-glue/jobs/error` instead — Spark and permission errors land there.
 
 ---
 
@@ -207,12 +223,12 @@ And on the job's **Runs** tab:
 | ---- | ----------- | --------------- |
 | 1 | Run the job with the correct secret name | Status **Succeeded**, key count `2` |
 | 2 | Add a third key to the secret, then run again | Key count becomes `3` — the count comes from the secret, not from the script |
-| 3 | Change the secret name in the script to a wrong name, then run | Status **Failed**, `ResourceNotFoundException` in the error log |
-| 4 | Detach `SecretsManagerReadWrite` from the role, then run | Status **Failed**, `AccessDeniedException` in the error log |
+| 3 | Change the secret name in the script to a wrong name, then run | Status **Failed**, and the banner lines appear at **ERROR** level with `ResourceNotFoundException` |
+| 4 | Detach `SecretsManagerReadWrite` from the role, then run | Status **Failed**, and the error line is `AccessDeniedException` |
 | 5 | Run once with only the two managed policies, then check the log group | Status may be **Succeeded** but the output log is empty — this is the logs-permission gap above |
-| 6 | Attach `AWSGlueServiceRole` and run again | Status **Succeeded** and the six banner lines appear in `/aws-glue/jobs/output` |
+| 6 | Attach `AWSGlueServiceRole` and run again | Status **Succeeded** and the logged lines appear in `/aws-glue/jobs/output` |
 
-Test 2 is the proof that the script reads the secret **live**: change the secret in the console, run the job again, and the printed number changes with it. No code change needed.
+Test 2 is the proof that the script reads the secret **live**: change the secret in the console, run the job again, and the logged number changes with it. No code change needed.
 
 ---
 
@@ -234,18 +250,18 @@ Test 2 is the proof that the script reads the secret **live**: change the secret
 
 ---
 
-## 🔒 Why We Never Print the Secret Value
+## 🔒 Why We Never Log the Secret Value
 
-The script deliberately prints only two safe things:
+The script deliberately logs only two safe things:
 
 - The **secret name** — that is just a label, not a secret
 - The **number of keys** — just a count, like `2`
 
-It never prints `secret["username"]` or `secret["password"]`.
+It never logs `secret["username"]` or `secret["password"]`.
 
-That is the important habit in this pipeline. **CloudWatch logs are not private.** Anyone in the account who can read the log group can read every line, and logs are kept for as long as the retention setting says. A password printed once is a password leaked forever — you cannot take it back. If a real password ever lands in a log, the fix is to rotate it in Secrets Manager, not just to delete the log line.
+That is the important habit in this pipeline. **CloudWatch logs are not private.** Anyone in the account who can read the log group can read every line, and logs are kept for as long as the retention setting says. A password written to a log once is a password leaked forever — you cannot take it back. If a real password ever lands in a log, the fix is to rotate it in Secrets Manager, not just to delete the log line.
 
-If you ever need to prove the value really arrived, print something harmless instead — for example `print(f"Keys found: {list(secret.keys())}")`, which shows the key **names** but no values.
+If you ever need to prove the value really arrived, log something harmless instead — for example `logger.info(f"Keys found: {list(secret.keys())}")`, which shows the key **names** but no values.
 
 ---
 
@@ -271,6 +287,7 @@ If you ever need to prove the value really arrived, print something harmless ins
 3. **The script still needs somewhere to live.** Every Glue job needs an S3 script location and a temp folder — the console creates both when you author the job, so you do not have to make buckets yourself.
 4. **One API call, one region.** `boto3.client("secretsmanager")` uses the Region the job runs in. The secret must be there too.
 5. **The pattern is the same everywhere.** Database passwords, API keys and third-party tokens all belong in Secrets Manager with a role that can only read them — whether the caller is a Lambda, a Glue job, an EC2 instance or a container.
+6. **Loggers beat `print` in a shared log group.** A `print` writes a bare line with no time and no level. The logger adds both, so you can filter `/aws-glue/jobs/output` down to `ERROR` and see straight away which line failed — which is exactly what you need when several jobs write into the same account.
 
 ---
 
@@ -278,10 +295,10 @@ If you ever need to prove the value really arrived, print something harmless ins
 
 > **"This pipeline shows how a Glue job reads a secret from AWS Secrets Manager without ever hard-coding it. My secret holds two keys, `username` and `password`, under the name `practice/glue/database-secret`."**
 >
-> **"The Glue script creates a Secrets Manager client, calls `get_secret_value`, and then runs `json.loads` on `SecretString`, because Secrets Manager returns the secret as one JSON text string. Only the secret name and the number of keys are printed — never the values, because CloudWatch logs are readable by anyone with log access, and a printed password cannot be un-printed."**
+> **"The Glue script creates a Secrets Manager client, calls `get_secret_value`, and then runs `json.loads` on `SecretString`, because Secrets Manager returns the secret as one JSON text string. Only the secret name and the number of keys are logged — never the values, because CloudWatch logs are readable by anyone with log access, and a password written into a log cannot be taken back. Every line goes through a Python logger, so the successful lines are at INFO and the failure lines are at ERROR."**
 >
 > **"The difference from the Lambda version is that a Glue script has no handler and no return value, so the failure path raises an exception instead of returning a status code — in Glue, a raised exception is what marks the run as FAILED."**
 >
 > **"Permissions come from the job role, with the Glue service as the trusted entity. For practice I attached `AWSGlueConsoleFullAccess` and `SecretsManagerReadWrite`, and I added `AWSGlueServiceRole` because the console policy only allows reading CloudWatch logs, not writing them — the job writes its own run log with the role's permissions. In production I would replace `SecretsManagerReadWrite` with a custom policy that allows only `secretsmanager:GetSecretValue` on that one secret ARN."**
 
-This pipeline shows the safe way to handle credentials from a Glue job: **the password lives in Secrets Manager, the permission lives in the IAM role, and the script only ever reads — it never prints.**
+This pipeline shows the safe way to handle credentials from a Glue job: **the password lives in Secrets Manager, the permission lives in the IAM role, and the script only ever reads — it never logs the value.**

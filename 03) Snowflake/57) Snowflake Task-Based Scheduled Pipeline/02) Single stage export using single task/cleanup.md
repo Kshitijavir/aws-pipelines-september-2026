@@ -1,0 +1,55 @@
+-- 57) Snowflake Scheduled CSV Export Using Task
+-- CLEANUP SCRIPT
+
+-- 1. SUSPEND TASK
+-- Stop future scheduled executions before dropping the Task.
+
+ALTER TASK
+    SNOWFLAKE_TASK_PRACTICE.TASK_SCHEMA.EMPLOYEE_TASK
+SUSPEND;
+
+
+-- 2. DROP TASK
+-- The Task is dropped first because it performs processing
+-- against the Employee table and Internal Stage.
+
+DROP TASK IF EXISTS
+    SNOWFLAKE_TASK_PRACTICE.TASK_SCHEMA.EMPLOYEE_TASK;
+
+
+-- 3. DROP INTERNAL STAGE
+-- Removes the stage used to store the exported CSV files.
+
+DROP STAGE IF EXISTS
+    SNOWFLAKE_TASK_PRACTICE.TASK_SCHEMA.CUSTOMER_EXPORT_STAGE;
+
+
+-- 4. DROP FILE FORMAT
+-- Removes the CSV file format used by the Internal Stage.
+
+DROP FILE FORMAT IF EXISTS
+    SNOWFLAKE_TASK_PRACTICE.TASK_SCHEMA.CUSTOMER_EXPORT_CSV_FORMAT_1;
+
+
+-- 5. DROP EMPLOYEE TABLE
+-- Removes the source table.
+
+DROP TABLE IF EXISTS
+    SNOWFLAKE_TASK_PRACTICE.TASK_SCHEMA.EMPLOYEE;
+
+
+-- 6. DROP SCHEMA
+
+DROP SCHEMA IF EXISTS
+    SNOWFLAKE_TASK_PRACTICE.TASK_SCHEMA;
+
+
+-- 7. DROP DATABASE
+
+DROP DATABASE IF EXISTS
+    SNOWFLAKE_TASK_PRACTICE;
+
+
+-- 8. DROP WAREHOUSE
+
+DROP WAREHOUSE IF EXISTS TASK_WH;

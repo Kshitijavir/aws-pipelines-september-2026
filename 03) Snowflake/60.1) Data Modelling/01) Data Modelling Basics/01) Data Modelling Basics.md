@@ -10,13 +10,21 @@ In a Data Warehouse, we commonly use:
 
 The basic idea is:
 
-```
-                 DATA
-                  │
-          ┌───────┴───────┐
-          ↓               ↓
-     DIMENSION           FACT
-       TABLE              TABLE
+```mermaid
+flowchart TB
+    DATA["🗂️ DATA"]
+    DIM["🟩 DIMENSION TABLE"]
+    FACT["🟦 FACT TABLE"]
+
+    DATA --> DIM
+    DATA --> FACT
+
+    classDef src fill:#ede7f6,stroke:#5e35b1,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    class DATA src
+    class DIM dim
+    class FACT fact
 ```
 
 ---
@@ -99,19 +107,28 @@ Dimension tables commonly contain:
 
 ### 🧠 Easy way to remember
 
-```
-FACT
-= Numbers / Measurements 📊
+```mermaid
+flowchart LR
+    F["🟦 FACT<br/>= Numbers / Measurements 📊"]
+    D["🟩 DIMENSION<br/>= Details / Description 📝"]
 
-DIMENSION
-= Details / Description 📝
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class D dim
 ```
 
 Another easy way:
 
-```
-FACT       → How much? / How many? 💰
-DIMENSION  → Who? / What? / Where? / When? 🔍
+```mermaid
+flowchart LR
+    F["🟦 FACT<br/>How much? / How many? 💰"]
+    D["🟩 DIMENSION<br/>Who? / What? / Where? / When? 🔍"]
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class D dim
 ```
 
 ---
@@ -184,12 +201,23 @@ bonus
 
 So we can create:
 
-```
-DIM_EMPLOYEE
-DIM_DEPARTMENT
-DIM_CITY
-DIM_JOB
-FACT_EMPLOYEE
+```mermaid
+flowchart TB
+    D1["🟩 DIM_EMPLOYEE"]
+    D2["🟩 DIM_DEPARTMENT"]
+    F["🟦 FACT_EMPLOYEE"]
+    D3["🟩 DIM_CITY"]
+    D4["🟩 DIM_JOB"]
+
+    D1 --- F
+    D2 --- F
+    F --- D3
+    F --- D4
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class D1,D2,D3,D4 dim
 ```
 
 ---
@@ -310,41 +338,23 @@ These IDs connect the Fact table to the Dimension tables 🔗.
 # 1️⃣1️⃣ How Fact and Dimension Tables Are Connected
 The relationship looks like this:
 
-```
-                    DIM_EMPLOYEE
-                 ┌─────────────────┐
-                 │ employee_id PK  │
-                 │ employee_name   │
-                 └────────┬────────┘
-                          │
-                          │ employee_id
-                          │
-                          ▼
-                   FACT_EMPLOYEE
-          ┌────────────────────────────┐
-          │ employee_id FK             │
-          │ department_id FK           │
-          │ city_id FK                 │
-          │ job_id FK                  │
-          │ salary                     │
-          │ bonus                      │
-          └──────┬─────────┬───────────┘
-                 │         │
-          ┌──────┘         └──────┐
-          ▼                       ▼
-   DIM_DEPARTMENT             DIM_CITY
-   ┌───────────────┐       ┌───────────────┐
-   │ department_id │       │ city_id       │
-   │ department    │       │ city          │
-   └───────────────┘       └───────────────┘
+```mermaid
+flowchart TB
+    DE["🟩 DIM_EMPLOYEE<br/>employee_id 🔑 PK<br/>employee_name"]
+    DD["🟩 DIM_DEPARTMENT<br/>department_id 🔑 PK<br/>department"]
+    FE["🟦 FACT_EMPLOYEE<br/>employee_id 🔗 FK<br/>department_id 🔗 FK<br/>city_id 🔗 FK<br/>job_id 🔗 FK<br/>salary<br/>bonus"]
+    DC["🟩 DIM_CITY<br/>city_id 🔑 PK<br/>city"]
+    DJ["🟩 DIM_JOB<br/>job_id 🔑 PK<br/>job_title"]
 
-                         │
-                         ▼
-                     DIM_JOB
-                  ┌─────────────┐
-                  │ job_id      │
-                  │ job_title   │
-                  └─────────────┘
+    DE --- FE
+    DD --- FE
+    FE --- DC
+    FE --- DJ
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class FE fact
+    class DE,DD,DC,DJ dim
 ```
 
 ---
@@ -400,10 +410,17 @@ E03
 
 So:
 
-```
-DIM_EMPLOYEE.employee_id
-            ↓
-FACT_EMPLOYEE.employee_id
+```mermaid
+flowchart TB
+    DE["🟩 DIM_EMPLOYEE.employee_id<br/>🔑 Primary Key"]
+    FE["🟦 FACT_EMPLOYEE.employee_id<br/>🔗 Foreign Key"]
+
+    DE --> FE
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class FE fact
+    class DE dim
 ```
 
 The same concept applies to:
@@ -419,32 +436,23 @@ job_id
 # 1️⃣3️⃣ Complete Structure
 Our final Data Warehouse model looks like this:
 
-```
-                       DIM_EMPLOYEE
-                       ┌───────────┐
-                       │ employee  │
-                       │ employee  │
-                       │ name      │
-                       └─────┬─────┘
-                             │
-                             │
-                             ▼
-                       FACT_EMPLOYEE
-                  ┌─────────────────────┐
-                  │ employee_id         │
-                  │ department_id       │
-                  │ city_id             │
-                  │ job_id              │
-                  │ salary              │
-                  │ bonus               │
-                  └───┬─────┬─────┬─────┘
-                      │     │     │
-             ┌────────┘     │     └────────┐
-             ▼              ▼              ▼
-       DIM_DEPARTMENT    DIM_CITY       DIM_JOB
-       ┌─────────────┐  ┌───────────┐  ┌───────────┐
-       │ department  │  │ city      │  │ job_title │
-       └─────────────┘  └───────────┘  └───────────┘
+```mermaid
+flowchart TB
+    DE["🟩 DIM_EMPLOYEE<br/>employee_id<br/>employee_name"]
+    DD["🟩 DIM_DEPARTMENT<br/>department_id<br/>department"]
+    FE["🟦 FACT_EMPLOYEE<br/>employee_id<br/>department_id<br/>city_id<br/>job_id<br/>salary<br/>bonus"]
+    DC["🟩 DIM_CITY<br/>city_id<br/>city"]
+    DJ["🟩 DIM_JOB<br/>job_id<br/>job_title"]
+
+    DE --- FE
+    DD --- FE
+    FE --- DC
+    FE --- DJ
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class FE fact
+    class DE,DD,DC,DJ dim
 ```
 
 This type of design is commonly called a **Star Schema** ⭐ because the Fact table is in the center and Dimension tables are around it.
@@ -527,11 +535,23 @@ Normal table 🎓:
 
 Possible Dimensions:
 
-```
-DIM_STUDENT
-DIM_GENDER
-DIM_CITY
-DIM_COURSE
+```mermaid
+flowchart TB
+    D1["🟩 DIM_STUDENT"]
+    D2["🟩 DIM_GENDER"]
+    F["🟦 FACT_STUDENT"]
+    D3["🟩 DIM_CITY"]
+    D4["🟩 DIM_COURSE"]
+
+    D1 --- F
+    D2 --- F
+    F --- D3
+    F --- D4
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class D1,D2,D3,D4 dim
 ```
 
 Fact:
@@ -550,10 +570,15 @@ Example:
 
 Again:
 
-```
-Dimensions → Details 📝
+```mermaid
+flowchart LR
+    D["🟩 Dimensions<br/>Details 📝"]
+    F["🟦 Fact<br/>IDs + Numbers 🔗🔢"]
 
-Fact → IDs + Numbers 🔗🔢
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class D dim
 ```
 
 ---
@@ -571,12 +596,25 @@ Normal table:
 
 Possible Dimensions:
 
-```
-DIM_PATIENT
-DIM_GENDER
-DIM_CITY
-DIM_DISEASE
-DIM_DOCTOR
+```mermaid
+flowchart TB
+    D1["🟩 DIM_PATIENT"]
+    D2["🟩 DIM_GENDER"]
+    D3["🟩 DIM_CITY"]
+    F["🟦 FACT_TREATMENT"]
+    D4["🟩 DIM_DISEASE"]
+    D5["🟩 DIM_DOCTOR"]
+
+    D1 --- F
+    D2 --- F
+    D3 --- F
+    F --- D4
+    F --- D5
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class D1,D2,D3,D4,D5 dim
 ```
 
 Fact:
@@ -647,16 +685,20 @@ job_title
 
 ### 🔗 Relationship
 
-```
-DIMENSION
-    │
-    │ Primary Key 🔑
-    ▼
-FACT TABLE
-    │
-    │ Foreign Key 🔗
-    ▼
-Other Dimensions
+```mermaid
+flowchart TB
+    DIM["🟩 DIMENSION"]
+    FACT["🟦 FACT TABLE"]
+    OTHER["🟩 Other Dimensions"]
+
+    DIM -- "Primary Key 🔑" --> FACT
+    FACT -- "Foreign Key 🔗" --> OTHER
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class FACT fact
+    class DIM dim
+    class OTHER dim
 ```
 
 ### ⭐ Most important thing to remember
@@ -665,14 +707,17 @@ Other Dimensions
 
 > 🟦 **Fact tables store the measurable data and connect to the Dimensions using keys.**
 
-```
-              DIMENSIONS
-          "Who / What / Where" 🔍
-                  │
-                  │ IDs 🔗
-                  ▼
-                FACT
-        "Numbers / Measurements" 📊
+```mermaid
+flowchart TB
+    DIM["🟩 DIMENSIONS<br/>Who / What / Where 🔍"]
+    FACT["🟦 FACT<br/>Numbers / Measurements 📊"]
+
+    DIM -- "IDs 🔗" --> FACT
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class FACT fact
+    class DIM dim
 ```
 
 This is the basic concept you need before moving into **Star Schema, Snowflake Schema, and Data Warehouse modelling** 🚀.

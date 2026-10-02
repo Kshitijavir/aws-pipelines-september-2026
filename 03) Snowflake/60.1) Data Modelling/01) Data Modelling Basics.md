@@ -1,4 +1,4 @@
-# 🏛️ Fact Table and Dimension Table
+# 🏛️ Data Modelling Basics — Fact Table and Dimension Table
 
 ## 1️⃣ What is Data Modelling?
 **Data modelling** means designing how data should be **stored, organized, and connected** 🧩 in a database or data warehouse.

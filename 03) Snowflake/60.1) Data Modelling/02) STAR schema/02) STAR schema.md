@@ -37,17 +37,17 @@ flowchart TB
     D1["🟩 Dimension"]
     D2["🟩 Dimension"]
     D3["🟩 Dimension"]
+    F["⭐ FACT TABLE ⭐"]
     D4["🟩 Dimension"]
     D5["🟩 Dimension"]
     D6["🟩 Dimension"]
-    F["⭐ FACT TABLE ⭐"]
 
     D1 --- F
     D2 --- F
     D3 --- F
-    D4 --- F
-    D5 --- F
-    D6 --- F
+    F --- D4
+    F --- D5
+    F --- D6
 
     classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
     classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
@@ -132,14 +132,14 @@ So we create four dimensions and one fact:
 flowchart TB
     DC["🟩 DIM_CUSTOMER"]
     DCI["🟩 DIM_CITY"]
+    F["🟦 FACT_CUSTOMER"]
     DCO["🟩 DIM_COUNTRY"]
     DCT["🟩 DIM_CUSTOMER_TYPE"]
-    F["🟦 FACT_CUSTOMER"]
 
     DC --- F
     DCI --- F
-    DCO --- F
-    DCT --- F
+    F --- DCO
+    F --- DCT
 
     classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
     classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
@@ -226,17 +226,17 @@ The IDs are the links to the other tables.
 This part is easy. The IDs are the same in both tables.
 
 ```mermaid
-flowchart LR
-    F["🟦 FACT_CUSTOMER"]
+flowchart TB
     DC["🟩 DIM_CUSTOMER"]
     DCI["🟩 DIM_CITY"]
+    F["🟦 FACT_CUSTOMER"]
     DCO["🟩 DIM_COUNTRY"]
     DCT["🟩 DIM_CUSTOMER_TYPE"]
 
-    F -- "CUSTOMER_ID → CUSTOMER_ID" --> DC
-    F -- "CITY_ID → CITY_ID" --> DCI
-    F -- "COUNTRY_ID → COUNTRY_ID" --> DCO
-    F -- "CUSTOMER_TYPE_ID → CUSTOMER_TYPE_ID" --> DCT
+    DC -- "CUSTOMER_ID → CUSTOMER_ID" --- F
+    DCI -- "CITY_ID → CITY_ID" --- F
+    F -- "COUNTRY_ID → COUNTRY_ID" --- DCO
+    F -- "CUSTOMER_TYPE_ID → CUSTOMER_TYPE_ID" --- DCT
 
     classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
     classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
@@ -250,14 +250,14 @@ Picture it like this:
 flowchart TB
     DC["🟩 DIM_CUSTOMER<br/>CUSTOMER_ID"]
     DCI["🟩 DIM_CITY<br/>CITY_ID"]
+    F["🟦 FACT_CUSTOMER<br/>🔗 meeting point"]
     DCO["🟩 DIM_COUNTRY<br/>COUNTRY_ID"]
     DCT["🟩 DIM_CUSTOMER_TYPE<br/>CUSTOMER_TYPE_ID"]
-    F["🟦 FACT_CUSTOMER<br/>🔗 meeting point"]
 
-    DC --> F
-    DCI --> F
-    DCO --> F
-    DCT --> F
+    DC --- F
+    DCI --- F
+    F --- DCO
+    F --- DCT
 
     classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
     classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
@@ -453,16 +453,16 @@ Here we repeat them on purpose, just for practice.
 
 ```mermaid
 flowchart TB
-    F["🟦 FACT_CUSTOMER<br/>lives in the middle<br/>holds IDs + numbers (AGE)"]
     D1["🟩 DIM_CUSTOMER"]
     D2["🟩 DIM_CITY"]
+    F["🟦 FACT_CUSTOMER<br/>lives in the middle<br/>holds IDs + numbers (AGE)"]
     D3["🟩 DIM_COUNTRY"]
     D4["🟩 DIM_CUSTOMER_TYPE"]
 
     D1 --- F
     D2 --- F
-    D3 --- F
-    D4 --- F
+    F --- D3
+    F --- D4
 
     classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
     classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
@@ -492,14 +492,14 @@ For example, take an **employee** table and build:
 flowchart TB
     E1["🟩 DIM_EMPLOYEE"]
     E2["🟩 DIM_DEPARTMENT"]
+    EF["🟦 FACT_EMPLOYEE"]
     E3["🟩 DIM_CITY"]
     E4["🟩 DIM_JOB"]
-    EF["🟦 FACT_EMPLOYEE"]
 
     E1 --- EF
     E2 --- EF
-    E3 --- EF
-    E4 --- EF
+    EF --- E3
+    EF --- E4
 
     classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
     classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000

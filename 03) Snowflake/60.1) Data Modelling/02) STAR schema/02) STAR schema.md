@@ -32,19 +32,27 @@ Nothing more than that.
 
 It uses only two kinds of tables:
 
-```text
-              ⭐ STAR SCHEMA ⭐
+```mermaid
+flowchart TB
+    D1["🟩 Dimension"]
+    D2["🟩 Dimension"]
+    D3["🟩 Dimension"]
+    D4["🟩 Dimension"]
+    D5["🟩 Dimension"]
+    D6["🟩 Dimension"]
+    F["⭐ FACT TABLE ⭐"]
 
-   Dimension    Dimension    Dimension
-        \           |           /
-         \          |          /
-          \         |         /
-           \        |        /
-            ⭐  FACT TABLE  ⭐
-           /        |        \
-          /         |         \
-         /          |          \
-   Dimension    Dimension    Dimension
+    D1 --- F
+    D2 --- F
+    D3 --- F
+    D4 --- F
+    D5 --- F
+    D6 --- F
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class D1,D2,D3,D4,D5,D6 dim
 ```
 
 - 🟦 One **Fact** table in the middle
@@ -77,9 +85,15 @@ If you want the long version, read
 
 Simple way to remember:
 
-```text
-FACT      →  Numbers  🔢
-DIMENSION →  Details  📝
+```mermaid
+flowchart LR
+    F["🟦 FACT<br/>= Numbers 🔢"]
+    D["🟩 DIMENSION<br/>= Details 📝"]
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class D dim
 ```
 
 ---
@@ -114,14 +128,23 @@ We look at the columns and sort them by meaning:
 
 So we create four dimensions and one fact:
 
-```text
-                 DIM_CUSTOMER
-                      |
-                      |
-DIM_CITY ─────  FACT_CUSTOMER  ───── DIM_COUNTRY
-                      |
-                      |
-              DIM_CUSTOMER_TYPE
+```mermaid
+flowchart TB
+    DC["🟩 DIM_CUSTOMER"]
+    DCI["🟩 DIM_CITY"]
+    DCO["🟩 DIM_COUNTRY"]
+    DCT["🟩 DIM_CUSTOMER_TYPE"]
+    F["🟦 FACT_CUSTOMER"]
+
+    DC --- F
+    DCI --- F
+    DCO --- F
+    DCT --- F
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class DC,DCI,DCO,DCT dim
 ```
 
 | Table | Kind | Holds |
@@ -202,22 +225,44 @@ The IDs are the links to the other tables.
 
 This part is easy. The IDs are the same in both tables.
 
-```text
-FACT_CUSTOMER.CUSTOMER_ID       →  DIM_CUSTOMER.CUSTOMER_ID
-FACT_CUSTOMER.CITY_ID           →  DIM_CITY.CITY_ID
-FACT_CUSTOMER.COUNTRY_ID        →  DIM_COUNTRY.COUNTRY_ID
-FACT_CUSTOMER.CUSTOMER_TYPE_ID  →  DIM_CUSTOMER_TYPE.CUSTOMER_TYPE_ID
+```mermaid
+flowchart LR
+    F["🟦 FACT_CUSTOMER"]
+    DC["🟩 DIM_CUSTOMER"]
+    DCI["🟩 DIM_CITY"]
+    DCO["🟩 DIM_COUNTRY"]
+    DCT["🟩 DIM_CUSTOMER_TYPE"]
+
+    F -- "CUSTOMER_ID → CUSTOMER_ID" --> DC
+    F -- "CITY_ID → CITY_ID" --> DCI
+    F -- "COUNTRY_ID → COUNTRY_ID" --> DCO
+    F -- "CUSTOMER_TYPE_ID → CUSTOMER_TYPE_ID" --> DCT
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class DC,DCI,DCO,DCT dim
 ```
 
 Picture it like this:
 
-```text
-DIM_CUSTOMER      DIM_CITY       DIM_COUNTRY     DIM_CUSTOMER_TYPE
- CUSTOMER_ID       CITY_ID         COUNTRY_ID      CUSTOMER_TYPE_ID
-     │                │                 │                 │
-     └────────────────┴────────┬────────┴─────────────────┘
-                               ▼
-                         FACT_CUSTOMER
+```mermaid
+flowchart TB
+    DC["🟩 DIM_CUSTOMER<br/>CUSTOMER_ID"]
+    DCI["🟩 DIM_CITY<br/>CITY_ID"]
+    DCO["🟩 DIM_COUNTRY<br/>COUNTRY_ID"]
+    DCT["🟩 DIM_CUSTOMER_TYPE<br/>CUSTOMER_TYPE_ID"]
+    F["🟦 FACT_CUSTOMER<br/>🔗 meeting point"]
+
+    DC --> F
+    DCI --> F
+    DCO --> F
+    DCT --> F
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class DC,DCI,DCO,DCT dim
 ```
 
 The fact table is the meeting point. Every dimension connects here.
@@ -255,8 +300,23 @@ We ask a simple question: **"Who lives in Bangalore?"**
 
 To answer it, we join the fact table with two dimensions:
 
-```text
-FACT_CUSTOMER  +  DIM_CUSTOMER  +  DIM_CITY
+```mermaid
+flowchart LR
+    F["🟦 FACT_CUSTOMER"]
+    DC["🟩 DIM_CUSTOMER"]
+    DCI["🟩 DIM_CITY"]
+    R["✅ Result<br/>1 row"]
+
+    F --> R
+    DC --> R
+    DCI --> R
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    classDef res fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000000
+    class F fact
+    class DC,DCI dim
+    class R res
 ```
 
 Result:
@@ -275,8 +335,27 @@ Now we want the full picture for Bangalore.
 
 So we join **all** the dimensions:
 
-```text
-FACT_CUSTOMER + DIM_CUSTOMER + DIM_CITY + DIM_CUSTOMER_TYPE + DIM_COUNTRY
+```mermaid
+flowchart LR
+    F["🟦 FACT_CUSTOMER"]
+    DC["🟩 DIM_CUSTOMER"]
+    DCI["🟩 DIM_CITY"]
+    DCO["🟩 DIM_COUNTRY"]
+    DCT["🟩 DIM_CUSTOMER_TYPE"]
+    R["✅ Result<br/>full report"]
+
+    F --> R
+    DC --> R
+    DCI --> R
+    DCO --> R
+    DCT --> R
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:2px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    classDef res fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000000
+    class F fact
+    class DC,DCI,DCO,DCT dim
+    class R res
 ```
 
 Result:
@@ -370,19 +449,29 @@ Here we repeat them on purpose, just for practice.
 
 ## 1️⃣6️⃣ Quick revision
 
-```text
-⭐ STAR SCHEMA = 1 Fact table + many Dimension tables
+**⭐ STAR SCHEMA = 1 Fact table + many Dimension tables**
 
-🟦 FACT_CUSTOMER
-   - lives in the middle
-   - holds IDs + numbers (AGE)
+```mermaid
+flowchart TB
+    F["🟦 FACT_CUSTOMER<br/>lives in the middle<br/>holds IDs + numbers (AGE)"]
+    D1["🟩 DIM_CUSTOMER"]
+    D2["🟩 DIM_CITY"]
+    D3["🟩 DIM_COUNTRY"]
+    D4["🟩 DIM_CUSTOMER_TYPE"]
 
-🟩 DIM_CUSTOMER / DIM_CITY / DIM_COUNTRY / DIM_CUSTOMER_TYPE
-   - live around the fact
-   - hold details (names, cities, countries, types)
+    D1 --- F
+    D2 --- F
+    D3 --- F
+    D4 --- F
 
-🔗 They connect through IDs
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class F fact
+    class D1,D2,D3,D4 dim
 ```
+
+🟩 The dimension tables hold the details (names, cities, countries, types).
+🔗 They connect through IDs.
 
 ---
 
@@ -399,12 +488,23 @@ Here we repeat them on purpose, just for practice.
 Try the same idea with a bigger table.
 For example, take an **employee** table and build:
 
-```text
-DIM_EMPLOYEE
-DIM_DEPARTMENT
-DIM_CITY
-DIM_JOB
-FACT_EMPLOYEE
+```mermaid
+flowchart TB
+    E1["🟩 DIM_EMPLOYEE"]
+    E2["🟩 DIM_DEPARTMENT"]
+    E3["🟩 DIM_CITY"]
+    E4["🟩 DIM_JOB"]
+    EF["🟦 FACT_EMPLOYEE"]
+
+    E1 --- EF
+    E2 --- EF
+    E3 --- EF
+    E4 --- EF
+
+    classDef fact fill:#ffe082,stroke:#f57f17,stroke-width:3px,color:#000000
+    classDef dim fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000000
+    class EF fact
+    class E1,E2,E3,E4 dim
 ```
 
 When a dimension table is broken into more and more smaller tables,

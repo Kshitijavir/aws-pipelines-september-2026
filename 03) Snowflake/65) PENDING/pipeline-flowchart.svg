@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3780" height="500" viewBox="0 0 3780 500" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,4 L0,8 z" fill="#455a64"/>
+    </marker>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="3780" height="500" fill="#ffffff"/>
+
+  <!-- ================= AWS STEP FUNCTIONS CONTAINER ================= -->
+  <rect x="460" y="90" width="2770" height="340" rx="12" fill="#fce4ec" stroke="#e91e63" stroke-width="3"/>
+  <text x="485" y="124" font-size="18" font-weight="bold" fill="#ad1457">AWS Step Functions</text>
+
+  <!-- ================= BOXES ================= -->
+
+  <!-- 1. S3 Raw Bucket -->
+  <rect x="40" y="160" width="175" height="100" rx="8" fill="#c8e6c9" stroke="#2e7d32" stroke-width="2"/>
+  <text x="127" y="200" font-size="15" font-weight="bold" fill="#1b5e20" text-anchor="middle">S3</text>
+  <text x="127" y="222" font-size="13" fill="#2e7d32" text-anchor="middle">(Raw Bucket)</text>
+  <text x="127" y="290" font-size="12" fill="#37474f" text-anchor="middle">CSV file upload</text>
+
+  <!-- 2. EventBridge -->
+  <rect x="265" y="160" width="175" height="100" rx="8" fill="#f8bbd0" stroke="#c2185b" stroke-width="2"/>
+  <text x="352" y="206" font-size="15" font-weight="bold" fill="#880e4f" text-anchor="middle">EventBridge</text>
+  <text x="352" y="290" font-size="12" fill="#37474f" text-anchor="middle">Triggers Step Functions</text>
+
+  <!-- 3. Lambda 1 -->
+  <rect x="490" y="160" width="175" height="100" rx="8" fill="#ffe0b2" stroke="#ef6c00" stroke-width="2"/>
+  <text x="577" y="200" font-size="15" font-weight="bold" fill="#e65100" text-anchor="middle">Lambda 1</text>
+  <text x="577" y="290" font-size="12" fill="#37474f" text-anchor="middle">Start Glue Job</text>
+
+  <!-- 4. AWS Glue Job -->
+  <rect x="715" y="160" width="175" height="100" rx="8" fill="#e1bee7" stroke="#6a1b9a" stroke-width="2"/>
+  <text x="802" y="200" font-size="15" font-weight="bold" fill="#4a148c" text-anchor="middle">AWS Glue Job</text>
+  <text x="802" y="290" font-size="12" fill="#37474f" text-anchor="middle">Remove nulls and duplicates</text>
+
+  <!-- 5. S3 Refined Bucket -->
+  <rect x="940" y="160" width="175" height="100" rx="8" fill="#c8e6c9" stroke="#2e7d32" stroke-width="2"/>
+  <text x="1027" y="200" font-size="15" font-weight="bold" fill="#1b5e20" text-anchor="middle">S3</text>
+  <text x="1027" y="222" font-size="13" fill="#2e7d32" text-anchor="middle">(Refined Bucket)</text>
+  <text x="1027" y="290" font-size="12" fill="#37474f" text-anchor="middle">Cleaned CSV file</text>
+
+  <!-- 6. Wait -->
+  <rect x="1165" y="160" width="175" height="100" rx="8" fill="#fff9c4" stroke="#f9a825" stroke-width="2"/>
+  <text x="1252" y="200" font-size="15" font-weight="bold" fill="#f57f17" text-anchor="middle">Wait</text>
+  <text x="1252" y="222" font-size="13" fill="#f57f17" text-anchor="middle">(3 minutes)</text>
+
+  <!-- 7. Lambda 2 -->
+  <rect x="1390" y="160" width="175" height="100" rx="8" fill="#ffe0b2" stroke="#ef6c00" stroke-width="2"/>
+  <text x="1477" y="200" font-size="15" font-weight="bold" fill="#e65100" text-anchor="middle">Lambda 2</text>
+  <text x="1477" y="290" font-size="12" fill="#37474f" text-anchor="middle">Check Glue job status</text>
+
+  <!-- 8. Diamond: Glue Completed? -->
+  <polygon points="1690,150 1770,210 1690,270 1610,210" fill="#b3e5fc" stroke="#0288d1" stroke-width="2"/>
+  <text x="1690" y="205" font-size="12" fill="#01579b" text-anchor="middle">Glue</text>
+  <text x="1690" y="222" font-size="12" fill="#01579b" text-anchor="middle">Completed?</text>
+
+  <!-- 9. Lambda 3 -->
+  <rect x="1880" y="160" width="175" height="100" rx="8" fill="#ffe0b2" stroke="#ef6c00" stroke-width="2"/>
+  <text x="1967" y="200" font-size="15" font-weight="bold" fill="#e65100" text-anchor="middle">Lambda 3</text>
+  <text x="1967" y="290" font-size="12" fill="#37474f" text-anchor="middle">Start SP1 (async)</text>
+
+  <!-- 10. Wait -->
+  <rect x="2105" y="160" width="175" height="100" rx="8" fill="#fff9c4" stroke="#f9a825" stroke-width="2"/>
+  <text x="2192" y="200" font-size="15" font-weight="bold" fill="#f57f17" text-anchor="middle">Wait</text>
+  <text x="2192" y="222" font-size="13" fill="#f57f17" text-anchor="middle">(3 minutes)</text>
+
+  <!-- 11. Lambda 4 -->
+  <rect x="2330" y="160" width="175" height="100" rx="8" fill="#ffe0b2" stroke="#ef6c00" stroke-width="2"/>
+  <text x="2417" y="200" font-size="15" font-weight="bold" fill="#e65100" text-anchor="middle">Lambda 4</text>
+  <text x="2417" y="290" font-size="12" fill="#37474f" text-anchor="middle">Check SP1 status</text>
+
+  <!-- 12. Diamond: SP1 Completed? -->
+  <polygon points="2630,150 2710,210 2630,270 2550,210" fill="#b3e5fc" stroke="#0288d1" stroke-width="2"/>
+  <text x="2630" y="205" font-size="12" fill="#01579b" text-anchor="middle">SP1</text>
+  <text x="2630" y="222" font-size="12" fill="#01579b" text-anchor="middle">Completed?</text>
+
+  <!-- 13. Lambda 5 -->
+  <rect x="2820" y="160" width="175" height="100" rx="8" fill="#ffe0b2" stroke="#ef6c00" stroke-width="2"/>
+  <text x="2907" y="200" font-size="15" font-weight="bold" fill="#e65100" text-anchor="middle">Lambda 5</text>
+  <text x="2907" y="290" font-size="12" fill="#37474f" text-anchor="middle">Start SP2</text>
+
+  <!-- 14. Diamond: SP2 Success? -->
+  <polygon points="3120,150 3200,210 3120,270 3040,210" fill="#b3e5fc" stroke="#0288d1" stroke-width="2"/>
+  <text x="3120" y="205" font-size="12" fill="#01579b" text-anchor="middle">SP2</text>
+  <text x="3120" y="222" font-size="12" fill="#01579b" text-anchor="middle">Success?</text>
+
+  <!-- 15. Email Lambda -->
+  <rect x="3310" y="160" width="175" height="100" rx="8" fill="#ffe0b2" stroke="#ef6c00" stroke-width="2"/>
+  <text x="3397" y="200" font-size="15" font-weight="bold" fill="#e65100" text-anchor="middle">Email Lambda</text>
+  <text x="3397" y="282" font-size="12" fill="#37474f" text-anchor="middle">Send success /</text>
+  <text x="3397" y="299" font-size="12" fill="#37474f" text-anchor="middle">failure email</text>
+
+  <!-- 16. User -->
+  <rect x="3535" y="160" width="175" height="100" rx="8" fill="#f8bbd0" stroke="#c2185b" stroke-width="2"/>
+  <text x="3622" y="196" font-size="15" font-weight="bold" fill="#880e4f" text-anchor="middle">✉ User</text>
+  <text x="3622" y="290" font-size="12" fill="#37474f" text-anchor="middle">Receives email notification</text>
+
+  <!-- ================= ARROWS ================= -->
+  <g fill="none" stroke="#455a64" stroke-width="2" marker-end="url(#arrow)">
+    <line x1="215" y1="210" x2="258" y2="210"/>
+    <line x1="440" y1="210" x2="483" y2="210"/>
+    <line x1="665" y1="210" x2="708" y2="210"/>
+    <line x1="890" y1="210" x2="933" y2="210"/>
+    <line x1="1115" y1="210" x2="1158" y2="210"/>
+    <line x1="1340" y1="210" x2="1383" y2="210"/>
+    <line x1="1565" y1="210" x2="1603" y2="210"/>
+    <line x1="1777" y1="210" x2="1873" y2="210"/>
+    <line x1="2055" y1="210" x2="2098" y2="210"/>
+    <line x1="2280" y1="210" x2="2323" y2="210"/>
+    <line x1="2505" y1="210" x2="2543" y2="210"/>
+    <line x1="2717" y1="210" x2="2813" y2="210"/>
+    <line x1="2995" y1="210" x2="3033" y2="210"/>
+    <line x1="3207" y1="210" x2="3303" y2="210"/>
+    <line x1="3485" y1="210" x2="3528" y2="210"/>
+  </g>
+
+  <!-- loop back: Glue Completed? -> Wait -->
+  <path d="M1690,270 L1690,330 L1252,330 L1252,266" fill="none" stroke="#455a64" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="1471" y="324" font-size="12" fill="#c62828" text-anchor="middle">No (Running)</text>
+
+  <!-- loop back: SP1 Completed? -> Wait -->
+  <path d="M2630,270 L2630,330 L2192,330 L2192,266" fill="none" stroke="#455a64" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="2411" y="324" font-size="12" fill="#c62828" text-anchor="middle">No (Running)</text>
+
+  <!-- loop: SP2 Success? No -> Email Lambda -->
+  <path d="M3120,270 L3120,330 L3470,330 L3470,266" fill="none" stroke="#455a64" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="3295" y="324" font-size="12" fill="#c62828" text-anchor="middle">No</text>
+
+  <!-- labels on the straight arrows -->
+  <text x="1825" y="200" font-size="12" fill="#2e7d32" text-anchor="middle">Yes</text>
+  <text x="2765" y="200" font-size="12" fill="#2e7d32" text-anchor="middle">Yes</text>
+  <text x="3255" y="200" font-size="12" fill="#2e7d32" text-anchor="middle">Yes</text>
+</svg>

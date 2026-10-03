@@ -1,152 +1,115 @@
+```sql
 -- ============================================================
 -- 1. CREATE DATABASE
--- Makes a database for this Lambda and Snowflake project
 -- ============================================================
 
-CREATE DATABASE LAMBDA_SP_EXPORT_PRACTICE;
+CREATE OR REPLACE DATABASE LAMBDA_SNOWFLAKE_PRACTICE;
 
-
--- Uses this database for all the steps below
-USE DATABASE LAMBDA_SP_EXPORT_PRACTICE;
+USE DATABASE LAMBDA_SNOWFLAKE_PRACTICE;
 
 
 -- ============================================================
 -- 2. CREATE SCHEMA
--- Makes a schema to hold all the objects of this project
 -- ============================================================
 
-CREATE SCHEMA LAMBDA_EXPORT_SCHEMA;
+CREATE OR REPLACE SCHEMA LAMBDA_SCHEMA;
 
-
--- Uses this schema for all the steps below
-USE SCHEMA LAMBDA_EXPORT_SCHEMA;
+USE SCHEMA LAMBDA_SCHEMA;
 
 
 -- ============================================================
 -- 3. CREATE WAREHOUSE
--- Makes an XSMALL warehouse to run the queries
 -- ============================================================
 
-CREATE WAREHOUSE LAMBDA_EXPORT_WH
+CREATE OR REPLACE WAREHOUSE LAMBDA_WH
 WITH
     WAREHOUSE_SIZE = 'XSMALL'
-    AUTO_SUSPEND = 60       -- Stops the warehouse after 60 seconds of no use
-    AUTO_RESUME = TRUE;     -- Starts it again when a query runs
+    AUTO_SUSPEND = 60
+    AUTO_RESUME = TRUE;
 
-
--- Uses this warehouse to run the queries
-USE WAREHOUSE LAMBDA_EXPORT_WH;
+USE WAREHOUSE LAMBDA_WH;
 
 
 -- ============================================================
--- 4. CREATE SOURCE TABLE
--- Makes the table that holds the employee data
+-- 4. CREATE STUDENT TABLE
 -- ============================================================
 
-CREATE TABLE EMPLOYEE_DATA (
-    EMPLOYEE_ID NUMBER,
-    EMPLOYEE_NAME VARCHAR(100),
-    DEPARTMENT VARCHAR(100),
-    CITY VARCHAR(100),
-    SALARY NUMBER
+CREATE OR REPLACE TABLE STUDENT (
+    STUDENT_ID NUMBER,
+    STUDENT_NAME VARCHAR(100),
+    AGE NUMBER,
+    COURSE VARCHAR(100),
+    CITY VARCHAR(100)
 );
 
-
--- Shows the columns of the table
-SELECT * FROM EMPLOYEE_DATA;
-
-
--- Shows the structure of the table (column names and types)
-DESC TABLE EMPLOYEE_DATA;
+SELECT * FROM STUDENT;
 
 
 -- ============================================================
 -- 5. INSERT SAMPLE DATA
--- Adds the sample employee rows to the table
 -- ============================================================
 
-INSERT INTO EMPLOYEE_DATA
-    (EMPLOYEE_ID, EMPLOYEE_NAME, DEPARTMENT, CITY, SALARY)
+INSERT INTO STUDENT
+    (STUDENT_ID, STUDENT_NAME, AGE, COURSE, CITY)
 VALUES
-    (101, 'Kshitij', 'Data Engineering', 'Pune', 1200000),
-    (102, 'Rahul', 'AWS Engineering', 'Mumbai', 1000000),
-    (103, 'Amit', 'Data Analytics', 'Bangalore', 900000),
-    (104, 'Sneha', 'Data Engineering', 'Pune', 1100000),
-    (105, 'Priya', 'Cloud Engineering', 'Hyderabad', 1050000);
+    (101, 'Kshitij', 30, 'Data Engineering', 'Pune'),
+    (102, 'Rahul', 25, 'AWS', 'Mumbai'),
+    (103, 'Amit', 27, 'Data Analytics', 'Bangalore'),
+    (104, 'Sneha', 24, 'Python', 'Hyderabad'),
+    (105, 'Priya', 26, 'Snowflake', 'Chennai');
 
 
--- Shows the rows that were added (now 5 rows)
+-- ============================================================
+-- 6. VERIFY DATA
+-- ============================================================
+
 SELECT *
-FROM EMPLOYEE_DATA;
+FROM STUDENT;
 
 
 -- ============================================================
--- 6. CREATE CSV FILE FORMAT
--- Tells Snowflake how the exported CSV file should look
+-- 7. CHECK RECORD COUNT
 -- ============================================================
 
-CREATE FILE FORMAT EMPLOYEE_CSV_FORMAT
-    TYPE = 'CSV'                       -- Makes the file a CSV file
-    FIELD_OPTIONALLY_ENCLOSED_BY = '"' -- Puts double quotes around a value when needed
-    SKIP_HEADER = 1                    -- Skips the header line when the file is read
-    COMPRESSION = 'NONE';              -- Keeps the file uncompressed
-
-
--- Shows all the file formats
-SHOW FILE FORMATS;
+SELECT COUNT(*) AS STUDENT_COUNT
+FROM STUDENT;
 
 
 -- ============================================================
--- 7. CREATE INTERNAL STAGE
--- Makes a stage to keep the exported CSV files
+-- 8. CHECK CURRENT CONNECTION DETAILS
+-- Run this separately if required
 -- ============================================================
 
-CREATE STAGE EMPLOYEE_EXPORT_STAGE
-    FILE_FORMAT = EMPLOYEE_CSV_FORMAT;
-
-
--- Shows all the stages
-SHOW STAGES;
-
-
--- Shows the details of this stage
-DESC STAGE EMPLOYEE_EXPORT_STAGE;
+SELECT
+    CURRENT_USER()       AS USER_NAME,
+    CURRENT_ACCOUNT()    AS ACCOUNT,
+    CURRENT_WAREHOUSE()  AS WAREHOUSE,
+    CURRENT_DATABASE()   AS DATABASE_NAME,
+    CURRENT_SCHEMA()     AS SCHEMA_NAME;
 
 
 -- ============================================================
--- 8. CREATE STORED PROCEDURE
--- Makes the procedure that writes the employee data into the stage
--- AWS Lambda calls this procedure
+-- 9. CHECK ORGANIZATION AND ACCOUNT DETAILS
 -- ============================================================
 
-CREATE OR REPLACE PROCEDURE EXPORT_EMPLOYEE_DATA()
-RETURNS STRING
-LANGUAGE SQL
-AS
-$$
-BEGIN
-
-    -- This writes the data into the stage as CSV
-    COPY INTO @EMPLOYEE_EXPORT_STAGE
-    FROM EMPLOYEE_DATA
-    FILE_FORMAT = (FORMAT_NAME = 'EMPLOYEE_CSV_FORMAT')
-    OVERWRITE = TRUE;
-
-    -- Sends a success message back to Lambda
-    RETURN 'Employee data successfully exported to Snowflake stage';
-
-END;
-$$;
+SELECT
+    CURRENT_ORGANIZATION_NAME() AS ORGANIZATION_NAME,
+    CURRENT_ACCOUNT_NAME()      AS ACCOUNT_NAME,
+    CURRENT_ACCOUNT()            AS ACCOUNT_LOCATOR,
+    CURRENT_REGION()             AS REGION;
 
 
 -- ============================================================
--- 🚫 DO NOT RUN THE STATEMENT BELOW BY HAND
--- Who runs it : AWS Lambda
--- Why         : Lambda is the only thing that should start this
---               export. If you run the CALL yourself, the export
---               runs outside the pipeline, and later you cannot
---               tell whether Lambda really did the work.
+-- 10. CHECK CURRENT USER
 -- ============================================================
 
--- CALL EXPORT_EMPLOYEE_DATA();      <-- left commented out on purpose
--- Lambda runs it with: cursor.execute("CALL EXPORT_EMPLOYEE_DATA()")
+SELECT CURRENT_USER();
+
+
+-- ============================================================
+-- 11. UPDATE USER PASSWORD
+-- ============================================================
+
+ALTER USER JAVIR
+SET PASSWORD = 'Kshitijjavir@42';
+```

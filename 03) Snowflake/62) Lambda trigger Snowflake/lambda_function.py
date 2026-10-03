@@ -38,7 +38,7 @@ def lambda_handler(event, context):
     start_time = time.time()
 
     print("=" * 70)
-    print("SNOWFLAKE DATA EXPORT PIPELINE")
+    print("LAMBDA → SNOWFLAKE STUDENT DATA TEST")
     print("=" * 70)
 
     print(f"Start Time       : {datetime.now(timezone.utc).isoformat()}")
@@ -51,144 +51,151 @@ def lambda_handler(event, context):
 
     try:
 
-        # ---------------------------------------------------------
+        # ========================================================
         # 1. CONNECT TO SNOWFLAKE
-        # ---------------------------------------------------------
+        # ========================================================
 
-        print("[1/5] Connecting to Snowflake...")
+        print("[1/4] Connecting to Snowflake...")
 
         conn = snowflake.connector.connect(
-            user="KSHITIJ",
-            password="YOUR SNOWFLAKE PASSWORD",
-            account="XLTGLZP-IZC37171",
-            warehouse="LAMBDA_EXPORT_WH",
-            database="LAMBDA_SP_EXPORT_PRACTICE",
-            schema="LAMBDA_EXPORT_SCHEMA"
+            user="JAVIR",
+            password="YOUR PASSWORD",
+            account="YNWWEWA-UAC06524",
+            warehouse="LAMBDA_WH",
+            database="LAMBDA_SNOWFLAKE_PRACTICE",
+            schema="LAMBDA_SCHEMA"
         )
 
-        print("      Snowflake connection: SUCCESS")
-        print("      Database             : LAMBDA_SP_EXPORT_PRACTICE")
-        print("      Schema               : LAMBDA_EXPORT_SCHEMA")
-        print("      Warehouse            : LAMBDA_EXPORT_WH")
+        print("      Snowflake Connection : SUCCESS")
+        print("      User                 : JAVIR")
+        print("      Account              : YNWWEWA-UAC06524")
+        print("      Database             : LAMBDA_SNOWFLAKE_PRACTICE")
+        print("      Schema               : LAMBDA_SCHEMA")
+        print("      Warehouse            : LAMBDA_WH")
         print()
 
         cursor = conn.cursor()
 
-        # ---------------------------------------------------------
-        # 2. CHECK SOURCE DATA
-        # ---------------------------------------------------------
+        # ========================================================
+        # 2. GET STUDENT RECORD COUNT
+        # ========================================================
 
-        print("[2/5] Checking source table...")
+        print("[2/4] Getting student record count...")
 
-        cursor.execute(
-            "SELECT COUNT(*) FROM EMPLOYEE_DATA"
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM LAMBDA_SNOWFLAKE_PRACTICE.LAMBDA_SCHEMA.STUDENT
+        """)
+
+        student_count = cursor.fetchone()[0]
+
+        print(f"      Student Count        : {student_count}")
+        print()
+
+        # ========================================================
+        # 3. GET STUDENT RECORDS
+        # ========================================================
+
+        print("[3/4] Reading STUDENT table...")
+
+        cursor.execute("""
+            SELECT
+                STUDENT_ID,
+                STUDENT_NAME,
+                AGE,
+                COURSE,
+                CITY
+            FROM LAMBDA_SNOWFLAKE_PRACTICE.LAMBDA_SCHEMA.STUDENT
+            ORDER BY STUDENT_ID
+        """)
+
+        students = cursor.fetchall()
+
+        print()
+        print("      STUDENT RECORDS")
+        print("      " + "-" * 60)
+
+        for student in students:
+
+            print(
+                f"      ID={student[0]}, "
+                f"Name={student[1]}, "
+                f"Age={student[2]}, "
+                f"Course={student[3]}, "
+                f"City={student[4]}"
+            )
+
+        print()
+
+        # ========================================================
+        # 4. SUCCESS
+        # ========================================================
+
+        execution_time = round(
+            time.time() - start_time,
+            2
         )
 
-        source_count = cursor.fetchone()[0]
-
-        print("      Source Table         : EMPLOYEE_DATA")
-        print(f"      Source Row Count     : {source_count}")
+        print("[4/4] PIPELINE COMPLETED SUCCESSFULLY")
         print()
 
-        # ---------------------------------------------------------
-        # 3. CALL STORED PROCEDURE
-        # ---------------------------------------------------------
+        print("-" * 70)
+        print("SUMMARY")
+        print("-" * 70)
 
-        print("[3/5] Executing Snowflake Stored Procedure...")
-        print("      Procedure             : EXPORT_EMPLOYEE_DATA")
+        print("User                 : JAVIR")
+        print("Account              : YNWWEWA-UAC06524")
+        print("Database             : LAMBDA_SNOWFLAKE_PRACTICE")
+        print("Schema               : LAMBDA_SCHEMA")
+        print("Warehouse            : LAMBDA_WH")
+        print("Table                : STUDENT")
+        print(f"Student Count        : {student_count}")
+        print(f"Records Retrieved    : {len(students)}")
+        print(f"Execution Time       : {execution_time} seconds")
+        print("Final Status         : SUCCESS")
 
-        cursor.execute(
-            "CALL EXPORT_EMPLOYEE_DATA()"
-        )
-
-        result = cursor.fetchone()
-
-        print("      Stored Procedure      : SUCCESS")
-        print(f"      SP Result             : {result[0]}")
-        print()
-
-        # ---------------------------------------------------------
-        # 4. CHECK EXPORTED FILE
-        # ---------------------------------------------------------
-
-        print("[4/5] Checking Snowflake Stage...")
-
-        cursor.execute(
-            "LIST @EMPLOYEE_EXPORT_STAGE"
-        )
-
-        stage_files = cursor.fetchall()
-
-        print("      Stage                 : @EMPLOYEE_EXPORT_STAGE")
-        print(f"      Files Exported        : {len(stage_files)}")
-
-        for file in stage_files:
-
-            file_name = file[0]
-            file_size = file[1]
-            file_md5 = file[2]
-
-            print(f"      File Name             : {file_name}")
-            print(f"      File Size             : {file_size} bytes")
-            print(f"      MD5                    : {file_md5}")
-
-        print()
-
-        # ---------------------------------------------------------
-        # 5. PIPELINE SUCCESS
-        # ---------------------------------------------------------
-
-        execution_time = round(time.time() - start_time, 2)
-
-        print("[5/5] PIPELINE COMPLETED SUCCESSFULLY")
-        print()
-        print("------------------------------------------------------------------")
-        print("EXPORT SUMMARY")
-        print("------------------------------------------------------------------")
-        print(f"Source Table              : EMPLOYEE_DATA")
-        print(f"Source Rows               : {source_count}")
-        print(f"Stored Procedure          : EXPORT_EMPLOYEE_DATA")
-        print(f"Export Stage              : @EMPLOYEE_EXPORT_STAGE")
-        print(f"Export Format             : CSV")
-        print(f"Files Generated           : {len(stage_files)}")
-        print(f"Execution Time            : {execution_time} seconds")
-        print(f"Final Status              : SUCCESS")
-        print("------------------------------------------------------------------")
-        print("Snowflake SP successfully exported data to the stage.")
-        print("=" * 70)
+        print("-" * 70)
 
         return {
             "statusCode": 200,
             "body": {
                 "status": "SUCCESS",
-                "message": "Snowflake SP successfully exported data to stage",
-                "source_table": "EMPLOYEE_DATA",
-                "source_rows": source_count,
-                "stored_procedure": "EXPORT_EMPLOYEE_DATA",
-                "stage": "@EMPLOYEE_EXPORT_STAGE",
-                "files_generated": len(stage_files),
+                "user": "JAVIR",
+                "account": "YNWWEWA-UAC06524",
+                "database": "LAMBDA_SNOWFLAKE_PRACTICE",
+                "schema": "LAMBDA_SCHEMA",
+                "warehouse": "LAMBDA_WH",
+                "table": "STUDENT",
+                "student_count": student_count,
+                "records_retrieved": len(students),
                 "execution_time_seconds": execution_time
             }
         }
 
     except Exception as e:
 
-        execution_time = round(time.time() - start_time, 2)
+        execution_time = round(
+            time.time() - start_time,
+            2
+        )
 
         print()
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("!" * 70)
         print("PIPELINE FAILED")
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print(f"Error Type                : {type(e).__name__}")
-        print(f"Error Message             : {str(e)}")
-        print(f"Execution Time            : {execution_time} seconds")
-        print("Final Status              : FAILED")
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("!" * 70)
+
+        print(f"Error Type        : {type(e).__name__}")
+        print(f"Error Message     : {str(e)}")
+        print(f"Execution Time    : {execution_time} seconds")
+        print("Final Status      : FAILED")
+
+        print("!" * 70)
 
         return {
             "statusCode": 500,
             "body": {
                 "status": "FAILED",
+                "error_type": type(e).__name__,
                 "message": str(e),
                 "execution_time_seconds": execution_time
             }

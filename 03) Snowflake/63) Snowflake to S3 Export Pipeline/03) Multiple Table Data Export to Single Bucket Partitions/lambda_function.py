@@ -44,25 +44,6 @@ def lambda_handler(event, context):
     conn = None
     cursor = None
 
-    # One entry per partition. There is only ONE stage, so every
-    # check is a path inside that same stage: @stage/<folder>/
-    targets = [
-        {
-            "source_table": "STUDENT_RECORDS",
-            "stage_path": "@PARTITION_S3_EXPORT_STAGE/student/",
-            "partition": "student/",
-            "file": "student_records.csv",
-            "s3_path": "s3://snowflake-partition-export-2026/student/student_records.csv",
-        },
-        {
-            "source_table": "COLLEGE_RECORDS",
-            "stage_path": "@PARTITION_S3_EXPORT_STAGE/college/",
-            "partition": "college/",
-            "file": "college_records.csv",
-            "s3_path": "s3://snowflake-partition-export-2026/college/college_records.csv",
-        },
-    ]
-
     try:
 
         # ---------------------------------------------------------
@@ -116,37 +97,54 @@ def lambda_handler(event, context):
         # ---------------------------------------------------------
 
         print("[3/4] Checking both partitions in the S3 bucket...")
+
+        cursor.execute(
+            "LIST @PARTITION_S3_EXPORT_STAGE/student/"
+        )
+
+        student_files = cursor.fetchall()
+
+        print("      Stage Path           : @PARTITION_S3_EXPORT_STAGE/student/")
+
+        if student_files:
+
+            print(f"      Files Found          : {len(student_files)}")
+
+            for file in student_files:
+
+                print(f"      File Name            : {file[0]}")
+                print(f"      File Size            : {file[1]} bytes")
+                print(f"      MD5                  : {file[2]}")
+
+        else:
+
+            print("      WARNING: No files found in the student partition.")
+
         print()
 
-        for target in targets:
+        cursor.execute(
+            "LIST @PARTITION_S3_EXPORT_STAGE/college/"
+        )
 
-            cursor.execute(
-                f"LIST {target['stage_path']}"
-            )
+        college_files = cursor.fetchall()
 
-            files = cursor.fetchall()
+        print("      Stage Path           : @PARTITION_S3_EXPORT_STAGE/college/")
 
-            target["files_found"] = len(files)
+        if college_files:
 
-            print(f"      Source Table         : {target['source_table']}")
-            print(f"      Stage Path           : {target['stage_path']}")
-            print(f"      Partition            : {target['partition']}")
+            print(f"      Files Found          : {len(college_files)}")
 
-            if files:
+            for file in college_files:
 
-                print(f"      Files Found          : {len(files)}")
+                print(f"      File Name            : {file[0]}")
+                print(f"      File Size            : {file[1]} bytes")
+                print(f"      MD5                  : {file[2]}")
 
-                for file in files:
+        else:
 
-                    print(f"      File Name            : {file[0]}")
-                    print(f"      File Size            : {file[1]} bytes")
-                    print(f"      MD5                  : {file[2]}")
+            print("      WARNING: No files found in the college partition.")
 
-            else:
-
-                print("      WARNING: No files found in this partition.")
-
-            print()
+        print()
 
         # ---------------------------------------------------------
         # 4. PIPELINE SUCCESS
@@ -164,12 +162,10 @@ def lambda_handler(event, context):
         print("Export Stage              : @PARTITION_S3_EXPORT_STAGE")
         print("Target Bucket             : snowflake-partition-export-2026")
         print("Export Format             : CSV")
-
-        for target in targets:
-            print(f"Partition                 : {target['partition']}")
-            print(f"  Export Target           : {target['s3_path']}")
-            print(f"  Files Generated         : {target['files_found']}")
-
+        print("Export Target 1           : s3://snowflake-partition-export-2026/student/student_records.csv")
+        print(f"Files Generated 1         : {len(student_files)}")
+        print("Export Target 2           : s3://snowflake-partition-export-2026/college/college_records.csv")
+        print(f"Files Generated 2         : {len(college_files)}")
         print(f"Execution Time            : {execution_time} seconds")
         print("Final Status              : SUCCESS")
         print("------------------------------------------------------------------")
@@ -185,17 +181,15 @@ def lambda_handler(event, context):
                 "stored_procedure": "EXPORT_STUDENT_AND_COLLEGE_PARTITIONS_TO_S3",
                 "stage": "@PARTITION_S3_EXPORT_STAGE",
                 "bucket": "snowflake-partition-export-2026",
-                "exports": [
-                    {
-                        "source_table": target["source_table"],
-                        "stage_path": target["stage_path"],
-                        "partition": target["partition"],
-                        "file": target["file"],
-                        "s3_path": target["s3_path"],
-                        "files_generated": target["files_found"],
-                    }
-                    for target in targets
+                "stage_paths": [
+                    "@PARTITION_S3_EXPORT_STAGE/student/",
+                    "@PARTITION_S3_EXPORT_STAGE/college/"
                 ],
+                "s3_paths": [
+                    "s3://snowflake-partition-export-2026/student/student_records.csv",
+                    "s3://snowflake-partition-export-2026/college/college_records.csv"
+                ],
+                "files_generated": [len(student_files), len(college_files)],
                 "execution_time_seconds": execution_time
             }
         }

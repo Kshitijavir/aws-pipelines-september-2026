@@ -1,0 +1,36 @@
+{
+  "Name": "snowflake-pipeline-file-arrival-rule",
+  "Description": "Matches every CSV that lands in the raw/ folder of the S3 bucket and starts the Snowflake pipeline state machine.",
+  "State": "ENABLED",
+  "EventPattern": {
+    "source": ["aws.s3"],
+    "detail-type": ["Object Created"],
+    "detail": {
+      "bucket": {
+        "name": ["snowflake-step-functions-pipeline-2026"]
+      },
+      "object": {
+        "key": [
+          {
+            "prefix": "raw/"
+          },
+          {
+            "suffix": ".csv"
+          }
+        ]
+      }
+    }
+  },
+  "Targets": [
+    {
+      "Id": "snowflake-pipeline-state-machine",
+      "Arn": "arn:aws:states:us-east-1:772346609795:stateMachine:snowflake-pipeline-state-machine",
+      "RoleArn": "arn:aws:iam::772346609795:role/SnowflakeStepFunctionsPracticeRole",
+      "InputPath": "$",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 2
+      }
+    }
+  ]
+}

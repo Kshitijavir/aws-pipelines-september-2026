@@ -1,0 +1,19 @@
+{
+  "status": "SUCCESS",
+  "trigger": "Manual Test Invocation",
+  "detail": {
+    "statusCode": 200,
+    "body": {
+      "sp1_query_id": "01b5f0c9-0001-9c8d-0000-000000000000",
+      "sp1_file_name": "orders_2026_10_03.csv",
+      "sp1_status": "SUCCESS",
+      "sp1_rows_loaded": 8,
+      "sp2_status": "SUCCESS",
+      "sp2_rows_read": 8,
+      "sp2_customers_loaded": 8,
+      "sp2_products_loaded": 4,
+      "sp2_facts_loaded": 8,
+      "sp2_run_id": 1
+    }
+  }
+}

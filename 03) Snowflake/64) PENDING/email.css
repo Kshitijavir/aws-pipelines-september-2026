@@ -1,0 +1,396 @@
+/* ==========================================================================
+   64) Snowflake Pipeline Notification - email styles
+
+   Lambda injects this file into email.html before sending through Amazon SES.
+   Keep to simple, widely supported CSS, because mail clients are picky.
+   ========================================================================== */
+
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 24px 12px;
+    background-color: #f4f1ea;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: #1f2430;
+}
+
+.email-wrapper {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.email-card {
+    background-color: #ffffff;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #e2ddd2;
+}
+
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+
+.header {
+    background-color: #232f3e;
+    padding: 22px 28px;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.brand-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.2px;
+}
+
+.brand-subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #b9c2cf;
+}
+
+.aws-badge {
+    background-color: #ff9900;
+    color: #232f3e;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 999px;
+}
+
+
+/* --------------------------------------------------------------------------
+   Content
+   -------------------------------------------------------------------------- */
+
+.content {
+    padding: 26px 28px 8px 28px;
+}
+
+
+/* --------------------------------------------------------------------------
+   Status banner
+   -------------------------------------------------------------------------- */
+
+.status-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid #e2ddd2;
+    background-color: #faf8f4;
+}
+
+.status-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 38px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    background-color: #6b7280;
+}
+
+.status-content {
+    flex: 1;
+}
+
+.status-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.status-description {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #55607a;
+}
+
+
+/* Success colours */
+
+.success-theme .status-banner {
+    background-color: #edfaf1;
+    border-color: #b7e4c7;
+}
+
+.success-theme .status-icon {
+    background-color: #1f9d55;
+}
+
+.success-theme .status-title {
+    color: #1a7f45;
+}
+
+.success-theme .status-badge {
+    background-color: #edfaf1;
+    color: #1a7f45;
+    border-color: #b7e4c7;
+}
+
+.success-theme .footer-dot {
+    background-color: #1f9d55;
+}
+
+
+/* Failure colours */
+
+.failed-theme .status-banner {
+    background-color: #fdeeee;
+    border-color: #f3bdbd;
+}
+
+.failed-theme .status-icon {
+    background-color: #c0392b;
+}
+
+.failed-theme .status-title {
+    color: #a5271b;
+}
+
+.failed-theme .status-badge {
+    background-color: #fdeeee;
+    color: #a5271b;
+    border-color: #f3bdbd;
+}
+
+.failed-theme .footer-dot {
+    background-color: #c0392b;
+}
+
+
+/* --------------------------------------------------------------------------
+   Text blocks
+   -------------------------------------------------------------------------- */
+
+.intro-text {
+    margin: 22px 0 6px 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #55607a;
+}
+
+.intro-text strong {
+    color: #1f2430;
+}
+
+.section-title {
+    margin: 24px 0 10px 0;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    color: #8a8f9c;
+}
+
+
+/* --------------------------------------------------------------------------
+   Details card
+   -------------------------------------------------------------------------- */
+
+.details-card {
+    border: 1px solid #e2ddd2;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #ffffff;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 11px 16px;
+    border-bottom: 1px solid #f0ece4;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 12px;
+    color: #8a8f9c;
+}
+
+.detail-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1f2430;
+    text-align: right;
+    word-break: break-word;
+}
+
+.status-cell {
+    text-align: right;
+}
+
+.status-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid #e2ddd2;
+    background-color: #faf8f4;
+    letter-spacing: 0.4px;
+}
+
+
+/* --------------------------------------------------------------------------
+   Failure details
+   -------------------------------------------------------------------------- */
+
+.error-card {
+    border: 1px solid #f3bdbd;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #fdf7f7;
+}
+
+.error-row {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f6dede;
+}
+
+.error-row:last-child {
+    border-bottom: none;
+}
+
+.error-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #a5271b;
+    margin-bottom: 4px;
+}
+
+.error-value {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #5c2b24;
+    word-break: break-word;
+}
+
+
+/* --------------------------------------------------------------------------
+   Notification box
+   -------------------------------------------------------------------------- */
+
+.notification-box {
+    display: flex;
+    gap: 12px;
+    margin: 24px 0 8px 0;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #cfd8e3;
+    background-color: #f4f7fb;
+}
+
+.notification-icon {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 26px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+    background-color: #4a6fa5;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2c3e57;
+    margin-bottom: 4px;
+}
+
+.notification-text {
+    font-size: 12px;
+    line-height: 1.65;
+    color: #55607a;
+}
+
+.failed-theme .notification-box {
+    border-color: #f3bdbd;
+    background-color: #fdf7f7;
+}
+
+.failed-theme .notification-icon {
+    background-color: #c0392b;
+}
+
+.failed-theme .notification-title {
+    color: #a5271b;
+}
+
+
+/* --------------------------------------------------------------------------
+   Closing and footer
+   -------------------------------------------------------------------------- */
+
+.closing-message {
+    margin: 18px 0 8px 0;
+    font-size: 12px;
+    line-height: 1.65;
+    color: #8a8f9c;
+}
+
+.footer {
+    margin-top: 26px;
+    padding: 18px 28px 22px 28px;
+    background-color: #faf8f4;
+    border-top: 1px solid #e2ddd2;
+}
+
+.footer-brand {
+    font-size: 12px;
+    font-weight: 700;
+    color: #55607a;
+}
+
+.footer-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin: 0 7px;
+    background-color: #6b7280;
+}
+
+.footer-meta {
+    margin-top: 7px;
+    font-size: 11px;
+    color: #8a8f9c;
+}
+
+.footer-note {
+    margin-top: 5px;
+    font-size: 11px;
+    color: #a3a7b1;
+}

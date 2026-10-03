@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Snowflake Pipeline Notification</title>
+
+    <!-- CSS is injected by Lambda -->
+
+</head>
+
+
+<body>
+
+    <div class="email-wrapper">
+
+        <div class="email-card {{STATUS_CLASS}}-theme">
+
+
+            <!-- ========================================================= -->
+            <!-- HEADER -->
+            <!-- ========================================================= -->
+
+            <div class="header">
+
+                <div class="header-content">
+
+                    <div>
+
+                        <div class="brand-title">
+                            Snowflake Pipeline
+                        </div>
+
+                        <div class="brand-subtitle">
+                            S3, EventBridge, Step Functions, Snowflake and SES
+                        </div>
+
+                    </div>
+
+                    <div class="aws-badge">
+                        AWS
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ========================================================= -->
+            <!-- CONTENT -->
+            <!-- ========================================================= -->
+
+            <div class="content">
+
+
+                <!-- STATUS BANNER -->
+
+                <div class="status-banner">
+
+                    <div class="status-icon">
+                        {{STATUS_ICON}}
+                    </div>
+
+                    <div class="status-content">
+
+                        <div class="status-title">
+                            {{STATUS_TITLE}}
+                        </div>
+
+                        <div class="status-description">
+                            {{STATUS_DESCRIPTION}}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- INTRODUCTION -->
+
+                <div class="intro-text">
+
+                    The pipeline
+
+                    <strong>{{PIPELINE_NAME}}</strong>
+
+                    finished with status
+
+                    <strong>{{STATUS}}</strong>.
+
+                </div>
+
+
+                <!-- RUN DETAILS -->
+
+                <div class="section-title">
+                    Run Details
+                </div>
+
+                <div class="details-card">
+
+                    {{DETAIL_ROWS}}
+
+                    <div class="detail-row">
+
+                        <div class="detail-label">
+                            Final Status
+                        </div>
+
+                        <div class="detail-value status-cell">
+
+                            <span class="status-badge">
+                                {{STATUS}}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FAILURE DETAILS (empty on success) -->
+
+                {{ERROR_SECTION}}
+
+
+                <!-- WHAT HAPPENED -->
+
+                <div class="notification-box">
+
+                    <div class="notification-icon">
+                        i
+                    </div>
+
+                    <div class="notification-content">
+
+                        <div class="notification-title">
+                            {{NOTIFICATION_TITLE}}
+                        </div>
+
+                        <div class="notification-text">
+                            {{NOTIFICATION_MESSAGE}}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="closing-message">
+                    This message was generated automatically by AWS Step Functions
+                    and delivered by Amazon SES.
+                </div>
+
+
+            </div>
+
+
+            <!-- ========================================================= -->
+            <!-- FOOTER -->
+            <!-- ========================================================= -->
+
+            <div class="footer">
+
+                <div class="footer-brand">
+                    Snowflake Pipeline Notification
+                    <span class="footer-dot"></span>
+                    AWS
+                </div>
+
+                <div class="footer-meta">
+                    Region: {{REGION}}
+                </div>
+
+                <div class="footer-note">
+                    Automated notification. Please do not reply to this message.
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

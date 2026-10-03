@@ -1,0 +1,9 @@
+ORDER_ID,CUSTOMER_NAME,CITY,PRODUCT_NAME,CATEGORY,QUANTITY,PRICE,ORDER_DATE
+5001,Kshitij,Pune,Laptop,Electronics,1,78000,2026-10-01
+5002,Rahul,Mumbai,Monitor,Electronics,2,15000,2026-10-01
+5003,Amit,Bangalore,Office Chair,Furniture,4,8500,2026-10-02
+5004,Sneha,Pune,Laptop,Electronics,1,92000,2026-10-02
+5005,Priya,Hyderabad,Printer,Electronics,1,18500,2026-10-02
+5006,Neha,Chennai,Desk,Furniture,3,12000,2026-10-03
+5007,Vikram,Delhi,Monitor,Electronics,1,14500,2026-10-03
+5008,Anjali,Kolkata,Office Chair,Furniture,2,8800,2026-10-03

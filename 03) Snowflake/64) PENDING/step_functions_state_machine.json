@@ -1,0 +1,163 @@
+{
+  "Comment": "64) S3 -> EventBridge -> Step Functions -> Snowflake SP1 -> SP2 -> SES. Lambda 1 starts SP1 asynchronously and returns the Snowflake Query ID. Step Functions waits 3 minutes, checks SP1 with Lambda 2, loops while SP1 is RUNNING, then runs SP2 with Lambda 3 and emails the result.",
+  "StartAt": "StartSP1",
+  "States": {
+
+    "StartSP1": {
+      "Type": "Task",
+      "Comment": "Lambda 1: CALL SP1_LOAD_STAGING(file) asynchronously and return the Query ID.",
+      "Resource": "arn:aws:lambda:us-east-1:772346609795:function:snowflake-sp1-start-lambda",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "SendFailureEmail"
+        }
+      ],
+      "Next": "WasSP1Started"
+    },
+
+    "WasSP1Started": {
+      "Type": "Choice",
+      "Comment": "Lambda 1 either submitted SP1 or returned a FAILED body. Failing here saves a pointless 3 minute wait.",
+      "Choices": [
+        {
+          "Variable": "$.body.status",
+          "StringEquals": "SUBMITTED",
+          "Next": "WaitForSP1"
+        }
+      ],
+      "Default": "SendFailureEmail"
+    },
+
+    "WaitForSP1": {
+      "Type": "Wait",
+      "Comment": "Gives SP1 3 minutes to load the file.",
+      "Seconds": 180,
+      "Next": "CheckSP1Status"
+    },
+
+    "CheckSP1Status": {
+      "Type": "Task",
+      "Comment": "Lambda 2: look up the Query ID in Snowflake query history and read AUDIT_TABLE_1.",
+      "Resource": "arn:aws:lambda:us-east-1:772346609795:function:snowflake-sp1-status-lambda",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "SendFailureEmail"
+        }
+      ],
+      "Next": "IsSP1Finished"
+    },
+
+    "IsSP1Finished": {
+      "Type": "Choice",
+      "Comment": "SUCCESS goes on to SP2, FAILURE sends the failure email, anything else (RUNNING) waits another 3 minutes.",
+      "Choices": [
+        {
+          "Variable": "$.body.sp1_status",
+          "StringEquals": "SUCCESS",
+          "Next": "RunSP2"
+        },
+        {
+          "Variable": "$.body.sp1_status",
+          "StringEquals": "FAILURE",
+          "Next": "SendFailureEmail"
+        }
+      ],
+      "Default": "WaitForSP1"
+    },
+
+    "RunSP2": {
+      "Type": "Task",
+      "Comment": "Lambda 3: CALL SP2_LOAD_STAR_SCHEMA() and wait for it to finish.",
+      "Resource": "arn:aws:lambda:us-east-1:772346609795:function:snowflake-sp2-run-lambda",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 15,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "SendFailureEmail"
+        }
+      ],
+      "Next": "IsSP2Finished"
+    },
+
+    "IsSP2Finished": {
+      "Type": "Choice",
+      "Comment": "SP2 reports its own result, so a failure inside the procedure still sends the failure email.",
+      "Choices": [
+        {
+          "Variable": "$.body.sp2_status",
+          "StringEquals": "SUCCESS",
+          "Next": "SendSuccessEmail"
+        }
+      ],
+      "Default": "SendFailureEmail"
+    },
+
+    "SendSuccessEmail": {
+      "Type": "Task",
+      "Comment": "Email Lambda: send the SUCCESS notification through Amazon SES.",
+      "Resource": "arn:aws:lambda:us-east-1:772346609795:function:snowflake-pipeline-email-lambda",
+      "Parameters": {
+        "status": "SUCCESS",
+        "trigger": "Step Functions",
+        "detail.$": "$"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.emailError",
+          "Next": "SendFailureEmail"
+        }
+      ],
+      "End": true
+    },
+
+    "SendFailureEmail": {
+      "Type": "Task",
+      "Comment": "Email Lambda: send the FAILURE notification for the whole run.",
+      "Resource": "arn:aws:lambda:us-east-1:772346609795:function:snowflake-pipeline-email-lambda",
+      "Parameters": {
+        "status": "FAILED",
+        "trigger": "Step Functions",
+        "detail.$": "$"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "End": true
+    }
+
+  }
+}

@@ -31,7 +31,6 @@ import snowflake.connector
 REGION = "us-east-1"
 
 RAW_BUCKET = "snowflake-step-functions-pipeline-2026"
-RAW_PREFIX = "raw/"
 
 SNOWFLAKE_USER = "KSHITIJ"
 SNOWFLAKE_PASSWORD = "<YOUR_SNOWFLAKE_PASSWORD>"
@@ -42,8 +41,9 @@ SNOWFLAKE_SCHEMA = "PIPELINE_SCHEMA"
 
 STEP_FUNCTION_NAME = "snowflake-pipeline-state-machine"
 
-# Only a plain CSV file name is allowed through to the procedure.
-ALLOWED_FILE_NAME = re.compile(r"^[A-Za-z0-9._/-]+\.csv$")
+# The file name is put inside the CALL statement, so keep it to a plain
+# object name: letters, digits, dot, dash, underscore and slash only.
+ALLOWED_FILE_NAME = re.compile(r"^[A-Za-z0-9._/-]+$")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -103,11 +103,10 @@ def get_connection():
 # Read the File Name From the S3 Event
 #
 # EventBridge sends the S3 event to Step Functions, and Step Functions passes
-# it here. The file name lives in detail.object.key, for example
-# "raw/orders_2026_10_03.csv".
+# it here. The file name lives in detail.object.key.
 #
-# The stage points at the raw/ folder, so the prefix is removed before the
-# name reaches SP1.
+# The stage points at the root of the bucket, so the key itself is the name
+# the procedure needs.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def resolve_file_name(event):
@@ -136,12 +135,9 @@ def resolve_file_name(event):
 
     file_name = s3_key
 
-    if file_name.startswith(RAW_PREFIX):
-        file_name = file_name[len(RAW_PREFIX):]
-
     if not ALLOWED_FILE_NAME.match(file_name):
         raise ValueError(
-            f"File name '{file_name}' is not an accepted CSV name."
+            f"File name '{file_name}' is not an accepted object name."
         )
 
     return bucket or RAW_BUCKET, s3_key, file_name

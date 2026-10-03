@@ -40,7 +40,7 @@ AWS
  ├── 4. Delete the role SnowflakeStepFunctionsPracticeRole
  ├── 5. Delete the role SnowflakeStepFunctionsSnowflakeRole
  ├── 6. Empty the bucket snowflake-step-functions-pipeline-2026
- │        (the raw/ folder and the CSV inside it are still there)
+ │        (the CSV file is still inside it)
  └── 7. Delete the bucket snowflake-step-functions-pipeline-2026
 ```
 
@@ -77,6 +77,6 @@ AWS
 - Drop the stage and the integration **before** you delete `SnowflakeStepFunctionsSnowflakeRole`. Otherwise Snowflake still points at a role that no longer exists.
 - Delete the Lambdas before `SnowflakeStepFunctionsPracticeRole`. AWS refuses to delete a role that is still attached to a function or to a state machine.
 - The state machine must be deleted before that role too, because the role is the state machine's execution role.
-- Empty the S3 bucket before deleting it. AWS will not delete a bucket that still has objects, and the CSV file is still inside `raw/`.
-- While the EventBridge rule exists, **every** CSV uploaded to `raw/` starts a run. Delete or disable the rule before you experiment with the bucket.
+- Empty the S3 bucket before deleting it. AWS will not delete a bucket that still has objects, and the uploaded file is still inside it.
+- While the EventBridge rule exists, **every** file uploaded to the bucket starts a run. Delete or disable the rule before you experiment with the bucket.
 - The Snowflake audit tables (`AUDIT_TABLE_1`, `AUDIT_TABLE_2`) are dropped with the schema, so the run history goes with them. Export `SELECT * FROM AUDIT_TABLE_1` first if you want to keep a record.

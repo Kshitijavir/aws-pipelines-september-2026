@@ -18,15 +18,10 @@ Everything below lives in **us-east-1**, in AWS account **772346609795**.
 | [email_lambda.py](email_lambda.py) | Email Lambda — sends the SUCCESS / FAILURE email through SES |
 | [email.html](email.html), [email.css](email.css) | The HTML email template Lambda injects the CSS into |
 | [step_functions_state_machine.json](step_functions_state_machine.json) | The Step Functions definition, including the 3 minute Wait |
-| [eventbridge_s3_rule.json](eventbridge_s3_rule.json) | The EventBridge rule that matches a CSV arriving in `raw/` |
+| [eventbridge_s3_rule.json](eventbridge_s3_rule.json) | The EventBridge rule that starts a run when any file lands in the bucket |
 | [trust_policy_aws_role.json](trust_policy_aws_role.json) | Trust policy for the AWS services role (`lambda.amazonaws.com`, `states.amazonaws.com`) |
 | [trust_policy_snowflake_role.json](trust_policy_snowflake_role.json) | Trust policy for the Snowflake role (Snowflake's IAM user + external ID) |
-| [sample_orders.csv](sample_orders.csv) | A ready-made file to upload to `raw/` for a test run |
-| [test_event_lambda1.json](test_event_lambda1.json) | Test event for Lambda 1 — looks like a real EventBridge S3 event |
-| [test_event_lambda2.json](test_event_lambda2.json) | Test event for Lambda 2 — a Query ID |
-| [test_event_lambda3.json](test_event_lambda3.json) | Test event for Lambda 3 — what Lambda 2 returns |
-| [test_email_success.json](test_email_success.json) | Test event for the Email Lambda — a successful run |
-| [test_email_failure.json](test_email_failure.json) | Test event for the Email Lambda — a failed run |
+| [sample_orders.csv](sample_orders.csv) | A ready-made file to upload to the bucket for a test run |
 | [cleanup.md](cleanup.md) | Removes every Snowflake and AWS object again |
 
 ---
@@ -57,8 +52,10 @@ Then create the folder the files land in:
 
 ```text
 snowflake-step-functions-pipeline-2026
-└── raw/                 <-- every CSV that arrives here starts a run
+└── (the bucket root)    <-- any file uploaded here starts a run
 ```
+
+> 💡 There is no folder to create. Upload the file straight into the bucket, so the key is just the file name, for example `orders_2026_10_03.csv`.
 
 ### Turn on EventBridge notifications
 
@@ -87,7 +84,7 @@ The file travels **S3 → Snowflake**, so this role only needs to **read**:
 | -------------- | --- |
 | `AmazonS3ReadOnlyAccess` | Lets Snowflake read the CSV from the bucket |
 
-> 💡 For production, replace that with an inline policy limited to `s3:GetObject` and `s3:ListBucket` on `arn:aws:s3:::snowflake-step-functions-pipeline-2026/raw/*`.
+> 💡 For production, replace that with an inline policy limited to `s3:GetObject` and `s3:ListBucket` on `arn:aws:s3:::snowflake-step-functions-pipeline-2026/*`.
 
 ---
 
@@ -234,18 +231,19 @@ Paste the event pattern and target from [eventbridge_s3_rule.json](eventbridge_s
 
 | Setting | Value |
 | ------- | ----- |
-| Event pattern | `source = aws.s3`, `detail-type = Object Created`, bucket `snowflake-step-functions-pipeline-2026`, key prefix `raw/`, key suffix `.csv` |
+| Event pattern | `source = aws.s3`, `detail-type = Object Created`, bucket `snowflake-step-functions-pipeline-2026` |
 | Target | the Step Functions state machine `snowflake-pipeline-state-machine` |
 | Execution role | `SnowflakeStepFunctionsPracticeRole` |
+
+> 💡 The pattern only looks at the bucket. No key prefix and no file extension are hardcoded, so **any** file uploaded to the bucket starts a run at the root level.
 
 ---
 
 ## ✅ STEP 10 — Test the Pipeline End to End
 
 ```text
-1. Upload sample_orders.csv to  s3://snowflake-step-functions-pipeline-2026/raw/
-   (rename it if you like, for example orders_2026_10_03.csv — it must keep
-    the .csv extension and land under raw/)
+1. Upload sample_orders.csv to  s3://snowflake-step-functions-pipeline-2026/
+   (the bucket root. Rename it if you like, for example orders_2026_10_03.csv)
 
 2. EventBridge matches the file and starts snowflake-pipeline-state-machine
 
@@ -261,16 +259,7 @@ Paste the event pattern and target from [eventbridge_s3_rule.json](eventbridge_s
    (look in Spam the first time)
 ```
 
-To test a **failure**, upload a CSV whose columns do not match `STAGING_ORDERS`, or point Lambda 1 at a file name that does not exist. SP1 records the failure in `AUDIT_TABLE_1`, Lambda 2 reports `FAILURE`, and the pipeline sends the failure email instead of running SP2.
-
-You can also test the pieces on their own, before wiring EventBridge up:
-
-| Function | Test event |
-| -------- | ---------- |
-| `snowflake-sp1-start-lambda` | [test_event_lambda1.json](test_event_lambda1.json) |
-| `snowflake-sp1-status-lambda` | [test_event_lambda2.json](test_event_lambda2.json) |
-| `snowflake-sp2-run-lambda` | [test_event_lambda3.json](test_event_lambda3.json) |
-| `snowflake-pipeline-email-lambda` | [test_email_success.json](test_email_success.json), [test_email_failure.json](test_email_failure.json) |
+To test a **failure**, upload a file whose columns do not match `STAGING_ORDERS`, or point Lambda 1 at a file name that does not exist. SP1 records the failure in `AUDIT_TABLE_1`, Lambda 2 reports `FAILURE`, and the pipeline sends the failure email instead of running SP2.
 
 ---
 

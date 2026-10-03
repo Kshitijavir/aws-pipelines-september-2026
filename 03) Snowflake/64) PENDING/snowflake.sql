@@ -83,7 +83,7 @@ CREATE OR REPLACE STORAGE INTEGRATION S3_PIPELINE_INTEGRATION
     STORAGE_AWS_ROLE_ARN =
         'arn:aws:iam::772346609795:role/SnowflakeStepFunctionsSnowflakeRole'
     STORAGE_ALLOWED_LOCATIONS = (
-        's3://snowflake-step-functions-pipeline-2026/raw/'
+        's3://snowflake-step-functions-pipeline-2026/'
     );
 
 
@@ -101,11 +101,11 @@ DESC INTEGRATION S3_PIPELINE_INTEGRATION;
 
 -- ============================================================
 -- 7. CREATE EXTERNAL STAGE
--- Points at the raw/ folder of the S3 bucket, where the file arrives
+-- Points at the root of the S3 bucket, where the file arrives
 -- ============================================================
 
 CREATE OR REPLACE STAGE RAW_S3_PIPELINE_STAGE
-    URL = 's3://snowflake-step-functions-pipeline-2026/raw/'
+    URL = 's3://snowflake-step-functions-pipeline-2026/'
     STORAGE_INTEGRATION = S3_PIPELINE_INTEGRATION
     FILE_FORMAT = RAW_ORDERS_CSV_FORMAT;
 
@@ -116,7 +116,7 @@ DESC STAGE RAW_S3_PIPELINE_STAGE;
 
 -- ============================================================
 -- 8. TEST S3 CONNECTIVITY
--- Lists the files sitting in the raw/ folder right now
+-- Lists the files sitting in the bucket right now
 --
 -- "0 rows" is fine before you upload a file. What matters is that you
 -- do NOT get "Access Denied".
@@ -219,7 +219,7 @@ DESC TABLE AUDIT_TABLE_2;
 -- Called by Lambda 1 (function snowflake-sp1-start-lambda),
 -- asynchronously.
 --
--- P_FILE_NAME is the file name inside the stage folder, for example
+-- P_FILE_NAME is the file name as it sits in the bucket, for example
 -- orders_2026_10_03.csv. Lambda takes it from the S3 event, so SP1
 -- loads exactly the file that just arrived.
 --

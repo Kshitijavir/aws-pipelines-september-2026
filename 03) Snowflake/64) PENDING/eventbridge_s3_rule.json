@@ -1,6 +1,6 @@
 {
   "Name": "snowflake-pipeline-file-arrival-rule",
-  "Description": "Matches every CSV that lands in the raw/ folder of the S3 bucket and starts the Snowflake pipeline state machine.",
+  "Description": "Matches any file created in the S3 bucket and starts the Snowflake pipeline state machine.",
   "State": "ENABLED",
   "EventPattern": {
     "source": ["aws.s3"],
@@ -8,16 +8,6 @@
     "detail": {
       "bucket": {
         "name": ["snowflake-step-functions-pipeline-2026"]
-      },
-      "object": {
-        "key": [
-          {
-            "prefix": "raw/"
-          },
-          {
-            "suffix": ".csv"
-          }
-        ]
       }
     }
   },
